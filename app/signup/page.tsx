@@ -71,7 +71,15 @@ export default function Signup() {
     };
 
     localStorage.setItem(`user_${formData.email}`, JSON.stringify(userData));
-    alert(language === 'ar' ? 'تم الإنشاء بنجاح' : 'Created successfully');
+
+const users = JSON.parse(localStorage.getItem('users') || '[]');
+const alreadyExists = users.find((u: any) => u.email === formData.email);
+if (!alreadyExists) {
+  users.push(userData);
+  localStorage.setItem('users', JSON.stringify(users));
+}
+
+alert(language === 'ar' ? 'تم الإنشاء بنجاح' : 'Created successfully');
     router.push('/login');
   };
 

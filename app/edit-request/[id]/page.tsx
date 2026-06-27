@@ -59,7 +59,7 @@ export default function EditRequest() {
         terrazzo: found.terrazzo,
         location: found.location,
         deadline: found.deadline,
-        budget: found.budget.toString(),
+       budget: found.budget ? found.budget.toString() : '',
         description: found.description
       });
     } else {
