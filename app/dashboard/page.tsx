@@ -43,6 +43,7 @@ export default function Dashboard() {
   const [lowestPrice, setLowestPrice] = useState<number | null>(null);
   const [avgPrice, setAvgPrice] = useState<number | null>(null);
   const [acceptedQuotes, setAcceptedQuotes] = useState(0);
+  const [draftsCount, setDraftsCount] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -73,6 +74,11 @@ export default function Dashboard() {
         setLowestPrice(Math.min(...prices));
         setAvgPrice(Math.round(prices.reduce((a, b) => a + b, 0) / prices.length));
       }
+
+      const allDrafts = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
+      const myDrafts = allDrafts.filter((d: any) => d.contractorId === parsedUser.email);
+      setDraftsCount(myDrafts.length);
+
     } else {
       setAllOpenRequests(allRequests.filter(req =>
         req.status === 'open' &&
@@ -173,10 +179,35 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* المسودات */}
+            {draftsCount > 0 && (
+              <div style={{ backgroundColor: '#fffbf0', border: '2px solid #ffc107', borderRadius: '8px', padding: '20px', marginBottom: '20px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                onClick={() => router.push('/drafts')}
+              >
+                <div>
+                  <h3 style={{ color: '#333', margin: '0 0 6px 0', fontSize: '15px' }}>
+                    {language === 'ar' ? 'المسودات غير المكتملة' : 'Incomplete Drafts'}
+                  </h3>
+                  <p style={{ color: '#856404', margin: 0, fontSize: '13px' }}>
+                    {language === 'ar' ? 'اضغط لاستكمالها' : 'Click to continue'}
+                  </p>
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <p style={{ fontSize: '36px', fontWeight: 'bold', color: '#ffc107', margin: 0 }}>{draftsCount}</p>
+                  <p style={{ fontSize: '12px', color: '#856404', margin: 0 }}>
+                    {language === 'ar' ? 'مسودة' : 'Draft(s)'}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div style={{ textAlign: 'center' }}>
-              <a href="/create-request" style={{ display: 'inline-block', padding: '12px 24px', backgroundColor: '#28a745', color: 'white', textDecoration: 'none', borderRadius: '4px', fontSize: '16px', fontWeight: 'bold' }}>
+              <button
+                onClick={() => { localStorage.removeItem('createRequestDraft'); localStorage.removeItem('currentDraftId'); window.location.href = '/create-request'; }}
+                style={{ display: 'inline-block', padding: '12px 24px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
+              >
                 {language === 'ar' ? '+ طلب جديد' : '+ New Request'}
-              </a>
+              </button>
             </div>
           </>
         ) : (
