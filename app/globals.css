@@ -24,3 +24,10 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+@media print {
+  * { display: none !important; }
+  .print-area, .print-area * { display: revert !important; }
+  .no-print { display: none !important; }
+  body { background: white !important; margin: 0 !important; }
+  @page { margin: 1cm; size: A4 landscape; }
+}
