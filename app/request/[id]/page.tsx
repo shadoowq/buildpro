@@ -130,7 +130,7 @@ export default function RequestDetails() {
           </div>
           <div>
             <p style={{ margin: '5px 0', color: '#666' }}>
-              <strong>{language === 'ar' ? 'الميزانية:' : 'Budget:'}</strong> {request.budget.toLocaleString()} {language === 'ar' ? 'ر.س' : 'SAR'}
+              <strong>{language === 'ar' ? 'الميزانية:' : 'Budget:'}</strong> {request.budget ? Number(request.budget).toLocaleString() : '—'} {language === 'ar' ? 'ر.س' : 'SAR'}
             </p>
           </div>
           <div>
