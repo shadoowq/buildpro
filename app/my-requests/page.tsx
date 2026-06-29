@@ -51,7 +51,21 @@ interface Rating {
   comment: string;
   createdAt: string;
 }
-
+const arToEn: Record<string, string> = {
+  'سيراميك': 'Ceramic', 'بورسلان': 'Porcelain', 'رخام': 'Marble',
+  'جرانيت': 'Granite', 'تيرازو': 'Terrazzo', 'حجر طبيعي': 'Natural Stone',
+  'أرضيات': 'Flooring', 'جدران': 'Walls', 'وزر': 'Skirting',
+  'درج': 'Stairs', 'مغاسل': 'Sinks', 'واجهات': 'Facades', 'أسطح': 'Surfaces',
+  'بوليش': 'Polished', 'مات': 'Matte', 'ساتان': 'Satin',
+  'بوشهامر': 'Bush-hammered', 'لابراتو': 'Labradorite', 'أنتيك': 'Antique',
+  'أبيض': 'White', 'كريمي': 'Cream', 'رمادي فاتح': 'Light Gray',
+  'رمادي غامق': 'Dark Gray', 'أسود': 'Black', 'بيج': 'Beige',
+  'بني': 'Brown', 'خشبي': 'Wood', 'أزرق': 'Blue', 'أخضر': 'Green',
+  'وطني': 'Local', 'صيني': 'Chinese', 'أوروبي': 'European',
+  'إيطالي': 'Italian', 'إسباني': 'Spanish', 'تركي': 'Turkish',
+  'عماني': 'Omani', 'إماراتي': 'Emirati', 'مصري': 'Egyptian', 'هندي': 'Indian',
+  'م²': 'm²', 'م طولي': 'Linear m', 'قطعة': 'Piece', 'حبة': 'Unit',
+};
 export default function MyRequests() {
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
   const [user, setUser] = useState<any>(null);
@@ -460,7 +474,7 @@ export default function MyRequests() {
                     <button onClick={(e) => { e.stopPropagation(); toggleRequestStatus(request.id); }}
                       style={{ flex: 1, padding: '8px', backgroundColor: request.status === 'open' ? '#ffc107' : '#28a745', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}
                     >{request.status === 'open' ? (language === 'ar' ? 'إغلاق' : 'Close') : (language === 'ar' ? 'فتح' : 'Reopen')}</button>
-                    <button onClick={(e) => { e.stopPropagation(); router.push(`/edit-request/${request.id}`); }}
+                    <button onClick={(e) => { e.stopPropagation(); router.push(`/create-request?edit=${request.id}`); }}
                       style={{ flex: 1, padding: '8px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}
                     >{language === 'ar' ? 'تعديل' : 'Edit'}</button>
                     {requestQuotes.length > 1 && (
@@ -571,7 +585,7 @@ export default function MyRequests() {
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
             onClick={() => setSelectedRequest(null)}
           >
-            <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', maxWidth: '650px', width: '90%', maxHeight: '85vh', overflowY: 'auto', direction: language === 'ar' ? 'rtl' : 'ltr' }}
+            <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', maxWidth: '1200px', width: '98%', maxHeight: '95vh', overflowY: 'auto', direction: language === 'ar' ? 'rtl' : 'ltr' }}
               onClick={(e) => e.stopPropagation()}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -595,13 +609,62 @@ export default function MyRequests() {
               <p style={{ color: '#333', fontSize: '16px', margin: '10px 0' }}><strong>{language === 'ar' ? 'الموعد:' : 'Deadline:'}</strong> {selectedRequest.deadline}</p>
 
               <h3 style={{ marginTop: '20px', color: '#333' }}>{language === 'ar' ? 'المواد المطلوبة' : 'Required Materials'}</h3>
-              <div style={{ backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '4px', marginBottom: '20px' }}>
-                {selectedRequest.ceramic > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{language === 'ar' ? 'السيراميك:' : 'Ceramic:'}</strong> {selectedRequest.ceramic} m²</p>}
-                {selectedRequest.porcelain > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{language === 'ar' ? 'البورسلين:' : 'Porcelain:'}</strong> {selectedRequest.porcelain} m²</p>}
-                {selectedRequest.marble > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{language === 'ar' ? 'الرخام:' : 'Marble:'}</strong> {selectedRequest.marble} m²</p>}
-                {selectedRequest.granite > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{language === 'ar' ? 'الجرانيت:' : 'Granite:'}</strong> {selectedRequest.granite} m²</p>}
-                {selectedRequest.terrazzo > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{language === 'ar' ? 'التيرازو:' : 'Terrazzo:'}</strong> {selectedRequest.terrazzo} m²</p>}
-              </div>
+              {selectedRequest.materials && selectedRequest.materials.length > 0 ? (
+                <div style={{ overflowX: 'auto', marginBottom: '20px', border: '1px solid #dee2e6', borderRadius: '8px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#f8f9fa' }}>
+                        <th style={{ padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap' }}>#</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap' }}>{language === 'ar' ? 'نوع المادة' : 'Material'}</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap' }}>{language === 'ar' ? 'الاستخدام' : 'Usage'}</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap' }}>{language === 'ar' ? 'المقاس' : 'Size'}</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap' }}>{language === 'ar' ? 'السماكة' : 'Thickness'}</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap' }}>{language === 'ar' ? 'الفنش' : 'Finish'}</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap' }}>{language === 'ar' ? 'اللون' : 'Color'}</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap' }}>{language === 'ar' ? 'الكمية' : 'Qty'}</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap' }}>{language === 'ar' ? 'السعر المستهدف' : 'Target Price'}</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap' }}>{language === 'ar' ? 'الصناعة' : 'Origin'}</th>
+                        <th style={{ padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap' }}>{language === 'ar' ? 'تاريخ التوريد' : 'Delivery Date'}</th>
+<th style={{ padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap' }}>{language === 'ar' ? 'وصف البند' : 'Note'}</th>
+<th style={{ padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap' }}>{language === 'ar' ? 'الصور' : 'Images'}</th>
+                    </thead>
+                    <tbody>
+                      {selectedRequest.materials.map((m: any, index: number) => (
+                        <tr key={index} style={{ borderBottom: '1px solid #f0f0f0', backgroundColor: index % 2 === 0 ? '#fff' : '#fafafa' }}>
+                          <td style={{ padding: '8px', textAlign: 'center', color: '#666' }}>{index + 1}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', color: '#333', fontWeight: 'bold' }}>{language === 'en' ? (arToEn[m.type] || m.type || '—') : (m.type || '—')}</td>
+<td style={{ padding: '8px', textAlign: 'center', color: '#333' }}>{language === 'en' ? (arToEn[m.usage] || m.usage || '—') : (m.usage || '—')}</td>
+<td style={{ padding: '8px', textAlign: 'center', color: '#333' }}>{m.size || '—'}</td>
+<td style={{ padding: '8px', textAlign: 'center', color: '#333' }}>{m.thickness || '—'}</td>
+<td style={{ padding: '8px', textAlign: 'center', color: '#333' }}>{language === 'en' ? (arToEn[m.finish] || m.finish || '—') : (m.finish || '—')}</td>
+<td style={{ padding: '8px', textAlign: 'center', color: '#333' }}>{language === 'en' ? (arToEn[m.color] || m.color || '—') : (m.color || '—')}</td>
+<td style={{ padding: '8px', textAlign: 'center', color: '#333' }}>{m.quantity ? `${m.quantity} ${language === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : '—'}</td>
+<td style={{ padding: '8px', textAlign: 'center', color: '#333' }}>{m.targetPrice ? `${m.targetPrice} ${m.currency || 'ر.س'}` : '—'}</td>
+<td style={{ padding: '8px', textAlign: 'center', color: '#333' }}>{language === 'en' ? (arToEn[m.origin] || m.origin || '—') : (m.origin || '—')}</td>
+<td style={{ padding: '8px', textAlign: 'center', color: '#666', fontSize: '12px' }}>{m.note || '—'}</td>
+<td style={{ padding: '8px', textAlign: 'center' }}>
+  {m.images && m.images.length > 0 ? (
+    <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
+      {m.images.map((img: string, i: number) => (
+        <img key={i} src={img} alt="" style={{ width: '45px', height: '45px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ddd', cursor: 'pointer' }} />
+      ))}
+    </div>
+  ) : '—'}
+</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '4px', marginBottom: '20px' }}>
+                  {selectedRequest.ceramic > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{language === 'ar' ? 'السيراميك:' : 'Ceramic:'}</strong> {selectedRequest.ceramic} m²</p>}
+                  {selectedRequest.porcelain > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{language === 'ar' ? 'البورسلين:' : 'Porcelain:'}</strong> {selectedRequest.porcelain} m²</p>}
+                  {selectedRequest.marble > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{language === 'ar' ? 'الرخام:' : 'Marble:'}</strong> {selectedRequest.marble} m²</p>}
+                  {selectedRequest.granite > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{language === 'ar' ? 'الجرانيت:' : 'Granite:'}</strong> {selectedRequest.granite} m²</p>}
+                  {selectedRequest.terrazzo > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{language === 'ar' ? 'التيرازو:' : 'Terrazzo:'}</strong> {selectedRequest.terrazzo} m²</p>}
+                </div>
+              )}
 
               {selectedRequest.description && (
                 <>
@@ -739,7 +802,7 @@ export default function MyRequests() {
               )}
 
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => router.push(`/edit-request/${selectedRequest.id}`)}
+                <button onClick={() => router.push(`/create-request?edit=${selectedRequest.id}`)}
                   style={{ flex: 1, padding: '12px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
                 >{language === 'ar' ? 'تعديل' : 'Edit'}</button>
                 <button

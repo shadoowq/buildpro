@@ -75,12 +75,14 @@ export default function CreateRequest() {
   const [deadline, setDeadline] = useState('');
   const [description, setDescription] = useState('');
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
-  const [showPreview, setShowPreview] = useState(false);
+ const [showPreview, setShowPreview] = useState(false);
+const [editMode, setEditMode] = useState(false);
+const [editRequestId, setEditRequestId] = useState<number | null>(null);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const router = useRouter();
 
-  useEffect(() => {
+useEffect(() => {
     const userData = localStorage.getItem('currentUser');
     if (!userData) { router.push('/login'); return; }
     const parsedUser = JSON.parse(userData);
@@ -98,15 +100,37 @@ export default function CreateRequest() {
     const savedLang = localStorage.getItem('language') as 'ar' | 'en' || 'ar';
     setLanguage(savedLang);
 
-    const draft = localStorage.getItem(STORAGE_KEY);
-    if (draft) {
-      const parsed = JSON.parse(draft);
-      if (parsed.materials) setMaterials(parsed.materials);
-      if (parsed.location) setLocation(parsed.location);
-      if (parsed.deadline) setDeadline(parsed.deadline);
-      if (parsed.description) setDescription(parsed.description);
-      if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
-      if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
+    const editId = new URLSearchParams(window.location.search).get('edit');
+    if (editId) {
+      const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+      const req = allRequests.find((r: any) => r.id === parseInt(editId));
+      if (req) {
+        setEditMode(true);
+        setEditRequestId(req.id);
+        if (req.materials && req.materials.length > 0) {
+  setMaterials(req.materials.map((m: any) => ({
+    ...m,
+    id: Date.now() + Math.random(),
+    images: m.images ? [...m.images] : [],
+  })));
+}
+        if (req.location) setLocation(req.location);
+        if (req.deadline) setDeadline(req.deadline);
+        if (req.description) setDescription(req.description);
+        if (req.selectedSuppliers) setSelectedSuppliers(req.selectedSuppliers);
+        if (req.attachedFiles) setAttachedFiles(req.attachedFiles);
+      }
+    } else {
+      const draft = localStorage.getItem(STORAGE_KEY);
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        if (parsed.materials) setMaterials(parsed.materials);
+        if (parsed.location) setLocation(parsed.location);
+        if (parsed.deadline) setDeadline(parsed.deadline);
+        if (parsed.description) setDescription(parsed.description);
+        if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
+        if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
+      }
     }
 
     const interval = setInterval(() => {
@@ -170,17 +194,21 @@ export default function CreateRequest() {
     }));
   };
 
-  const handleImageUpload = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
+ const handleImageUpload = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const row = materials.find(r => r.id === id);
     if (!row) return;
     const remaining = 2 - row.images.length;
-    files.slice(0, remaining).forEach(file => {
+    const filesToProcess = files.slice(0, remaining);
+    
+    filesToProcess.forEach((file, index) => {
       const reader = new FileReader();
-      reader.onload = () => {
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
         setMaterials(prev => prev.map(r => {
-          if (r.id !== id || r.images.length >= 2) return r;
-          return { ...r, images: [...r.images, reader.result as string] };
+          if (r.id !== id) return r;
+          if (r.images.length >= 2) return r;
+          return { ...r, images: [...r.images, result] };
         }));
       };
       reader.readAsDataURL(file);
@@ -296,18 +324,34 @@ export default function CreateRequest() {
 
   const handleDirectSend = () => {
     if (!validate()) return;
-    if (saveRequest(buildRequest())) {
-      alert(language === 'ar' ? 'تم إرسال الطلب بنجاح!' : 'Request sent successfully!');
-      router.push('/my-requests');
-    }
+    if (editMode && editRequestId) {
+  const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+  const updated = allRequests.map((r: any) => r.id === editRequestId ? { ...buildRequest(), id: editRequestId, createdAt: r.createdAt } : r);
+  localStorage.setItem('requests', JSON.stringify(updated));
+  alert(language === 'ar' ? 'تم حفظ التعديلات بنجاح!' : 'Changes saved successfully!');
+  router.push('/my-requests');
+} else {
+  if (saveRequest(buildRequest())) {
+    alert(language === 'ar' ? 'تم إرسال الطلب بنجاح!' : 'Request sent successfully!');
+    router.push('/my-requests');
+  }
+}
   };
 
   const handleReview = () => { if (validate()) setShowPreview(true); };
 
   const handleConfirmSubmit = () => {
-    if (saveRequest(buildRequest())) {
-      alert(language === 'ar' ? 'تم إرسال الطلب بنجاح!' : 'Request sent successfully!');
+    if (editMode && editRequestId) {
+      const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+      const updated = allRequests.map((r: any) => r.id === editRequestId ? { ...buildRequest(), id: editRequestId, createdAt: r.createdAt } : r);
+      localStorage.setItem('requests', JSON.stringify(updated));
+      alert(language === 'ar' ? 'تم حفظ التعديلات بنجاح!' : 'Changes saved successfully!');
       router.push('/my-requests');
+    } else {
+      if (saveRequest(buildRequest())) {
+        alert(language === 'ar' ? 'تم إرسال الطلب بنجاح!' : 'Request sent successfully!');
+        router.push('/my-requests');
+      }
     }
   };
 
@@ -383,7 +427,7 @@ export default function CreateRequest() {
     notes: 'ملاحظات عامة (اختياري)', notesPlaceholder: 'أضف ملاحظات أو تفاصيل إضافية...',
     suppliers: 'اختر الموردين', noSuppliers: 'لا يوجد موردين مسجلين بعد',
     selectAll: 'اختيار الكل', deselectAll: 'إلغاء الكل',
-    reviewBtn: 'مراجعة الطلب', sendBtn: 'إرسال الطلب', draftBtn: 'حفظ مسودة',
+    reviewBtn: 'مراجعة الطلب', sendBtn: editMode ? 'حفظ التعديلات' : 'إرسال الطلب', draftBtn: 'حفظ مسودة',
     select: 'اختر...', optional: 'اختياري', orBtn: '+ أو',
     previewTitle: 'مراجعة الطلب قبل الإرسال', submittedBy: 'مقدم الطلب', dateTime: 'تاريخ ووقت المراجعة',
     confirm: 'تأكيد وإرسال الطلب', print: 'طباعة', back: 'رجوع للتعديل', noValue: '—',
@@ -405,7 +449,7 @@ export default function CreateRequest() {
     notes: 'General Notes (Optional)', notesPlaceholder: 'Add notes or extra details...',
     suppliers: 'Select Suppliers', noSuppliers: 'No suppliers registered yet',
     selectAll: 'Select All', deselectAll: 'Deselect All',
-    reviewBtn: 'Review Request', sendBtn: 'Send Request', draftBtn: 'Save Draft',
+   reviewBtn: 'Review Request', sendBtn: editMode ? 'Save Changes' : 'Send Request', draftBtn: 'Save Draft',
     select: 'Select...', optional: 'Optional', orBtn: '+ OR',
     previewTitle: 'Review Request Before Sending', submittedBy: 'Submitted By', dateTime: 'Review Date & Time',
     confirm: 'Confirm & Send Request', print: 'Print', back: 'Back to Edit', noValue: '—',
@@ -464,7 +508,7 @@ export default function CreateRequest() {
     <div style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
       <Navbar />
       <div style={{ padding: '20px', paddingTop: '80px', maxWidth: '1400px', margin: '0 auto' }}>
-        <h1 style={{ color: '#ffffff', marginBottom: '10px' }}>{tx.title}</h1>
+        <h1 style={{ color: '#ffffff', marginBottom: '10px' }}>{editMode ? (language === 'ar' ? 'تعديل الطلب' : 'Edit Request') : tx.title}</h1>
         <p style={{ color: '#cccccc', fontSize: '13px', marginBottom: '20px' }}>{tx.hint}</p>
 
         <div style={{ marginBottom: '30px' }}>
