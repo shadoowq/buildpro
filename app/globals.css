@@ -23,25 +23,58 @@
   --color-bp-border-light: #F1F5F9;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: #F0F4F8;
+  color: #1e293b;
   font-family: 'Cairo', Arial, sans-serif;
 }
 
 @media print {
-  * { display: none !important; }
-  .print-area, .print-area * { display: revert !important; }
-  .no-print { display: none !important; }
-  body { background: white !important; margin: 0 !important; }
-  @page { margin: 1cm; size: A4 landscape; }
+  /* override dark-mode CSS variables so var(--background) resolves to white */
+  :root {
+    --background: #ffffff;
+    --foreground: #1e293b;
+    color-scheme: light;
+  }
+
+  html {
+    color-scheme: light !important;
+    background: #ffffff !important;
+  }
+
+  * {
+    visibility: hidden !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    margin: 0 !important;
+    color-scheme: light !important;
+  }
+
+  .print-area,
+  .print-area * {
+    visibility: visible !important;
+  }
+
+  .print-area {
+    background: #ffffff !important;
+    color: #1e293b !important;
+  }
+
+  .no-print {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  @page {
+    margin: 10mm 12mm;
+    size: A4 landscape;
+  }
 }
 /* ── BuildPro Global Styles ── */
 

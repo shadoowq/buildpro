@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import ContractorNav from '../components/ContractorNav';
 
 const arToEn: Record<string, string> = {
   'سيراميك': 'Ceramic', 'بورسلان': 'Porcelain', 'رخام': 'Marble',
@@ -376,6 +377,22 @@ export default function MyRequests() {
       }
     } else addActivityLog(requestId, 'تم فتح الطلب', 'Request reopened');
   };
+  const handleDuplicateRequest = (req: Request) => {
+    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const newReq = {
+      ...req,
+      id: Date.now(),
+      status: 'open',
+      kanbanColumn: undefined,
+      createdAt: new Date().toISOString(),
+      projectName: req.projectName ? `${req.projectName} (${lang === 'ar' ? 'نسخة' : 'copy'})` : undefined,
+    };
+    allRequests.push(newReq);
+    localStorage.setItem('requests', JSON.stringify(allRequests));
+    setRequests(allRequests.filter((r: Request) => r.contractorId === user.email));
+    addActivityLog(newReq.id, `تم إنشاء طلب بنسخ طلب #${req.id}`, `Duplicated from request #${req.id}`);
+  };
+
   const handleDeleteRequest = (requestId: number) => {
     if (!confirm(t('confirmDelete', lang))) return;
     const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
@@ -530,43 +547,7 @@ export default function MyRequests() {
   return (
     <div className="min-h-screen bg-[#F0F4F8] font-cairo" dir={dir}>
 
-      {/* ── TOPBAR ── */}
-      <nav className="bg-white border-b border-[#E2EAF2] px-7 flex items-center justify-between h-14 sticky top-0 z-20">
-        <div className="text-[17px] font-bold text-[#0F4C75]">Build<span className="text-[#1B9AAA]">Pro</span></div>
-        <div className="flex gap-1">
-          {[
-            { labelAr: 'لوحة التحكم', labelEn: 'Dashboard',   href: '/dashboard'  },
-            { labelAr: 'طلباتي',      labelEn: 'My Requests', href: '/my-requests'},
-            { labelAr: 'عروض الأسعار',labelEn: 'Quotes',      href: '/my-quotes'  },
-            { labelAr: 'الموردون',    labelEn: 'Suppliers',   href: '/suppliers'  },
-            { labelAr: 'المسودات',    labelEn: 'Drafts',      href: '/drafts'     },
-          ].map(item => (
-            <Link key={item.href} href={item.href}
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${item.href === '/my-requests' ? 'bg-[#EBF5FF] text-[#0F4C75] font-semibold' : 'text-slate-600 hover:bg-[#F0F4F8] hover:text-[#0F4C75]'}`}>
-              {lang === 'ar' ? item.labelAr : item.labelEn}
-            </Link>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <LangToggle lang={lang} setLang={handleLangChange} />
-          <button className="relative w-9 h-9 rounded-lg border border-[#E2EAF2] flex items-center justify-center hover:bg-[#F0F4F8] transition-colors">
-            <span className="text-slate-500 text-base">🔔</span>
-            {newQuotesCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />}
-          </button>
-          <div className="w-9 h-9 rounded-lg bg-[#0F4C75] flex items-center justify-center text-white text-xs font-bold cursor-pointer">
-            {userName.charAt(0) || 'م'}
-          </div>
-          <button
-            onClick={() => { localStorage.removeItem('currentUser'); router.push('/login'); }}
-            className="flex items-center gap-1.5 text-xs font-semibold text-red-500 bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-            {lang === 'ar' ? 'خروج' : 'Logout'}
-          </button>
-        </div>
-      </nav>
+      <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/my-requests" />
 
       {/* ── HERO ── */}
       <div className="bg-[#0F4C75] px-7 pt-6 pb-0">
@@ -593,7 +574,7 @@ export default function MyRequests() {
       </div>
 
       {/* ── STATS ── */}
-      <div className="grid grid-cols-4 gap-3 px-7 py-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {[
           { icon: '📋', bg: 'bg-blue-50',    val: stats.total,  label: t('totalReqs', lang),  badge: null },
           { icon: '🔥', bg: 'bg-emerald-50', val: stats.active, label: t('activeReqs', lang), badge: stats.active > 0 ? t('thisMonth', lang) : null },
@@ -611,14 +592,14 @@ export default function MyRequests() {
 
       {/* ── NEW QUOTES BANNER ── */}
       {newQuotesCount > 0 && (
-        <div className="mx-7 mb-4 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
+        <div className="mx-4 md:mx-7 mb-4 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
           <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 shrink-0">🔔</div>
           <p className="text-emerald-800 font-semibold text-sm">{t('newQuoteBanner', lang, newQuotesCount)}</p>
         </div>
       )}
 
       {/* ── CONTENT AREA ── */}
-      <div className="px-7 pb-10">
+      <div className="px-4 md:px-7 pb-10">
         {/* project breadcrumb */}
         {projectFilter !== null && (
           <div className="flex items-center gap-2 mb-3">
@@ -852,6 +833,14 @@ export default function MyRequests() {
                                 </div>
                               )}
                             </div>
+                            <button onClick={() => handleDuplicateRequest(req)}
+                              className="w-full text-[11px] font-semibold text-violet-700 bg-violet-50 border border-violet-100 rounded-md px-2 py-1 hover:bg-violet-100 transition-colors">
+                              {lang === 'ar' ? 'نسخ' : 'Copy'}
+                            </button>
+                            <a href={`/print/request/${req.id}`} target="_blank"
+                              className="w-full text-[11px] font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-md px-2 py-1 hover:bg-slate-100 transition-colors text-center block">
+                              🖨 {lang === 'ar' ? 'طباعة' : 'Print'}
+                            </a>
                             <button onClick={() => handleDeleteRequest(req.id)}
                               className="w-full text-[11px] font-semibold text-red-600 bg-red-50 border border-red-100 rounded-md px-2 py-1 hover:bg-red-100 transition-colors">
                               {t('delete', lang)}
@@ -869,7 +858,7 @@ export default function MyRequests() {
           {/* ═══ CARDS VIEW ═══ */}
           {viewMode === 'cards' && (
             filteredRequests.length === 0 ? <EmptyState lang={lang} /> : (
-              <div className="p-5 grid grid-cols-3 gap-4">
+              <div className="p-4 md:p-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {filteredRequests.map(req => {
                   const rq = getRequestQuotes(req.id);
                   const nq = getRequestNewQuotes(req.id);
@@ -970,6 +959,17 @@ export default function MyRequests() {
                           </div>
                         )}
                       </div>
+                      {/* duplicate + print */}
+                      <div className="mt-1.5 flex gap-1.5" onClick={e => e.stopPropagation()}>
+                        <button onClick={e => { e.stopPropagation(); handleDuplicateRequest(req); }}
+                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors">
+                          {lang === 'ar' ? '⊕ نسخ' : '⊕ Copy'}
+                        </button>
+                        <a href={`/print/request/${req.id}`} target="_blank" onClick={e => e.stopPropagation()}
+                          className="px-3 text-xs font-semibold py-1.5 rounded-lg bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 transition-colors">
+                          🖨
+                        </a>
+                      </div>
                     </div>
                   );
                 })}
@@ -980,7 +980,7 @@ export default function MyRequests() {
           {/* ═══ KANBAN / مسارات VIEW ═══ */}
           {viewMode === 'kanban' && (
             filteredRequests.length === 0 ? <EmptyState lang={lang} /> : (
-              <div className="p-5 grid grid-cols-3 gap-4">
+              <div className="p-4 md:p-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {([
                   { col: 'active'   as KanbanCol, title: t('kanbanActive', lang), color: 'emerald', icon: '🔥' },
                   { col: 'awaiting' as KanbanCol, title: t('kanbanPend', lang),   color: 'orange',  icon: '⏳' },
@@ -1008,7 +1008,7 @@ export default function MyRequests() {
           {/* ═══ PROJECTS VIEW ═══ */}
           {viewMode === 'projects' && (
             Object.keys(projectGroups).length === 0 ? <EmptyState lang={lang} /> : (
-              <div className="p-5 grid grid-cols-3 gap-4">
+              <div className="p-4 md:p-5 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {Object.entries(projectGroups)
                   .sort(([, a], [, b]) => b.length - a.length)
                   .map(([key, reqs]) => {

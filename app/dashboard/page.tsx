@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import ContractorNav from '../components/ContractorNav'
 
 type Lang = 'ar' | 'en'
 
@@ -226,7 +227,7 @@ export default function DashboardPage() {
     try { setRatings(    JSON.parse(localStorage.getItem('ratings')   || '[]')) } catch {}
     try { setDrafts(     JSON.parse(localStorage.getItem('requestDrafts') || '[]')) } catch {}
     try { setAllUsers(   JSON.parse(localStorage.getItem('users')     || '[]')) } catch {}
-  }, [lang])
+  }, [])
 
   const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l) }
 
@@ -294,15 +295,14 @@ export default function DashboardPage() {
   /* ── stats ── */
   const myQuotes     = allQuotes.filter(q => myRequests.some(r => r.id === q.requestId))
   const unreadQuotes = myQuotes.filter(q => q.status === 'pending').length
-  const lowestQuote  = myQuotes.length > 0
-    ? Math.min(...myQuotes.map((q: any) => Number(q.totalPrice) || Infinity))
-    : null
+  const validPrices  = myQuotes.map((q: any) => Number(q.totalPrice)).filter(p => !isNaN(p) && p > 0)
+  const lowestQuote  = validPrices.length > 0 ? Math.min(...validPrices) : null
 
   const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const reqsThisMonth    = myRequests.filter(r => new Date(r.createdAt) >= monthStart).length
   const quotesThisMonth  = myQuotes.filter(q => new Date(q.createdAt) >= monthStart).length
-  const closedThisMonth  = myRequests.filter(r => r.status === 'closed').length
+  const closedThisMonth  = myRequests.filter(r => r.status === 'closed' && new Date(r.updatedAt ?? r.createdAt) >= monthStart).length
 
   const stats = {
     active:     rows.filter(r => r.status === 'active').length,
@@ -432,52 +432,10 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#F0F4F8] font-cairo" dir={dir}>
 
-      {/* TOPBAR */}
-      <nav className="bg-white border-b border-[#E2EAF2] px-7 flex items-center justify-between h-14 sticky top-0 z-20">
-        <div className="text-[17px] font-bold text-[#0F4C75]">Build<span className="text-[#1B9AAA]">Pro</span></div>
-        <div className="flex gap-1">
-          {[
-            { labelAr: 'لوحة التحكم',  labelEn: 'Dashboard',   href: '/dashboard'   },
-            { labelAr: 'طلباتي',       labelEn: 'My Requests', href: '/my-requests' },
-            { labelAr: 'عروض الأسعار', labelEn: 'Quotes',      href: '/my-quotes'   },
-            { labelAr: 'الموردون',     labelEn: 'Suppliers',   href: '/suppliers'   },
-            { labelAr: 'المسودات',     labelEn: 'Drafts',      href: '/drafts'      },
-          ].map(item => (
-            <Link key={item.href} href={item.href}
-              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                item.href === '/dashboard'
-                  ? 'bg-[#EBF5FF] text-[#0F4C75] font-semibold'
-                  : 'text-slate-600 hover:bg-[#F0F4F8] hover:text-[#0F4C75]'
-              }`}>
-              {lang === 'ar' ? item.labelAr : item.labelEn}
-            </Link>
-          ))}
-        </div>
-        <div className="flex items-center gap-2">
-          <LangToggle lang={lang} setLang={handleLangChange} />
-          <button className="relative w-9 h-9 rounded-lg border border-[#E2EAF2] flex items-center justify-center hover:bg-[#F0F4F8] transition-colors">
-            <span className="text-slate-500 text-base">🔔</span>
-            {unreadQuotes > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-            )}
-          </button>
-          <div className="w-9 h-9 rounded-lg bg-[#0F4C75] flex items-center justify-center text-white text-xs font-bold cursor-pointer">
-            {userName.charAt(0) || 'م'}
-          </div>
-          <button
-            onClick={() => { localStorage.removeItem('currentUser'); window.location.href = '/login'; }}
-            className="flex items-center gap-1.5 text-xs font-semibold text-red-500 bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
-            </svg>
-            {lang === 'ar' ? 'خروج' : 'Logout'}
-          </button>
-        </div>
-      </nav>
+      <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/dashboard" />
 
       {/* HERO */}
-      <div className="bg-[#0F4C75] px-7 pt-6 pb-0">
+      <div className="bg-[#0F4C75] px-4 md:px-7 pt-6 pb-0">
         <div className="flex items-end justify-between">
           <div>
             <p className="text-white/50 text-xs mb-1">
@@ -514,7 +472,7 @@ export default function DashboardPage() {
       </div>
 
       {/* STATS */}
-      <div className="grid grid-cols-4 gap-3 px-7 py-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {[
           {
             icon: '🔥', bg: 'bg-emerald-50',
@@ -549,7 +507,7 @@ export default function DashboardPage() {
             <div className="text-2xl font-bold text-slate-900">{s.val}</div>
             <div className="text-[11px] text-slate-500 mt-1">{s.label}</div>
             {s.badge && (
-              <span className={`absolute top-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.badgeCls}`}>
+              <span className={`absolute top-3 start-3 text-[10px] font-semibold px-2 py-0.5 rounded-full ${s.badgeCls}`}>
                 {s.badge}
               </span>
             )}
@@ -558,7 +516,7 @@ export default function DashboardPage() {
       </div>
 
       {/* MAIN */}
-      <div className="grid grid-cols-[1fr_268px] gap-4 px-7 pb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_268px] gap-4 px-4 md:px-7 pb-8">
 
         {/* ── طلبات Table ── */}
         <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden">
@@ -891,7 +849,7 @@ export default function DashboardPage() {
                            : '📋'}{' '}
                           {lang === 'ar' ? log.action : log.actionEn}
                         </span>
-                        <span className="text-slate-400 whitespace-nowrap mr-4">
+                        <span className="text-slate-400 whitespace-nowrap me-4">
                           {new Date(log.timestamp).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US')}
                         </span>
                       </div>
@@ -929,7 +887,7 @@ export default function DashboardPage() {
       {lightbox && (
         <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center cursor-zoom-out" onClick={() => setLightbox(null)}>
           <img src={lightbox} alt="" className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg" />
-          <button onClick={() => setLightbox(null)} className="absolute top-5 left-5 bg-red-500 text-white px-4 py-2 rounded-lg font-bold">✕</button>
+          <button onClick={() => setLightbox(null)} className="absolute top-5 start-5 bg-red-500 text-white px-4 py-2 rounded-lg font-bold">✕</button>
         </div>
       )}
 
