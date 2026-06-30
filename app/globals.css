@@ -43,3 +43,43 @@ body {
   body { background: white !important; margin: 0 !important; }
   @page { margin: 1cm; size: A4 landscape; }
 }
+/* ── BuildPro Global Styles ── */
+
+.bp-page {
+  background: #F0F4F8;
+  min-height: 100vh;
+}
+
+.bp-table th {
+  background: #0F4C75 !important;
+  color: #fff !important;
+  font-family: 'Cairo', sans-serif !important;
+  font-weight: 600 !important;
+  padding: 10px 12px !important;
+  border: 1px solid #0D3F63 !important;
+  white-space: nowrap;
+}
+
+.bp-table td {
+  background: #fff;
+  color: #0F172A !important;
+  font-family: 'Cairo', sans-serif !important;
+  font-weight: 600 !important;
+  padding: 8px 12px !important;
+  border: 1px solid #E2EAF2 !important;
+}
+
+.bp-table tr:nth-child(even) td {
+  background: #F0F7FF;
+}
+
+.bp-page h1,
+.bp-page h2,
+.bp-page h3,
+.bp-page h4,
+.bp-page p,
+.bp-page label,
+.bp-page span,
+.bp-page div {
+  color: #0F172A;
+}

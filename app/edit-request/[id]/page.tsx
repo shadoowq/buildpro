@@ -121,10 +121,9 @@ export default function EditRequest() {
   return (
     <div style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
       <Navbar />
-      <div style={{ 
+      <div style={{
         padding: '20px',
-        paddingTop: '80px',
-        maxWidth: '800px', 
+        maxWidth: '800px',
         margin: '0 auto'
       }}>
         <h1 style={{ color: '#333', marginBottom: '30px' }}>

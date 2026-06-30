@@ -86,7 +86,7 @@ export default function MyQuotes() {
   return (
     <div style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
       <Navbar />
-      <div style={{ padding: '20px', paddingTop: '80px', maxWidth: '1200px', margin: '0 auto' }}>
+      <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
         <h1 style={{ color: '#333', marginBottom: '30px' }}>
           {language === 'ar' ? 'عروض أسعاري' : 'My Quotes'}
         </h1>

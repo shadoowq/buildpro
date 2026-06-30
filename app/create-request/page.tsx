@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { saudiCities, getCityName } from '@/app/lib/translations';
 import Navbar from '../components/Navbar';
@@ -70,19 +70,23 @@ export default function CreateRequest() {
   const [user, setUser] = useState<any>(null);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
+  const [projectName, setProjectName] = useState('');
   const [materials, setMaterials] = useState<MaterialRow[]>([defaultRow()]);
   const [location, setLocation] = useState('');
   const [deadline, setDeadline] = useState('');
   const [description, setDescription] = useState('');
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
- const [showPreview, setShowPreview] = useState(false);
-const [editMode, setEditMode] = useState(false);
-const [editRequestId, setEditRequestId] = useState<number | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editRequestId, setEditRequestId] = useState<number | null>(null);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [pageTitle, setPageTitle] = useState('إنشاء طلب جديد');
+const [isDraftEdit, setIsDraftEdit] = useState(false);
+  const skipSaveRef = useRef(false);
   const router = useRouter();
 
-useEffect(() => {
+  useEffect(() => {
     const userData = localStorage.getItem('currentUser');
     if (!userData) { router.push('/login'); return; }
     const parsedUser = JSON.parse(userData);
@@ -100,30 +104,52 @@ useEffect(() => {
     const savedLang = localStorage.getItem('language') as 'ar' | 'en' || 'ar';
     setLanguage(savedLang);
 
-    const editId = new URLSearchParams(window.location.search).get('edit');
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get('edit');
+    const draftId = params.get('draft');
+
     if (editId) {
       const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
       const req = allRequests.find((r: any) => r.id === parseInt(editId));
       if (req) {
         setEditMode(true);
         setEditRequestId(req.id);
+        setPageTitle(savedLang === 'en' ? 'Edit Request' : 'تعديل الطلب');
         if (req.materials && req.materials.length > 0) {
-  setMaterials(req.materials.map((m: any) => ({
-    ...m,
-    id: Date.now() + Math.random(),
-    images: m.images ? [...m.images] : [],
-  })));
-}
+          setMaterials(req.materials.map((m: any) => ({
+            ...m,
+            id: Date.now() + Math.random(),
+            images: m.images ? [...m.images] : [],
+          })));
+        }
+        if (req.projectName) setProjectName(req.projectName);
         if (req.location) setLocation(req.location);
         if (req.deadline) setDeadline(req.deadline);
         if (req.description) setDescription(req.description);
         if (req.selectedSuppliers) setSelectedSuppliers(req.selectedSuppliers);
         if (req.attachedFiles) setAttachedFiles(req.attachedFiles);
       }
+    } else if (draftId) {
+      skipSaveRef.current = true;
+      setEditMode(true);
+      setIsDraftEdit(true);
+      setPageTitle(savedLang === 'en' ? 'Edit Draft' : 'تعديل المسودة');
+      const draft = localStorage.getItem(STORAGE_KEY);
+      if (draft) {
+        const parsed = JSON.parse(draft);
+        if (parsed.projectName) setProjectName(parsed.projectName);
+        if (parsed.materials) setMaterials(parsed.materials);
+        if (parsed.location) setLocation(parsed.location);
+        if (parsed.deadline) setDeadline(parsed.deadline);
+        if (parsed.description) setDescription(parsed.description);
+        if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
+      }
+      localStorage.removeItem('loadingFromDraft');
     } else {
       const draft = localStorage.getItem(STORAGE_KEY);
       if (draft) {
         const parsed = JSON.parse(draft);
+        if (parsed.projectName) setProjectName(parsed.projectName);
         if (parsed.materials) setMaterials(parsed.materials);
         if (parsed.location) setLocation(parsed.location);
         if (parsed.deadline) setDeadline(parsed.deadline);
@@ -142,18 +168,14 @@ useEffect(() => {
   }, [router]);
 
   useEffect(() => {
-  const loadingFromDraft = localStorage.getItem('loadingFromDraft');
-  if (loadingFromDraft === 'true') {
-    localStorage.removeItem('loadingFromDraft');
-    return;
-  }
-  try {
-    const lightMaterials = materials.map(m => ({ ...m, images: [] }));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      materials: lightMaterials, location, deadline, description, selectedSuppliers, attachedFiles: []
-    }));
-  } catch (e) { /* ignore */ }
-}, [materials, location, deadline, description, selectedSuppliers, attachedFiles]);
+    if (skipSaveRef.current) return;
+    try {
+      const lightMaterials = materials.map(m => ({ ...m, images: [] }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        projectName, materials: lightMaterials, location, deadline, description, selectedSuppliers, attachedFiles: []
+      }));
+    } catch (e) { /* ignore */ }
+  }, [projectName, materials, location, deadline, description, selectedSuppliers, attachedFiles]);
 
   const display = (value: string): string => {
     if (!value) return value;
@@ -194,14 +216,13 @@ useEffect(() => {
     }));
   };
 
- const handleImageUpload = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     const row = materials.find(r => r.id === id);
     if (!row) return;
     const remaining = 2 - row.images.length;
     const filesToProcess = files.slice(0, remaining);
-    
-    filesToProcess.forEach((file, index) => {
+    filesToProcess.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const result = event.target?.result as string;
@@ -252,7 +273,6 @@ useEffect(() => {
       color: row.color || row.colorPending,
       origin: row.origin || row.originPending,
     })));
-
     const valid = materials.filter(isRowValid);
     if (selectedSuppliers.length === 0) {
       alert(language === 'ar' ? 'الرجاء اختيار مورد واحد على الأقل' : 'Please select at least one supplier');
@@ -296,46 +316,49 @@ useEffect(() => {
       marble: valid.filter(m => (m.type || m.typePending).includes('رخام')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
       granite: valid.filter(m => (m.type || m.typePending).includes('جرانيت')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
       terrazzo: valid.filter(m => (m.type || m.typePending).includes('تيرازو')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
-      location, deadline, description, selectedSuppliers,
+      projectName, location, deadline, description, selectedSuppliers,
       status: 'open', createdAt: new Date().toISOString()
     };
   };
 
   const saveRequest = (req: any): boolean => {
-  try {
-    const requests = JSON.parse(localStorage.getItem('requests') || '[]');
-    requests.push(req);
-    localStorage.setItem('requests', JSON.stringify(requests));
-    localStorage.removeItem(STORAGE_KEY);
-    // لو كان في draft قديم امسحه
-    const draftId = localStorage.getItem('currentDraftId');
-    if (draftId) {
-      const allDrafts = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
-      const updated = allDrafts.filter((d: any) => d.id !== parseInt(draftId));
-      localStorage.setItem('requestDrafts', JSON.stringify(updated));
-      localStorage.removeItem('currentDraftId');
+    try {
+      const requests = JSON.parse(localStorage.getItem('requests') || '[]');
+      requests.push(req);
+      localStorage.setItem('requests', JSON.stringify(requests));
+      localStorage.removeItem(STORAGE_KEY);
+      const draftId = localStorage.getItem('currentDraftId');
+      if (draftId) {
+        const allDrafts = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
+        const updated = allDrafts.filter((d: any) => d.id !== parseInt(draftId));
+        localStorage.setItem('requestDrafts', JSON.stringify(updated));
+        localStorage.removeItem('currentDraftId');
+      }
+      return true;
+    } catch {
+      alert(language === 'ar' ? 'حجم الملفات كبير جداً' : 'Files too large');
+      return false;
     }
-    return true;
-  } catch {
-    alert(language === 'ar' ? 'حجم الملفات كبير جداً' : 'Files too large');
-    return false;
-  }
-};
+  };
 
   const handleDirectSend = () => {
+    if (isDraftEdit) {
+      handleSaveDraft();
+      return;
+    }
     if (!validate()) return;
     if (editMode && editRequestId) {
-  const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
-  const updated = allRequests.map((r: any) => r.id === editRequestId ? { ...buildRequest(), id: editRequestId, createdAt: r.createdAt } : r);
-  localStorage.setItem('requests', JSON.stringify(updated));
-  alert(language === 'ar' ? 'تم حفظ التعديلات بنجاح!' : 'Changes saved successfully!');
-  router.push('/my-requests');
-} else {
-  if (saveRequest(buildRequest())) {
-    alert(language === 'ar' ? 'تم إرسال الطلب بنجاح!' : 'Request sent successfully!');
-    router.push('/my-requests');
-  }
-}
+      const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+      const updated = allRequests.map((r: any) => r.id === editRequestId ? { ...buildRequest(), id: editRequestId, createdAt: r.createdAt } : r);
+      localStorage.setItem('requests', JSON.stringify(updated));
+      alert(language === 'ar' ? 'تم حفظ التعديلات بنجاح!' : 'Changes saved successfully!');
+      router.push('/my-requests');
+    } else {
+      if (saveRequest(buildRequest())) {
+        alert(language === 'ar' ? 'تم إرسال الطلب بنجاح!' : 'Request sent successfully!');
+        router.push('/my-requests');
+      }
+    }
   };
 
   const handleReview = () => { if (validate()) setShowPreview(true); };
@@ -361,25 +384,19 @@ useEffect(() => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
     printWindow.document.write(`
-      <html>
-        <head>
-          <title>BuildPro - طلب تسعير</title>
-          <style>
-            body { font-family: Arial, sans-serif; direction: ${language === 'ar' ? 'rtl' : 'ltr'}; padding: 20px; color: #333; }
-            table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
-            th { background-color: #f1f3f5; padding: 8px 6px; border: 1px solid #ccc; font-weight: bold; text-align: center; }
-            td { padding: 7px 6px; border: 1px solid #ccc; text-align: center; }
-            .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
-            .info-grid p { margin: 0; font-size: 13px; }
-            h2 { color: #333; margin-bottom: 15px; }
-            ul { font-size: 13px; }
-            img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
-            .no-print { display: none; }
-            @page { margin: 1cm; size: A4 landscape; }
-          </style>
-        </head>
-        <body>${printArea.innerHTML}</body>
-      </html>
+      <html><head><title>BuildPro - طلب تسعير</title>
+      <style>
+        body { font-family: Arial, sans-serif; direction: ${language === 'ar' ? 'rtl' : 'ltr'}; padding: 20px; color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
+        th { background-color: #f1f3f5; padding: 8px 6px; border: 1px solid #ccc; font-weight: bold; text-align: center; }
+        td { padding: 7px 6px; border: 1px solid #ccc; text-align: center; }
+        h2 { color: #333; margin-bottom: 15px; }
+        ul { font-size: 13px; }
+        img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
+        .no-print { display: none; }
+        @page { margin: 1cm; size: A4 landscape; }
+      </style></head>
+      <body>${printArea.innerHTML}</body></html>
     `);
     printWindow.document.close();
     printWindow.focus();
@@ -387,18 +404,22 @@ useEffect(() => {
   };
 
   const handleSaveDraft = () => {
+    const currentDraftId = localStorage.getItem('currentDraftId');
     const draftData = {
-      id: Date.now(),
+      id: currentDraftId ? parseInt(currentDraftId) : Date.now(),
       contractorId: user?.email,
-      materials, location, deadline, description,
+      projectName, materials, location, deadline, description,
       selectedSuppliers,
       savedAt: new Date().toISOString(),
     };
-    const drafts = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
-    drafts.push(draftData);
-    localStorage.setItem('requestDrafts', JSON.stringify(drafts));
+    const allDrafts = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
+    const exists = allDrafts.find((d: any) => d.id === draftData.id);
+    const updated = exists
+      ? allDrafts.map((d: any) => d.id === draftData.id ? draftData : d)
+      : [...allDrafts, draftData];
+    localStorage.setItem('requestDrafts', JSON.stringify(updated));
     localStorage.removeItem(STORAGE_KEY);
-    alert(language === 'ar' ? 'تم حفظ المسودة بنجاح!' : 'Draft saved successfully!');
+    alert(language === 'ar' ? 'تم حفظ التعديلات بنجاح!' : 'Changes saved successfully!');
     router.push('/drafts');
   };
 
@@ -414,7 +435,8 @@ useEffect(() => {
   };
 
   const tx = language === 'ar' ? {
-    title: 'إنشاء طلب جديد', hint: 'اختر من القائمة واضغط "+ أو" لإضافة خيار آخر',
+    hint: 'اختر من القائمة واضغط "+ أو" لإضافة خيار آخر',
+    projectNameLabel: 'اسم المشروع', projectNamePlaceholder: 'مثال: فيلا الرياض - الدور الأول',
     materials: 'المواد المطلوبة', material: 'نوع المادة', usage: 'الاستخدام',
     size: 'المقاس', thickness: 'السماكة', finish: 'الفنش', color: 'اللون',
     qty: 'الكمية', unit: 'الوحدة', targetPrice: 'السعر المستهدف',
@@ -436,7 +458,8 @@ useEffect(() => {
     zoomReset: 'إعادة ضبط', download: 'تحميل', close: 'إغلاق',
     zoomHint: 'استخدم عجلة الموس للتكبير والتصغير',
   } : {
-    title: 'Create New Request', hint: 'Select from the list and press "+ OR" to add another option',
+    hint: 'Select from the list and press "+ OR" to add another option',
+    projectNameLabel: 'Project Name', projectNamePlaceholder: 'e.g. Riyadh Villa - Ground Floor',
     materials: 'Required Materials', material: 'Material', usage: 'Usage',
     size: 'Size', thickness: 'Thickness', finish: 'Finish', color: 'Color',
     qty: 'Qty', unit: 'Unit', targetPrice: 'Target Price',
@@ -449,7 +472,7 @@ useEffect(() => {
     notes: 'General Notes (Optional)', notesPlaceholder: 'Add notes or extra details...',
     suppliers: 'Select Suppliers', noSuppliers: 'No suppliers registered yet',
     selectAll: 'Select All', deselectAll: 'Deselect All',
-   reviewBtn: 'Review Request', sendBtn: editMode ? 'Save Changes' : 'Send Request', draftBtn: 'Save Draft',
+    reviewBtn: 'Review Request', sendBtn: editMode ? 'Save Changes' : 'Send Request', draftBtn: 'Save Draft',
     select: 'Select...', optional: 'Optional', orBtn: '+ OR',
     previewTitle: 'Review Request Before Sending', submittedBy: 'Submitted By', dateTime: 'Review Date & Time',
     confirm: 'Confirm & Send Request', print: 'Print', back: 'Back to Edit', noValue: '—',
@@ -459,7 +482,7 @@ useEffect(() => {
     zoomHint: 'Use mouse wheel to zoom in/out',
   };
 
-  const labelStyle: React.CSSProperties = { display: 'block', marginBottom: '6px', fontWeight: 'bold', color: '#ffffff', fontSize: '15px' };
+  const labelStyle: React.CSSProperties = { display: 'block', marginBottom: '6px', fontWeight: 'bold', color: '#0F172A', fontSize: '15px' };
   const thStyle: React.CSSProperties = { padding: '10px 6px', backgroundColor: '#f8f9fa', borderBottom: '2px solid #dee2e6', color: '#333', fontWeight: 'bold', fontSize: '12px', whiteSpace: 'nowrap', textAlign: 'center' };
   const tdStyle: React.CSSProperties = { padding: '6px 4px', borderBottom: '1px solid #f0f0f0', verticalAlign: 'top', minWidth: '130px' };
   const selectStyle: React.CSSProperties = { padding: '5px 4px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '12px', color: '#333', backgroundColor: '#fff', flex: 1 };
@@ -505,14 +528,25 @@ useEffect(() => {
   const timeStr = now.toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
+    <div className="bp-page" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
       <Navbar />
-      <div style={{ padding: '20px', paddingTop: '80px', maxWidth: '1400px', margin: '0 auto' }}>
-        <h1 style={{ color: '#ffffff', marginBottom: '10px' }}>{editMode ? (language === 'ar' ? 'تعديل الطلب' : 'Edit Request') : tx.title}</h1>
-        <p style={{ color: '#cccccc', fontSize: '13px', marginBottom: '20px' }}>{tx.hint}</p>
+      <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
+        <h1 style={{ color: '#0F172A', marginBottom: '10px' }}>{pageTitle}</h1>
+        <p style={{ color: '#64748B', fontSize: '13px', marginBottom: '20px' }}>{tx.hint}</p>
+
+        <div style={{ marginBottom: '20px' }}>
+          <label style={labelStyle}>{tx.projectNameLabel}</label>
+          <input
+            type="text"
+            value={projectName}
+            onChange={e => setProjectName(e.target.value)}
+            placeholder={tx.projectNamePlaceholder}
+            style={{ ...fieldStyle, border: '2px solid #1B9AAA', borderRadius: '8px', fontSize: '15px' }}
+          />
+        </div>
 
         <div style={{ marginBottom: '30px' }}>
-          <h3 style={{ color: '#ffffff', marginBottom: '15px' }}>{tx.materials}</h3>
+          <h3 style={{ color: '#0F172A', marginBottom: '15px' }}>{tx.materials}</h3>
           <div style={{ overflowX: 'auto', border: '1px solid #dee2e6', borderRadius: '8px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
@@ -604,8 +638,9 @@ useEffect(() => {
             </table>
           </div>
           <button type="button" onClick={addRow}
-            style={{ marginTop: '12px', padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}
-          >{tx.addMaterial}</button>
+            style={{ marginTop: '12px', padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>
+            {tx.addMaterial}
+          </button>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginBottom: '20px' }}>
@@ -626,7 +661,7 @@ useEffect(() => {
 
         <div style={{ marginBottom: '20px' }}>
           <label style={labelStyle}>{tx.attachments}</label>
-          <p style={{ color: '#cccccc', fontSize: '12px', margin: '0 0 8px 0' }}>{tx.attachHint}</p>
+          <p style={{ color: '#64748B', fontSize: '12px', margin: '0 0 8px 0' }}>{tx.attachHint}</p>
           <label style={{ display: 'inline-block', padding: '10px 20px', backgroundColor: '#6610f2', color: 'white', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>
             {tx.uploadFiles}
             <input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" style={{ display: 'none' }} onChange={handleFileUpload} />
@@ -648,17 +683,17 @@ useEffect(() => {
           <label style={labelStyle}>{tx.notes}</label>
           <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
             placeholder={tx.notesPlaceholder}
-            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', color: '#333', fontSize: '16px', boxSizing: 'border-box', backgroundColor: '#fff' }}
-          />
+            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', color: '#333', fontSize: '16px', boxSizing: 'border-box', backgroundColor: '#fff' }} />
         </div>
 
         <div style={{ marginBottom: '25px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <label style={{ fontWeight: 'bold', color: '#ffffff', fontSize: '16px' }}>{tx.suppliers}</label>
+            <label style={{ fontWeight: 'bold', color: '#0F172A', fontSize: '16px' }}>{tx.suppliers}</label>
             {suppliers.length > 0 && (
               <button type="button" onClick={handleSelectAll}
-                style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
-              >{selectedSuppliers.length === suppliers.length ? tx.deselectAll : tx.selectAll}</button>
+                style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>
+                {selectedSuppliers.length === suppliers.length ? tx.deselectAll : tx.selectAll}
+              </button>
             )}
           </div>
           {suppliers.length === 0 ? (
@@ -667,8 +702,7 @@ useEffect(() => {
             <div style={{ border: '1px solid #ddd', borderRadius: '4px', maxHeight: '250px', overflowY: 'auto', backgroundColor: '#fff' }}>
               {suppliers.map((supplier, index) => (
                 <div key={supplier.email} onClick={() => handleSupplierToggle(supplier.email)}
-                  style={{ display: 'flex', alignItems: 'center', padding: '12px 15px', borderBottom: index < suppliers.length - 1 ? '1px solid #f0f0f0' : 'none', cursor: 'pointer', backgroundColor: selectedSuppliers.includes(supplier.email) ? '#e7f3ff' : '#fff', gap: '12px' }}
-                >
+                  style={{ display: 'flex', alignItems: 'center', padding: '12px 15px', borderBottom: index < suppliers.length - 1 ? '1px solid #f0f0f0' : 'none', cursor: 'pointer', backgroundColor: selectedSuppliers.includes(supplier.email) ? '#e7f3ff' : '#fff', gap: '12px' }}>
                   <input type="checkbox" checked={selectedSuppliers.includes(supplier.email)} onChange={() => handleSupplierToggle(supplier.email)}
                     style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
                   <div>
@@ -679,45 +713,46 @@ useEffect(() => {
               ))}
             </div>
           )}
-          <p style={{ color: selectedSuppliers.length > 0 ? '#4dabf7' : '#cccccc', fontSize: '13px', marginTop: '8px', fontWeight: selectedSuppliers.length > 0 ? 'bold' : 'normal' }}>
+          <p style={{ color: selectedSuppliers.length > 0 ? '#4dabf7' : '#aaa', fontSize: '13px', marginTop: '8px', fontWeight: selectedSuppliers.length > 0 ? 'bold' : 'normal' }}>
             {language === 'ar' ? `تم اختيار ${selectedSuppliers.length} مورد` : `${selectedSuppliers.length} supplier(s) selected`}
           </p>
         </div>
 
         <div style={{ display: 'flex', gap: '12px' }}>
           <button type="button" onClick={handleReview}
-            style={{ flex: 1, padding: '14px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}
-          >{tx.reviewBtn}</button>
-          <button type="button" onClick={handleDirectSend}
-            style={{ flex: 1, padding: '14px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}
-          >{tx.sendBtn}</button>
-          <button type="button" onClick={handleSaveDraft}
-            style={{ flex: 1, padding: '14px', backgroundColor: '#ffc107', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}
-          >{tx.draftBtn}</button>
+            style={{ flex: 1, padding: '14px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+            {tx.reviewBtn}
+          </button>
+         <button type="button" onClick={handleDirectSend}
+            style={{ flex: 1, padding: '14px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+            {tx.sendBtn}
+          </button>
+          {(!editMode || isDraftEdit) && (
+            <button type="button" onClick={handleSaveDraft}
+              style={{ flex: 1, padding: '14px', backgroundColor: '#ffc107', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+              {tx.draftBtn}
+            </button>
+          )}
         </div>
 
-        {/* نافذة المراجعة */}
         {showPreview && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}
-            onClick={() => setShowPreview(false)}
-          >
+            onClick={() => setShowPreview(false)}>
             <div className="print-area" style={{ backgroundColor: 'white', padding: '30px', borderRadius: '10px', maxWidth: '1100px', width: '95%', maxHeight: '90vh', overflowY: 'auto', direction: language === 'ar' ? 'rtl' : 'ltr' }}
-              onClick={e => e.stopPropagation()}
-            >
+              onClick={e => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h2 style={{ color: '#333', margin: 0 }}>{tx.previewTitle}</h2>
                 <button onClick={() => setShowPreview(false)} className="no-print"
                   style={{ padding: '8px 12px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✕</button>
               </div>
-
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+                {projectName && <p style={{ margin: 0, color: '#0F4C75', fontSize: '15px', fontWeight: 'bold', gridColumn: '1 / -1' }}>📁 {projectName}</p>}
                 <p style={{ margin: 0, color: '#333', fontSize: '14px' }}><strong>{tx.submittedBy}:</strong> {user.name} ({user.email})</p>
                 <p style={{ margin: 0, color: '#333', fontSize: '14px' }}><strong>{tx.dateTime}:</strong> {dateStr} - {timeStr}</p>
                 <p style={{ margin: 0, color: '#333', fontSize: '14px' }}><strong>{tx.city}:</strong> {location ? (language === 'ar' ? location : getCityName(location, 'en')) : tx.noValue}</p>
                 <p style={{ margin: 0, color: '#333', fontSize: '14px' }}><strong>{tx.deadline}:</strong> {deadline || tx.noValue}</p>
                 {description && <p style={{ margin: 0, color: '#333', fontSize: '14px', gridColumn: '1 / -1' }}><strong>{tx.notes}:</strong> {description}</p>}
               </div>
-
               <div style={{ overflowX: 'auto', border: '1px solid #dee2e6', borderRadius: '8px', marginBottom: '20px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
@@ -769,7 +804,6 @@ useEffect(() => {
                   </tbody>
                 </table>
               </div>
-
               {attachedFiles.length > 0 && (
                 <div style={{ marginBottom: '16px', backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '6px' }}>
                   <p style={{ color: '#333', fontWeight: 'bold', fontSize: '14px', margin: '0 0 8px 0' }}>{tx.attachedFilesLabel}:</p>
@@ -778,7 +812,6 @@ useEffect(() => {
                   </ul>
                 </div>
               )}
-
               <div style={{ marginBottom: '20px', backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '6px' }}>
                 <p style={{ color: '#333', fontWeight: 'bold', fontSize: '14px', margin: '0 0 8px 0' }}>{tx.selectedSuppliersLabel}: {selectedSuppliers.length}</p>
                 <ul style={{ margin: 0, paddingInlineStart: '20px', color: '#333', fontSize: '13px' }}>
@@ -788,35 +821,31 @@ useEffect(() => {
                   })}
                 </ul>
               </div>
-
               <div style={{ display: 'flex', gap: '12px' }} className="no-print">
                 <button onClick={handleConfirmSubmit}
-                  style={{ flex: 2, padding: '14px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}
-                >{tx.confirm}</button>
+                  style={{ flex: 2, padding: '14px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+                  {tx.confirm}
+                </button>
                 <button onClick={handlePrint}
-                  style={{ flex: 1, padding: '14px', backgroundColor: '#6610f2', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}
-                >{tx.print}</button>
+                  style={{ flex: 1, padding: '14px', backgroundColor: '#6610f2', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+                  {tx.print}
+                </button>
                 <button onClick={() => setShowPreview(false)}
-                  style={{ flex: 1, padding: '14px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}
-                >{tx.back}</button>
+                  style={{ flex: 1, padding: '14px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+                  {tx.back}
+                </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Lightbox */}
         {lightboxImg && (
-          <div
-            onClick={() => { setLightboxImg(null); setZoomLevel(1); }}
+          <div onClick={() => { setLightboxImg(null); setZoomLevel(1); }}
             onWheel={e => {
               e.preventDefault();
-              setZoomLevel(prev => {
-                const next = e.deltaY < 0 ? prev + 0.1 : prev - 0.1;
-                return Math.min(Math.max(next, 0.5), 4);
-              });
+              setZoomLevel(prev => Math.min(Math.max(e.deltaY < 0 ? prev + 0.1 : prev - 0.1, 0.5), 4));
             }}
-            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.92)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}
-          >
+            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.92)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
             <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
               <div style={{ overflow: 'hidden', maxWidth: '90vw', maxHeight: '75vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <img src={lightboxImg} alt=""
@@ -830,7 +859,8 @@ useEffect(() => {
                   style={{ width: '36px', height: '36px', backgroundColor: '#495057', color: 'white', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>+</button>
                 <button onClick={e => { e.stopPropagation(); setZoomLevel(1); }}
                   style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>{tx.zoomReset}</button>
-                <a href={lightboxImg} download="buildpro-image.jpg" onClick={e => e.stopPropagation()} style={{ padding: '6px 14px', backgroundColor: '#28a745', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: 'bold' }}>{tx.download}</a>
+                <a href={lightboxImg} download="buildpro-image.jpg" onClick={e => e.stopPropagation()}
+                  style={{ padding: '6px 14px', backgroundColor: '#28a745', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: 'bold' }}>{tx.download}</a>
                 <button onClick={e => { e.stopPropagation(); setLightboxImg(null); setZoomLevel(1); }}
                   style={{ padding: '6px 14px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>{tx.close}</button>
               </div>

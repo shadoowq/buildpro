@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '../components/Navbar';
+import Link from 'next/link';
 
 const arToEn: Record<string, string> = {
   'سيراميك': 'Ceramic', 'بورسلان': 'Porcelain', 'رخام': 'Marble',
@@ -20,64 +20,230 @@ const arToEn: Record<string, string> = {
   'م²': 'm²', 'م طولي': 'Linear m', 'قطعة': 'Piece', 'حبة': 'Unit',
 };
 
+type Lang = 'ar' | 'en';
+type ViewMode = 'table' | 'cards' | 'kanban' | 'projects';
+type FilterMode = 'all' | 'open' | 'closed';
+type QuotesFilter = 'all' | 'with' | 'without';
+type SortBy = 'newest' | 'oldest' | 'mostQuotes';
+
 interface Quote {
-  id: number;
-  requestId: number;
-  supplierId: string;
-  supplierName: string;
-  supplierCompany: string;
-  totalPrice: number;
-  deliveryDays: number;
-  description: string;
+  id: number; requestId: number; supplierId: string;
+  supplierName: string; supplierCompany: string;
+  totalPrice: number; deliveryDays: number; description: string;
   status: 'pending' | 'accepted' | 'rejected' | 'revision';
-  revisionNote?: string;
-  createdAt: string;
+  revisionNote?: string; createdAt: string;
 }
-
+type KanbanCol = 'active' | 'awaiting' | 'closed';
 interface Request {
-  id: number;
-  contractorId: string;
-  ceramic: number;
-  porcelain: number;
-  marble: number;
-  granite: number;
-  terrazzo: number;
-  materials?: any[];
-  location: string;
-  deadline: string;
-  budget: number;
-  description: string;
-  status: 'open' | 'closed' | 'completed';
-  createdAt: string;
+  id: number; contractorId: string;
+  projectName?: string;
+  kanbanColumn?: KanbanCol;
+  ceramic: number; porcelain: number; marble: number; granite: number; terrazzo: number;
+  materials?: any[]; location: string; deadline: string;
+  budget: number; description: string;
+  status: 'open' | 'closed' | 'completed'; createdAt: string;
+}
+interface ActivityLog { id: number; requestId: number; action: string; actionEn: string; timestamp: string; }
+interface Rating { id: number; requestId: number; supplierId: string; supplierCompany: string; rating: number; comment: string; createdAt: string; }
+
+const T = {
+  myRequests:   { ar: 'طلباتي',            en: 'My Requests'        },
+  newRequest:   { ar: '+ طلب جديد',        en: '+ New Request'      },
+  search:       { ar: 'ابحث عن طلب...',    en: 'Search requests...' },
+  filterAll:    { ar: 'الكل',              en: 'All'                },
+  filterOpen:   { ar: 'مفتوح',             en: 'Open'               },
+  filterClosed: { ar: 'مغلق',              en: 'Closed'             },
+  viewTable:    { ar: 'جدول',              en: 'Table'              },
+  viewCards:    { ar: 'كروت',              en: 'Cards'              },
+  viewKanban:   { ar: 'مسارات',            en: 'Board'              },
+  viewProjects: { ar: 'مشاريع',            en: 'Projects'           },
+  noRequests:   { ar: 'لا توجد طلبات',     en: 'No requests'        },
+  createNow:    { ar: 'إنشاء طلب الآن',    en: 'Create Request Now' },
+  reqId:        { ar: 'رقم الطلب',         en: 'Request ID'         },
+  name:         { ar: 'الطلب',             en: 'Request'            },
+  status:       { ar: 'الحالة',            en: 'Status'             },
+  quotes:       { ar: 'عروض',              en: 'Quotes'             },
+  location:     { ar: 'المدينة',           en: 'City'               },
+  deadline:     { ar: 'الموعد',            en: 'Deadline'           },
+  open:         { ar: 'مفتوح',             en: 'Open'               },
+  closed:       { ar: 'مغلق',              en: 'Closed'             },
+  active:       { ar: 'نشط',               en: 'Active'             },
+  pending:      { ar: 'انتظار',            en: 'Pending'            },
+  view:         { ar: 'عرض',              en: 'View'               },
+  edit:         { ar: 'تعديل',             en: 'Edit'               },
+  newQuote:     { ar: 'جديد',              en: 'new'                },
+  newQuotes:    { ar: 'عرض جديد',          en: 'new quotes'         },
+  kanbanActive: { ar: 'نشطة',              en: 'Active'             },
+  kanbanPend:   { ar: 'بانتظار عروض',      en: 'Awaiting Quotes'    },
+  kanbanClosed: { ar: 'مغلقة',             en: 'Closed'             },
+  compare:      { ar: 'مقارنة',            en: 'Compare'            },
+  thisMonth:    { ar: '+3 هذا الشهر',      en: '+3 this month'      },
+  unread:       { ar: 'غير مقروءة',        en: 'unread'             },
+  activeReqs:   { ar: 'طلبات نشطة',        en: 'Active Requests'    },
+  incomingQ:    { ar: 'عروض واردة',        en: 'Incoming Quotes'    },
+  closedReqs:   { ar: 'طلبات مغلقة',       en: 'Closed Requests'    },
+  totalReqs:    { ar: 'إجمالي الطلبات',    en: 'Total Requests'     },
+  // Detail modal
+  reqDetails:   { ar: 'تفاصيل الطلب',     en: 'Request Details'    },
+  materials:    { ar: 'المواد المطلوبة',   en: 'Required Materials' },
+  matType:      { ar: 'نوع المادة',        en: 'Material'           },
+  usage:        { ar: 'الاستخدام',         en: 'Usage'              },
+  size:         { ar: 'المقاس',            en: 'Size'               },
+  thickness:    { ar: 'السماكة',           en: 'Thickness'          },
+  finish:       { ar: 'الفنش',             en: 'Finish'             },
+  color:        { ar: 'اللون',             en: 'Color'              },
+  qty:          { ar: 'الكمية',            en: 'Qty'                },
+  targetPrice:  { ar: 'السعر المستهدف',    en: 'Target Price'       },
+  origin:       { ar: 'الصناعة',           en: 'Origin'             },
+  deliveryDate: { ar: 'تاريخ التوريد',     en: 'Delivery Date'      },
+  note:         { ar: 'وصف البند',         en: 'Note'               },
+  images:       { ar: 'الصور',             en: 'Images'             },
+  description:  { ar: 'الوصف',             en: 'Description'        },
+  quotesSection:{ ar: 'عروض الأسعار',      en: 'Quotes'             },
+  noQuotes:     { ar: 'لا توجد عروض بعد', en: 'No quotes yet'      },
+  activityLog:  { ar: 'تاريخ النشاط',      en: 'Activity History'   },
+  accept:       { ar: 'قبول',              en: 'Accept'             },
+  reject:       { ar: 'رفض',              en: 'Reject'             },
+  revision:     { ar: 'طلب تعديل',         en: 'Request Revision'   },
+  undoDecision: { ar: 'إلغاء القرار',      en: 'Undo Decision'      },
+  accepted:     { ar: 'مقبول',             en: 'Accepted'           },
+  rejected:     { ar: 'مرفوض',            en: 'Rejected'           },
+  revisionReq:  { ar: 'طلب تعديل',         en: 'Revision Requested' },
+  pendingQ:     { ar: 'قيد الانتظار',      en: 'Pending'            },
+  contact:      { ar: 'بيانات التواصل:',   en: 'Contact Info:'      },
+  nameL:        { ar: 'الاسم:',            en: 'Name:'              },
+  companyL:     { ar: 'الشركة:',           en: 'Company:'           },
+  phoneL:       { ar: 'التليفون:',         en: 'Phone:'             },
+  emailL:       { ar: 'الإيميل:',          en: 'Email:'             },
+  na:           { ar: 'غير متوفر',         en: 'N/A'                },
+  revNoteLabel: { ar: 'ملاحظة التعديل:',   en: 'Revision Note:'     },
+  writeRevNote: { ar: 'اكتب ملاحظة التعديل:', en: 'Write revision note:' },
+  revPlaceholder:{ ar: 'مثال: أريد سعر أقل أو توريد أسرع...', en: 'Ex: Need lower price or faster delivery...' },
+  sendRevision: { ar: 'إرسال التعديل',     en: 'Send Revision'      },
+  cancel:       { ar: 'إلغاء',             en: 'Cancel'             },
+  closeModal:   { ar: 'إغلاق',             en: 'Close'              },
+  openReq:      { ar: 'فتح الطلب',         en: 'Open Request'       },
+  closeReq:     { ar: 'إغلاق الطلب',       en: 'Close Request'      },
+  deleteReq:    { ar: 'حذف الطلب',         en: 'Delete Request'     },
+  editReq:      { ar: 'تعديل',             en: 'Edit'               },
+  confirmDelete:{ ar: 'هل أنت متأكد من حذف هذا الطلب؟', en: 'Are you sure you want to delete this request?' },
+  // Compare
+  compareTitle: { ar: 'مقارنة العروض',     en: 'Compare Quotes'     },
+  supplier:     { ar: 'المورد',            en: 'Supplier'           },
+  price:        { ar: 'السعر',             en: 'Price'              },
+  delivery:     { ar: 'مدة التوريد',       en: 'Delivery'           },
+  notesL:       { ar: 'ملاحظات',           en: 'Notes'              },
+  action:       { ar: 'إجراء',             en: 'Action'             },
+  cheapest:     { ar: 'الأرخص',           en: 'Cheapest'           },
+  fastest:      { ar: 'الأسرع',           en: 'Fastest'            },
+  undo:         { ar: 'إلغاء',             en: 'Undo'               },
+  summary:      { ar: 'ملخص المقارنة:',    en: 'Comparison Summary:'},
+  lowestP:      { ar: 'أقل سعر:',         en: 'Lowest Price:'      },
+  fastestD:     { ar: 'أسرع توريد:',      en: 'Fastest Delivery:'  },
+  totalQ:       { ar: 'عدد العروض:',       en: 'Total Quotes:'      },
+  days:         { ar: 'يوم',              en: 'days'               },
+  sar:          { ar: 'ر.س',              en: 'SAR'                },
+  // Rating
+  rateSupplier: { ar: 'قيّم المورد',       en: 'Rate Supplier'      },
+  rateExp:      { ar: 'كيف كانت تجربتك مع', en: 'How was your experience with' },
+  rateComments: { ar: 'ملاحظات (اختياري)', en: 'Comments (Optional)' },
+  rateWrite:    { ar: 'اكتب تجربتك مع المورد...', en: 'Write your experience...' },
+  submitRating: { ar: 'إرسال التقييم',     en: 'Submit Rating'      },
+  skip:         { ar: 'تخطي',             en: 'Skip'               },
+  poor:         { ar: 'سيء',              en: 'Poor'               },
+  fair:         { ar: 'مقبول',            en: 'Fair'               },
+  good:         { ar: 'جيد',             en: 'Good'               },
+  vgood:        { ar: 'جيد جداً',         en: 'Very Good'          },
+  excellent:    { ar: 'ممتاز',            en: 'Excellent'          },
+  selectRating: { ar: 'من فضلك اختار تقييم', en: 'Please select a rating' },
+  rated:        { ar: 'تم التقييم',        en: 'Rated'              },
+  // Notifications
+  newQuoteBanner:{ ar: (n: number) => `عندك ${n} عرض سعر جديد على طلباتك`, en: (n: number) => `You have ${n} new quote(s) on your requests` },
+  // Bulk & multi-select
+  selectAll:     { ar: 'تحديد الكل',       en: 'Select All'            },
+  deselectAll:   { ar: 'إلغاء التحديد',    en: 'Deselect All'          },
+  selected:      { ar: (n: number) => `تم تحديد ${n} طلب`, en: (n: number) => `${n} selected` },
+  deleteSelected:{ ar: 'حذف المحدد',       en: 'Delete Selected'       },
+  closeSelected: { ar: 'إغلاق المحدد',     en: 'Close Selected'        },
+  openSelected:  { ar: 'فتح المحدد',       en: 'Open Selected'         },
+  moveSelected:  { ar: 'نقل المحدد إلى',   en: 'Move Selected to'      },
+  delete:        { ar: 'حذف',              en: 'Delete'                },
+  dropHere:      { ar: 'اسحب هنا',         en: 'Drop here'             },
+  // Move menu
+  moveTo:        { ar: 'نقل إلى',          en: 'Move to'               },
+  moveActive:    { ar: 'نشطة',             en: 'Active'                },
+  moveAwaiting:  { ar: 'بانتظار عروض',     en: 'Awaiting'              },
+  moveClosed:    { ar: 'مغلقة',            en: 'Closed'                },
+  // Filters
+  filterLabel:   { ar: 'فلاتر',            en: 'Filters'               },
+  allCities:     { ar: 'كل المدن',         en: 'All Cities'            },
+  withQuotes:    { ar: 'لديها عروض',       en: 'With Quotes'           },
+  noQuotes2:     { ar: 'بدون عروض',        en: 'No Quotes'             },
+  allItems:      { ar: 'الكل',             en: 'All'                   },
+  sortLabel:     { ar: 'ترتيب:',           en: 'Sort:'                 },
+  sortNewest:    { ar: 'الأحدث',           en: 'Newest'                },
+  sortOldest:    { ar: 'الأقدم',           en: 'Oldest'                },
+  sortMostQ:     { ar: 'الأكثر عروضاً',   en: 'Most Quotes'           },
+  resetFilters:  { ar: 'إعادة تعيين',      en: 'Reset'                 },
+  // Projects
+  myProjects:    { ar: 'مشاريعي',          en: 'My Projects'           },
+  noProject:     { ar: 'بدون مشروع',       en: 'No Project'            },
+  projReqs:      { ar: (n: number) => `${n} طلب`, en: (n: number) => `${n} requests` },
+  projQuotes:    { ar: (n: number) => `${n} عرض`,  en: (n: number) => `${n} quotes`  },
+  viewProj:      { ar: 'عرض المشروع',      en: 'View Project'          },
+  backToAll:     { ar: '← كل الطلبات',     en: '← All Requests'        },
+};
+
+function t(key: keyof typeof T, lang: Lang, arg?: number): string {
+  const entry = T[key];
+  if (!entry) return key;
+  const val = (entry as any)[lang];
+  if (typeof val === 'function') return val(arg ?? 0);
+  return val;
 }
 
-interface ActivityLog {
-  id: number;
-  requestId: number;
-  action: string;
-  actionEn: string;
-  timestamp: string;
+function StatusPill({ status, hasQuotes, lang }: { status: string; hasQuotes: boolean; lang: Lang }) {
+  if (status === 'closed') return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+      <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />{t('closed', lang)}
+    </span>
+  );
+  if (hasQuotes) return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />{t('active', lang)}
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
+      <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />{t('pending', lang)}
+    </span>
+  );
 }
 
-interface Rating {
-  id: number;
-  requestId: number;
-  supplierId: string;
-  supplierCompany: string;
-  rating: number;
-  comment: string;
-  createdAt: string;
+function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
+  return (
+    <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+      {(['ar', 'en'] as Lang[]).map(l => (
+        <button key={l} onClick={() => setLang(l)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[#0F4C75] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+          <img src={l === 'ar' ? 'https://flagcdn.com/w20/sa.png' : 'https://flagcdn.com/w20/us.png'} width="20" height="14" alt={l} className="rounded-sm" />
+          {l.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
 }
 
 export default function MyRequests() {
-  const [language, setLanguage] = useState<'ar' | 'en'>('ar');
+  const [lang, setLang] = useState<Lang>('ar');
   const [user, setUser] = useState<any>(null);
   const [requests, setRequests] = useState<Request[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [revisionQuoteId, setRevisionQuoteId] = useState<number | null>(null);
   const [revisionNote, setRevisionNote] = useState('');
-  const [filter, setFilter] = useState<'all' | 'open' | 'closed'>('all');
+  const [filter, setFilter] = useState<FilterMode>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [compareRequest, setCompareRequest] = useState<Request | null>(null);
   const [seenQuotes, setSeenQuotes] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,6 +255,16 @@ export default function MyRequests() {
   const [ratingComment, setRatingComment] = useState('');
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  const [userName, setUserName] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [draggingId, setDraggingId] = useState<number | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<KanbanCol | null>(null);
+  const [cityFilter, setCityFilter] = useState('');
+  const [quotesFilter, setQuotesFilter] = useState<QuotesFilter>('all');
+  const [sortBy, setSortBy] = useState<SortBy>('newest');
+  const [showFilters, setShowFilters] = useState(false);
+  const [moveMenuId, setMoveMenuId] = useState<number | null>(null);
+  const [projectFilter, setProjectFilter] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -97,764 +273,1243 @@ export default function MyRequests() {
     const parsedUser = JSON.parse(userData);
     if (parsedUser.userType === 'supplier') { router.push('/supplier-requests'); return; }
     setUser(parsedUser);
+    if (parsedUser.name) setUserName(parsedUser.name);
 
     const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
-    const userRequests = allRequests.filter((req: Request) => req.contractorId === parsedUser.email);
-    setRequests(userRequests);
+    setRequests(allRequests.filter((req: Request) => req.contractorId === parsedUser.email));
+    setQuotes(JSON.parse(localStorage.getItem('quotes') || '[]'));
+    setSeenQuotes(JSON.parse(localStorage.getItem(`seenQuotes_${parsedUser.email}`) || '[]'));
+    setActivityLogs(JSON.parse(localStorage.getItem('activityLogs') || '[]'));
+    setRatings(JSON.parse(localStorage.getItem('ratings') || '[]'));
 
-    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-    setQuotes(allQuotes);
-
-    const seen = JSON.parse(localStorage.getItem(`seenQuotes_${parsedUser.email}`) || '[]');
-    setSeenQuotes(seen);
-
-    const allLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-    setActivityLogs(allLogs);
-
-    const allRatings = JSON.parse(localStorage.getItem('ratings') || '[]');
-    setRatings(allRatings);
-
-    const savedLang = localStorage.getItem('language') as 'ar' | 'en' || 'ar';
-    setLanguage(savedLang);
-
+    const savedLang = localStorage.getItem('language') as Lang || 'ar';
+    setLang(savedLang);
     const interval = setInterval(() => {
-      const newLang = localStorage.getItem('language') as 'ar' | 'en' || 'ar';
-      if (newLang !== language) setLanguage(newLang);
+      const nl = localStorage.getItem('language') as Lang || 'ar';
+      setLang(prev => prev !== nl ? nl : prev);
     }, 100);
-
     return () => clearInterval(interval);
-  }, [router, language]);
+  }, [router]);
 
-  const tr = (ar: string, en: string) => language === 'ar' ? ar : en;
+  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
+  /* ── helpers ── */
   const addActivityLog = (requestId: number, action: string, actionEn: string) => {
     const allLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-    const newLog: ActivityLog = {
-      id: Date.now(),
-      requestId,
-      action,
-      actionEn,
-      timestamp: new Date().toISOString()
-    };
+    const newLog: ActivityLog = { id: Date.now(), requestId, action, actionEn, timestamp: new Date().toISOString() };
     allLogs.push(newLog);
     localStorage.setItem('activityLogs', JSON.stringify(allLogs));
     setActivityLogs(allLogs);
   };
-
-  const getRequestLogs = (requestId: number) => {
-    return activityLogs
-      .filter(log => log.requestId === requestId)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  };
-
-  const getRequestRating = (requestId: number) => {
-    return ratings.find(r => r.requestId === requestId) || null;
-  };
-
+  const getRequestLogs = (id: number) =>
+    activityLogs.filter(l => l.requestId === id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  const getRequestRating = (id: number) => ratings.find(r => r.requestId === id) || null;
   const getSupplierData = (supplierId: string) => {
     const fromKey = localStorage.getItem(`user_${supplierId}`);
     if (fromKey) return JSON.parse(fromKey);
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    return users.find((u: any) => u.email === supplierId) || null;
+    return (JSON.parse(localStorage.getItem('users') || '[]')).find((u: any) => u.email === supplierId) || null;
   };
-
   const getNewQuotesCount = () => {
-    const myRequestIds = requests.map(r => r.id);
-    return quotes.filter(q =>
-      myRequestIds.includes(q.requestId) &&
-      q.status === 'pending' &&
-      !seenQuotes.includes(q.id)
-    ).length;
+    const ids = requests.map(r => r.id);
+    return quotes.filter(q => ids.includes(q.requestId) && q.status === 'pending' && !seenQuotes.includes(q.id)).length;
   };
-
-  const getRequestNewQuotes = (requestId: number) => {
-    return quotes.filter(q =>
-      q.requestId === requestId &&
-      q.status === 'pending' &&
-      !seenQuotes.includes(q.id)
-    ).length;
-  };
-
-  const markRequestQuotesAsSeen = (requestId: number) => {
-    const requestQuoteIds = quotes.filter(q => q.requestId === requestId).map(q => q.id);
-    const newSeen = [...new Set([...seenQuotes, ...requestQuoteIds])];
+  const getRequestNewQuotes = (id: number) =>
+    quotes.filter(q => q.requestId === id && q.status === 'pending' && !seenQuotes.includes(q.id)).length;
+  const markRequestQuotesAsSeen = (id: number) => {
+    const ids = quotes.filter(q => q.requestId === id).map(q => q.id);
+    const newSeen = [...new Set([...seenQuotes, ...ids])];
     setSeenQuotes(newSeen);
     if (user) localStorage.setItem(`seenQuotes_${user.email}`, JSON.stringify(newSeen));
   };
+  const getRequestQuotes = (id: number) => quotes.filter(q => q.requestId === id);
+  const getLowestPrice = (qs: Quote[]) => qs.length === 0 ? null : Math.min(...qs.map(q => q.totalPrice));
+  const getFastestDelivery = (qs: Quote[]) => qs.length === 0 ? null : Math.min(...qs.map(q => q.deliveryDays));
+  const formatDate = (ts: string) => new Date(ts).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US');
+  const displayVal = (val: string) => {
+    if (!val) return '—';
+    if (lang === 'en') return val.split(' أو ').map(p => arToEn[p.trim()] || p.trim()).join(' / ');
+    return val;
+  };
+  const getRequestName = (req: Request) => {
+    if (req.projectName?.trim()) return req.projectName.trim();
+    if (req.materials && req.materials.length > 0) {
+      const types = [...new Set(req.materials.map((m: any) => m.type || m.typePending).filter(Boolean))];
+      if (types.length > 0) return types.map(tp => displayVal(tp as string)).join(' — ');
+    }
+    const parts: string[] = [];
+    if (req.ceramic > 0) parts.push(`${lang === 'ar' ? 'سيراميك' : 'Ceramic'} ${req.ceramic}m²`);
+    if (req.porcelain > 0) parts.push(`${lang === 'ar' ? 'بورسلان' : 'Porcelain'} ${req.porcelain}m²`);
+    if (req.marble > 0) parts.push(`${lang === 'ar' ? 'رخام' : 'Marble'} ${req.marble}m²`);
+    if (req.granite > 0) parts.push(`${lang === 'ar' ? 'جرانيت' : 'Granite'} ${req.granite}m²`);
+    if (req.terrazzo > 0) parts.push(`${lang === 'ar' ? 'تيرازو' : 'Terrazzo'} ${req.terrazzo}m²`);
+    return parts.join(' — ') || `#${String(req.id).slice(-4)}`;
+  };
+  const getRequestTags = (req: Request): string[] => {
+    if (req.materials && req.materials.length > 0)
+      return [...new Set(req.materials.map((m: any) => m.type || m.typePending).filter(Boolean))] as string[];
+    return [
+      req.ceramic > 0 ? (lang === 'ar' ? 'سيراميك' : 'Ceramic') : null,
+      req.porcelain > 0 ? (lang === 'ar' ? 'بورسلان' : 'Porcelain') : null,
+      req.marble > 0 ? (lang === 'ar' ? 'رخام' : 'Marble') : null,
+      req.granite > 0 ? (lang === 'ar' ? 'جرانيت' : 'Granite') : null,
+      req.terrazzo > 0 ? (lang === 'ar' ? 'تيرازو' : 'Terrazzo') : null,
+    ].filter(Boolean) as string[];
+  };
 
+  /* ── actions ── */
   const toggleRequestStatus = (requestId: number) => {
     const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
     const req = allRequests.find((r: Request) => r.id === requestId);
     const newStatus = req?.status === 'open' ? 'closed' : 'open';
-    const updated = allRequests.map((r: Request) => {
-      if (r.id === requestId) return { ...r, status: newStatus };
-      return r;
-    });
+    const updated = allRequests.map((r: Request) => r.id === requestId ? { ...r, status: newStatus } : r);
     localStorage.setItem('requests', JSON.stringify(updated));
     setRequests(updated.filter((r: Request) => r.contractorId === user.email));
-
     if (newStatus === 'closed') {
       addActivityLog(requestId, 'تم إغلاق الطلب', 'Request closed');
       const acceptedQuote = quotes.find(q => q.requestId === requestId && q.status === 'accepted');
       const alreadyRated = ratings.find(r => r.requestId === requestId);
       if (acceptedQuote && !alreadyRated) {
-        const reqData = allRequests.find((r: Request) => r.id === requestId);
-        setRatingRequest(reqData || null);
+        setRatingRequest(allRequests.find((r: Request) => r.id === requestId) || null);
         setRatingQuote(acceptedQuote);
         setShowRatingModal(true);
       }
-    } else {
-      addActivityLog(requestId, 'تم فتح الطلب', 'Request reopened');
+    } else addActivityLog(requestId, 'تم فتح الطلب', 'Request reopened');
+  };
+  const handleDeleteRequest = (requestId: number) => {
+    if (!confirm(t('confirmDelete', lang))) return;
+    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const newAll = allRequests.filter((req: Request) => req.id !== requestId);
+    localStorage.setItem('requests', JSON.stringify(newAll));
+    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+    const newQuotes = allQuotes.filter((q: Quote) => q.requestId !== requestId);
+    localStorage.setItem('quotes', JSON.stringify(newQuotes));
+    setRequests(newAll.filter((req: Request) => req.contractorId === user.email));
+    setQuotes(newQuotes);
+    setSelectedRequest(null);
+  };
+  const handleQuoteAction = (quoteId: number, action: 'accepted' | 'rejected' | 'pending') => {
+    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+    const quote = allQuotes.find((q: Quote) => q.id === quoteId);
+    const updated = allQuotes.map((q: Quote) => q.id === quoteId ? { ...q, status: action } : q);
+    localStorage.setItem('quotes', JSON.stringify(updated));
+    setQuotes(updated);
+    if (quote) {
+      if (action === 'accepted') addActivityLog(quote.requestId, `تم قبول عرض ${quote.supplierCompany} بسعر ${quote.totalPrice} ر.س`, `Accepted quote from ${quote.supplierCompany} at ${quote.totalPrice} SAR`);
+      else if (action === 'rejected') addActivityLog(quote.requestId, `تم رفض عرض ${quote.supplierCompany}`, `Rejected quote from ${quote.supplierCompany}`);
+      else addActivityLog(quote.requestId, `تم إلغاء القرار على عرض ${quote.supplierCompany}`, `Undid decision on ${quote.supplierCompany} quote`);
     }
   };
-
+  const handleRevisionSubmit = (quoteId: number) => {
+    if (!revisionNote.trim()) { alert(lang === 'ar' ? 'من فضلك اكتب ملاحظة التعديل' : 'Please write a revision note'); return; }
+    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+    const quote = allQuotes.find((q: Quote) => q.id === quoteId);
+    const updated = allQuotes.map((q: Quote) => q.id === quoteId ? { ...q, status: 'revision', revisionNote } : q);
+    localStorage.setItem('quotes', JSON.stringify(updated));
+    setQuotes(updated);
+    if (quote) addActivityLog(quote.requestId, `تم طلب تعديل على عرض ${quote.supplierCompany}: "${revisionNote}"`, `Requested revision on ${quote.supplierCompany}: "${revisionNote}"`);
+    setRevisionQuoteId(null);
+    setRevisionNote('');
+  };
   const handleSubmitRating = () => {
-    if (ratingStars === 0) {
-      alert(tr('من فضلك اختار تقييم', 'Please select a rating'));
-      return;
-    }
+    if (ratingStars === 0) { alert(t('selectRating', lang)); return; }
     if (!ratingRequest || !ratingQuote) return;
-
     const allRatings = JSON.parse(localStorage.getItem('ratings') || '[]');
-    const newRating: Rating = {
-      id: Date.now(),
-      requestId: ratingRequest.id,
-      supplierId: ratingQuote.supplierId,
-      supplierCompany: ratingQuote.supplierCompany,
-      rating: ratingStars,
-      comment: ratingComment,
-      createdAt: new Date().toISOString()
-    };
+    const newRating: Rating = { id: Date.now(), requestId: ratingRequest.id, supplierId: ratingQuote.supplierId, supplierCompany: ratingQuote.supplierCompany, rating: ratingStars, comment: ratingComment, createdAt: new Date().toISOString() };
     allRatings.push(newRating);
     localStorage.setItem('ratings', JSON.stringify(allRatings));
     setRatings(allRatings);
     addActivityLog(ratingRequest.id, `تم تقييم ${ratingQuote.supplierCompany} بـ ${ratingStars} نجوم`, `Rated ${ratingQuote.supplierCompany} ${ratingStars} stars`);
-
-    setShowRatingModal(false);
-    setRatingStars(0);
-    setRatingComment('');
-    setRatingRequest(null);
-    setRatingQuote(null);
-    alert(tr('تم إرسال التقييم بنجاح!', 'Rating submitted successfully!'));
+    setShowRatingModal(false); setRatingStars(0); setRatingComment(''); setRatingRequest(null); setRatingQuote(null);
+    alert(lang === 'ar' ? 'تم إرسال التقييم بنجاح!' : 'Rating submitted successfully!');
   };
 
-  const handleDeleteRequest = (requestId: number) => {
-    if (confirm(tr('هل أنت متأكد من حذف هذا الطلب؟', 'Are you sure you want to delete this request?'))) {
-      const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
-      const newAll = allRequests.filter((req: Request) => req.id !== requestId);
-      localStorage.setItem('requests', JSON.stringify(newAll));
-      const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-      const newQuotes = allQuotes.filter((q: Quote) => q.requestId !== requestId);
-      localStorage.setItem('quotes', JSON.stringify(newQuotes));
-      setRequests(newAll.filter((req: Request) => req.contractorId === user.email));
-      setQuotes(newQuotes);
-      setSelectedRequest(null);
-    }
-  };
+  const openRequest = (req: Request) => { setSelectedRequest(req); markRequestQuotesAsSeen(req.id); };
 
-  const handleQuoteAction = (quoteId: number, action: 'accepted' | 'rejected' | 'pending') => {
+  /* ── multi-select ── */
+  const toggleSelect = (id: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setSelectedIds(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  };
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredRequests.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filteredRequests.map(r => r.id)));
+  };
+  const handleBulkDelete = () => {
+    if (!confirm(lang === 'ar' ? `هل أنت متأكد من حذف ${selectedIds.size} طلبات؟` : `Delete ${selectedIds.size} requests?`)) return;
+    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const newAll = allRequests.filter((r: Request) => !selectedIds.has(r.id));
+    localStorage.setItem('requests', JSON.stringify(newAll));
     const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const quote = allQuotes.find((q: Quote) => q.id === quoteId);
-    const updated = allQuotes.map((q: Quote) => {
-      if (q.id === quoteId) return { ...q, status: action };
-      return q;
-    });
-    localStorage.setItem('quotes', JSON.stringify(updated));
-    setQuotes(updated);
-
-    if (quote) {
-      if (action === 'accepted') {
-        addActivityLog(quote.requestId, `تم قبول عرض ${quote.supplierCompany} بسعر ${quote.totalPrice} ر.س`, `Accepted quote from ${quote.supplierCompany} at ${quote.totalPrice} SAR`);
-      } else if (action === 'rejected') {
-        addActivityLog(quote.requestId, `تم رفض عرض ${quote.supplierCompany}`, `Rejected quote from ${quote.supplierCompany}`);
-      } else if (action === 'pending') {
-        addActivityLog(quote.requestId, `تم إلغاء القرار على عرض ${quote.supplierCompany}`, `Undid decision on ${quote.supplierCompany} quote`);
-      }
-    }
+    const newQuotes = allQuotes.filter((q: Quote) => !selectedIds.has(q.requestId));
+    localStorage.setItem('quotes', JSON.stringify(newQuotes));
+    setRequests(newAll.filter((r: Request) => r.contractorId === user.email));
+    setQuotes(newQuotes);
+    setSelectedIds(new Set());
+  };
+  const handleBulkSetStatus = (status: 'open' | 'closed') => {
+    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const updated = allRequests.map((r: Request) => selectedIds.has(r.id) ? { ...r, status } : r);
+    localStorage.setItem('requests', JSON.stringify(updated));
+    setRequests(updated.filter((r: Request) => r.contractorId === user.email));
+    setSelectedIds(new Set());
   };
 
-  const handleRevisionSubmit = (quoteId: number) => {
-    if (!revisionNote.trim()) {
-      alert(tr('من فضلك اكتب ملاحظة التعديل', 'Please write a revision note'));
-      return;
-    }
-    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const quote = allQuotes.find((q: Quote) => q.id === quoteId);
-    const updated = allQuotes.map((q: Quote) => {
-      if (q.id === quoteId) return { ...q, status: 'revision', revisionNote };
-      return q;
-    });
-    localStorage.setItem('quotes', JSON.stringify(updated));
-    setQuotes(updated);
-    if (quote) {
-      addActivityLog(quote.requestId, `تم طلب تعديل على عرض ${quote.supplierCompany}: "${revisionNote}"`, `Requested revision on ${quote.supplierCompany} quote: "${revisionNote}"`);
-    }
-    setRevisionQuoteId(null);
-    setRevisionNote('');
+  /* ── kanban DnD ── */
+  const getKanbanCol = (req: Request): KanbanCol => {
+    if (req.kanbanColumn) return req.kanbanColumn;
+    if (req.status === 'closed') return 'closed';
+    if (getRequestQuotes(req.id).length > 0) return 'active';
+    return 'awaiting';
+  };
+  const handleKanbanDrop = (col: KanbanCol) => {
+    if (!draggingId) return;
+    const newStatus = col === 'closed' ? 'closed' : 'open';
+    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const updated = allRequests.map((r: Request) =>
+      r.id === draggingId ? { ...r, status: newStatus, kanbanColumn: col } : r
+    );
+    localStorage.setItem('requests', JSON.stringify(updated));
+    setRequests(updated.filter((r: Request) => r.contractorId === user.email));
+    setDraggingId(null);
+    setDragOverCol(null);
   };
 
-  const getRequestQuotes = (requestId: number) => quotes.filter(q => q.requestId === requestId);
+  /* ── move single request to kanban column ── */
+  const handleMoveRequest = (reqId: number, col: KanbanCol) => {
+    const newStatus = col === 'closed' ? 'closed' : 'open';
+    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const updated = allRequests.map((r: Request) =>
+      r.id === reqId ? { ...r, status: newStatus, kanbanColumn: col } : r
+    );
+    localStorage.setItem('requests', JSON.stringify(updated));
+    setRequests(updated.filter((r: Request) => r.contractorId === user.email));
+    setMoveMenuId(null);
+  };
 
+  /* ── filtered list ── */
   const filteredRequests = requests.filter(req => {
-    const matchesFilter = filter === 'all' || req.status === filter;
+    const matchFilter = filter === 'all' || req.status === filter;
     const q = searchQuery.toLowerCase();
-    const matchesSearch = !q ||
-      req.location?.toLowerCase().includes(q) ||
-      String(req.id).includes(q) ||
-      (req.ceramic > 0 && 'سيراميك ceramic'.includes(q)) ||
-      (req.porcelain > 0 && 'بورسلين porcelain'.includes(q)) ||
-      (req.marble > 0 && 'رخام marble'.includes(q)) ||
-      (req.granite > 0 && 'جرانيت granite'.includes(q)) ||
-      (req.terrazzo > 0 && 'تيرازو terrazzo'.includes(q)) ||
-      req.description?.toLowerCase().includes(q);
-    return matchesFilter && matchesSearch;
+    const matchSearch = !q || req.location?.toLowerCase().includes(q) || String(req.id).includes(q) || req.description?.toLowerCase().includes(q) || getRequestName(req).toLowerCase().includes(q) || req.projectName?.toLowerCase().includes(q);
+    const matchCity = !cityFilter || req.location === cityFilter;
+    const reqQuotes = getRequestQuotes(req.id);
+    const matchQuotes = quotesFilter === 'all' || (quotesFilter === 'with' && reqQuotes.length > 0) || (quotesFilter === 'without' && reqQuotes.length === 0);
+    const matchProject = !projectFilter || (req.projectName?.trim() || '') === projectFilter;
+    return matchFilter && matchSearch && matchCity && matchQuotes && matchProject;
+  }).sort((a, b) => {
+    if (sortBy === 'oldest') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    if (sortBy === 'mostQuotes') return getRequestQuotes(b.id).length - getRequestQuotes(a.id).length;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
-  const getLowestPrice = (requestQuotes: Quote[]) => {
-    if (requestQuotes.length === 0) return null;
-    return Math.min(...requestQuotes.map(q => q.totalPrice));
+  /* ── projects grouped ── */
+  const availableCities = [...new Set(requests.map(r => r.location).filter(Boolean))];
+  const projectGroups: Record<string, Request[]> = {};
+  requests.forEach(req => {
+    const key = req.projectName?.trim() || '__none__';
+    if (!projectGroups[key]) projectGroups[key] = [];
+    projectGroups[key].push(req);
+  });
+
+  const stats = {
+    total:  requests.length,
+    active: requests.filter(r => r.status === 'open' && getRequestQuotes(r.id).length > 0).length,
+    quotes: requests.reduce((s, r) => s + getRequestQuotes(r.id).length, 0),
+    closed: requests.filter(r => r.status === 'closed').length,
   };
-
-  const getFastestDelivery = (requestQuotes: Quote[]) => {
-    if (requestQuotes.length === 0) return null;
-    return Math.min(...requestQuotes.map(q => q.deliveryDays));
-  };
-
-  const formatDate = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US') + ' ' + date.toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const displayVal = (val: string) => {
-    if (!val) return '—';
-    if (language === 'en') {
-      return val.split(' أو ').map(p => arToEn[p.trim()] || p.trim()).join(' / ');
-    }
-    return val;
-  };
-
-  if (!user) return <div style={{ padding: '20px' }}>Loading...</div>;
-
   const newQuotesCount = getNewQuotesCount();
 
-  const thStyle: React.CSSProperties = { padding: '10px 8px', borderBottom: '2px solid #dee2e6', color: '#333', textAlign: 'center', whiteSpace: 'nowrap', backgroundColor: '#f8f9fa', fontSize: '13px', fontWeight: 'bold' };
-  const tdStyle: React.CSSProperties = { padding: '8px', textAlign: 'center', color: '#333', fontSize: '13px', borderBottom: '1px solid #f0f0f0' };
+  /* ── table th/td style ── */
+  const thCls = 'text-[10px] font-semibold uppercase tracking-wider text-slate-400 px-4 py-2.5 text-right bg-[#FAFBFC] border-b border-[#F1F5F9]';
+  const tdCls = 'px-4 py-3 border-b border-[#F8FAFC] text-[13px] text-slate-700';
 
+  if (!user) return <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center"><div className="text-slate-400">Loading...</div></div>;
+
+  /* ════════════════════════════════════════ RENDER ════════════════════════════════════════ */
   return (
-    <div style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
-      <Navbar />
-      <div style={{ padding: '20px', paddingTop: '80px', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="min-h-screen bg-[#F0F4F8] font-cairo" dir={dir}>
 
-        
-        {showRatingModal && ratingQuote && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-            <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', maxWidth: '450px', width: '90%', direction: language === 'ar' ? 'rtl' : 'ltr' }}>
-              <h2 style={{ color: '#333', margin: '0 0 8px 0', textAlign: 'center' }}>{tr('قيّم المورد', 'Rate Supplier')}</h2>
-              <p style={{ color: '#666', textAlign: 'center', margin: '0 0 20px 0', fontSize: '14px' }}>
-                {tr('كيف كانت تجربتك مع', 'How was your experience with')} {ratingQuote.supplierCompany}؟
-              </p>
-              <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <span key={star} onClick={() => setRatingStars(star)}
-                      style={{ fontSize: '40px', cursor: 'pointer', color: star <= ratingStars ? '#ffc107' : '#ddd', transition: 'color 0.2s' }}>★</span>
+      {/* ── TOPBAR ── */}
+      <nav className="bg-white border-b border-[#E2EAF2] px-7 flex items-center justify-between h-14 sticky top-0 z-20">
+        <div className="text-[17px] font-bold text-[#0F4C75]">Build<span className="text-[#1B9AAA]">Pro</span></div>
+        <div className="flex gap-1">
+          {[
+            { labelAr: 'لوحة التحكم', labelEn: 'Dashboard',   href: '/dashboard'  },
+            { labelAr: 'طلباتي',      labelEn: 'My Requests', href: '/my-requests'},
+            { labelAr: 'عروض الأسعار',labelEn: 'Quotes',      href: '/my-quotes'  },
+            { labelAr: 'الموردون',    labelEn: 'Suppliers',   href: '/suppliers'  },
+            { labelAr: 'المسودات',    labelEn: 'Drafts',      href: '/drafts'     },
+          ].map(item => (
+            <Link key={item.href} href={item.href}
+              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${item.href === '/my-requests' ? 'bg-[#EBF5FF] text-[#0F4C75] font-semibold' : 'text-slate-600 hover:bg-[#F0F4F8] hover:text-[#0F4C75]'}`}>
+              {lang === 'ar' ? item.labelAr : item.labelEn}
+            </Link>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <LangToggle lang={lang} setLang={handleLangChange} />
+          <button className="relative w-9 h-9 rounded-lg border border-[#E2EAF2] flex items-center justify-center hover:bg-[#F0F4F8] transition-colors">
+            <span className="text-slate-500 text-base">🔔</span>
+            {newQuotesCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />}
+          </button>
+          <div className="w-9 h-9 rounded-lg bg-[#0F4C75] flex items-center justify-center text-white text-xs font-bold cursor-pointer">
+            {userName.charAt(0) || 'م'}
+          </div>
+          <button
+            onClick={() => { localStorage.removeItem('currentUser'); router.push('/login'); }}
+            className="flex items-center gap-1.5 text-xs font-semibold text-red-500 bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            {lang === 'ar' ? 'خروج' : 'Logout'}
+          </button>
+        </div>
+      </nav>
+
+      {/* ── HERO ── */}
+      <div className="bg-[#0F4C75] px-7 pt-6 pb-0">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-white/50 text-xs mb-1">{new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <h1 className="text-white text-xl font-bold mb-1">{t('myRequests', lang)}</h1>
+            <p className="text-white/50 text-xs">{stats.active} {t('active', lang)} — {stats.quotes} {t('incomingQ', lang)}</p>
+          </div>
+          <Link href="/create-request"
+            className="mb-4 bg-[#1B9AAA] hover:bg-[#158494] text-white text-sm font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors">
+            <span className="text-base">+</span> {t('newRequest', lang)}
+          </Link>
+        </div>
+        {/* filter tabs */}
+        <div className="flex gap-0 mt-4 border-t border-white/10">
+          {([['all', t('filterAll', lang)], ['open', t('filterOpen', lang)], ['closed', t('filterClosed', lang)]] as [FilterMode, string][]).map(([val, label]) => (
+            <button key={val} onClick={() => setFilter(val)}
+              className={`text-xs font-medium px-5 py-2.5 border-b-2 transition-colors font-cairo ${filter === val ? 'text-white border-[#1B9AAA]' : 'text-white/40 border-transparent hover:text-white/70'}`}>
+              {label} ({val === 'all' ? requests.length : requests.filter(r => r.status === val).length})
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── STATS ── */}
+      <div className="grid grid-cols-4 gap-3 px-7 py-5">
+        {[
+          { icon: '📋', bg: 'bg-blue-50',    val: stats.total,  label: t('totalReqs', lang),  badge: null },
+          { icon: '🔥', bg: 'bg-emerald-50', val: stats.active, label: t('activeReqs', lang), badge: stats.active > 0 ? t('thisMonth', lang) : null },
+          { icon: '📥', bg: 'bg-teal-50',    val: stats.quotes, label: t('incomingQ', lang),  badge: newQuotesCount > 0 ? `${newQuotesCount} ${t('unread', lang)}` : null },
+          { icon: '🔒', bg: 'bg-slate-50',   val: stats.closed, label: t('closedReqs', lang), badge: null },
+        ].map((s, i) => (
+          <div key={i} className="bg-white border border-[#E2EAF2] rounded-xl p-4 relative">
+            <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
+            <div className="text-2xl font-bold text-slate-900">{s.val}</div>
+            <div className="text-[11px] text-slate-500 mt-1">{s.label}</div>
+            {s.badge && <span className="absolute top-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">{s.badge}</span>}
+          </div>
+        ))}
+      </div>
+
+      {/* ── NEW QUOTES BANNER ── */}
+      {newQuotesCount > 0 && (
+        <div className="mx-7 mb-4 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 flex items-center gap-3">
+          <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 shrink-0">🔔</div>
+          <p className="text-emerald-800 font-semibold text-sm">{t('newQuoteBanner', lang, newQuotesCount)}</p>
+        </div>
+      )}
+
+      {/* ── CONTENT AREA ── */}
+      <div className="px-7 pb-10">
+        {/* project breadcrumb */}
+        {projectFilter !== null && (
+          <div className="flex items-center gap-2 mb-3">
+            <button onClick={() => setProjectFilter(null)}
+              className="text-xs font-semibold text-[#1B9AAA] hover:text-[#0F4C75] underline">
+              {t('backToAll', lang)}
+            </button>
+            <span className="text-slate-300">›</span>
+            <span className="text-xs font-bold text-slate-700">
+              {projectFilter === '__none__' ? t('noProject', lang) : projectFilter}
+            </span>
+          </div>
+        )}
+
+        {/* search + view toggle */}
+        <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden mb-4">
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-[#F1F5F9] flex-wrap">
+            {/* search */}
+            <div className="flex items-center gap-2 bg-[#F8FAFC] border border-[#E2EAF2] rounded-lg px-3 py-1.5 w-56">
+              <span className="text-slate-300 text-sm">🔍</span>
+              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                placeholder={t('search', lang)}
+                className="bg-transparent border-none outline-none text-xs font-cairo w-full placeholder-slate-300 text-slate-700" />
+            </div>
+
+            {/* تحديد الكل */}
+            {viewMode !== 'projects' && (
+              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                <input type="checkbox"
+                  checked={filteredRequests.length > 0 && selectedIds.size === filteredRequests.length}
+                  onChange={toggleSelectAll}
+                  className="w-3.5 h-3.5 rounded border-slate-300 accent-[#1B9AAA] cursor-pointer" />
+                <span className="text-xs font-semibold text-slate-600">{t('selectAll', lang)}</span>
+              </label>
+            )}
+
+            {/* filters toggle */}
+            <button onClick={() => setShowFilters(p => !p)}
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${showFilters ? 'bg-[#EBF5FF] border-[#1B9AAA] text-[#0F4C75]' : 'border-[#E2EAF2] text-slate-500 hover:bg-slate-50'}`}>
+              ⚙ {t('filterLabel', lang)}
+              {(cityFilter || quotesFilter !== 'all' || sortBy !== 'newest') && (
+                <span className="w-2 h-2 bg-[#1B9AAA] rounded-full" />
+              )}
+            </button>
+
+            {/* view mode toggle */}
+            <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 mr-auto">
+              {([
+                { mode: 'table'    as ViewMode, icon: '☰', labelAr: 'جدول',   labelEn: 'Table'    },
+                { mode: 'cards'    as ViewMode, icon: '⊞', labelAr: 'كروت',   labelEn: 'Cards'    },
+                { mode: 'kanban'   as ViewMode, icon: '⣿', labelAr: 'مسارات', labelEn: 'Board'    },
+                { mode: 'projects' as ViewMode, icon: '📁', labelAr: 'مشاريع', labelEn: 'Projects' },
+              ]).map(v => (
+                <button key={v.mode} onClick={() => { setViewMode(v.mode); setSelectedIds(new Set()); }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === v.mode ? 'bg-white text-[#0F4C75] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+                  <span className="text-sm">{v.icon}</span>
+                  {lang === 'ar' ? v.labelAr : v.labelEn}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ── FILTER ROW ── */}
+          {showFilters && (
+            <div className="flex items-center gap-4 px-5 py-3 bg-[#F8FAFC] border-b border-[#F1F5F9] flex-wrap">
+              {/* city */}
+              <select value={cityFilter} onChange={e => setCityFilter(e.target.value)}
+                className="text-xs font-semibold border border-[#E2EAF2] rounded-lg px-3 py-1.5 bg-white text-slate-700 outline-none cursor-pointer">
+                <option value="">{t('allCities', lang)}</option>
+                {availableCities.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {/* quotes */}
+              <div className="flex items-center gap-1 bg-white border border-[#E2EAF2] rounded-lg p-0.5">
+                {([['all', t('allItems', lang)], ['with', t('withQuotes', lang)], ['without', t('noQuotes2', lang)]] as [QuotesFilter, string][]).map(([v, l]) => (
+                  <button key={v} onClick={() => setQuotesFilter(v)}
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${quotesFilter === v ? 'bg-[#0F4C75] text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+              {/* sort */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-semibold">{t('sortLabel', lang)}</span>
+                <div className="flex items-center gap-1 bg-white border border-[#E2EAF2] rounded-lg p-0.5">
+                  {([['newest', t('sortNewest', lang)], ['oldest', t('sortOldest', lang)], ['mostQuotes', t('sortMostQ', lang)]] as [SortBy, string][]).map(([v, l]) => (
+                    <button key={v} onClick={() => setSortBy(v)}
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${sortBy === v ? 'bg-[#1B9AAA] text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
+                      {l}
+                    </button>
                   ))}
                 </div>
-                <p style={{ color: '#666', fontSize: '13px', marginTop: '8px' }}>
-                  {ratingStars === 1 ? tr('سيء', 'Poor') : ratingStars === 2 ? tr('مقبول', 'Fair') : ratingStars === 3 ? tr('جيد', 'Good') : ratingStars === 4 ? tr('جيد جداً', 'Very Good') : ratingStars === 5 ? tr('ممتاز', 'Excellent') : ''}
-                </p>
               </div>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#333', fontSize: '14px' }}>{tr('ملاحظات (اختياري)', 'Comments (Optional)')}</label>
-                <textarea value={ratingComment} onChange={(e) => setRatingComment(e.target.value)}
-                  placeholder={tr('اكتب تجربتك مع المورد...', 'Write your experience...')}
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ddd', minHeight: '80px', fontSize: '14px', boxSizing: 'border-box', color: '#333', backgroundColor: '#fff' }} />
-              </div>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={handleSubmitRating}
-                  style={{ flex: 1, padding: '12px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}>
-                  {tr('إرسال التقييم', 'Submit Rating')}
+              {/* reset */}
+              {(cityFilter || quotesFilter !== 'all' || sortBy !== 'newest') && (
+                <button onClick={() => { setCityFilter(''); setQuotesFilter('all'); setSortBy('newest'); }}
+                  className="text-xs text-red-500 font-semibold hover:text-red-700 underline">
+                  {t('resetFilters', lang)}
                 </button>
-                <button onClick={() => { setShowRatingModal(false); setRatingStars(0); setRatingComment(''); }}
-                  style={{ flex: 1, padding: '12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}>
-                  {tr('تخطي', 'Skip')}
-                </button>
-              </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
 
-        
-        {lightboxImg && (
-          <div onClick={() => setLightboxImg(null)}
-            style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, cursor: 'zoom-out' }}>
-            <img src={lightboxImg} alt=""
-              style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px' }} />
-            <button onClick={() => setLightboxImg(null)}
-              style={{ position: 'absolute', top: '20px', right: '20px', padding: '8px 16px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>✕</button>
-          </div>
-        )}
+          {/* ── BULK ACTION BAR ── */}
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-2 px-5 py-2.5 bg-[#EBF5FF] border-b border-[#C7DFF7] flex-wrap">
+              <span className="text-xs font-bold text-[#0F4C75]">{t('selected', lang, selectedIds.size)}</span>
+              <div className="flex gap-1.5 flex-wrap mr-2">
+                <button onClick={handleBulkDelete}
+                  className="text-xs font-semibold px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1">
+                  🗑 {t('deleteSelected', lang)}
+                </button>
+                <button onClick={() => handleBulkSetStatus('closed')}
+                  className="text-xs font-semibold px-3 py-1.5 bg-amber-400 text-white rounded-lg hover:bg-amber-500 transition-colors">
+                  🔒 {t('closeSelected', lang)}
+                </button>
+                <button onClick={() => handleBulkSetStatus('open')}
+                  className="text-xs font-semibold px-3 py-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
+                  🔓 {t('openSelected', lang)}
+                </button>
+                {/* نقل جماعي */}
+                <span className="flex items-center gap-1">
+                  <span className="text-xs text-slate-500 font-semibold">{t('moveSelected', lang)}</span>
+                  {([
+                    { col: 'active'   as KanbanCol, labelAr: 'نشطة',          labelEn: 'Active',   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' },
+                    { col: 'awaiting' as KanbanCol, labelAr: 'بانتظار عروض', labelEn: 'Awaiting', cls: 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100' },
+                    { col: 'closed'   as KanbanCol, labelAr: 'مغلقة',         labelEn: 'Closed',   cls: 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200' },
+                  ]).map(m => (
+                    <button key={m.col}
+                      onClick={() => { [...selectedIds].forEach(id => handleMoveRequest(id, m.col)); setSelectedIds(new Set()); }}
+                      className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg border transition-colors ${m.cls}`}>
+                      {lang === 'ar' ? m.labelAr : m.labelEn}
+                    </button>
+                  ))}
+                </span>
+              </div>
+              <button onClick={() => setSelectedIds(new Set())}
+                className="text-xs text-slate-500 hover:text-slate-700 underline mr-auto">
+                {t('deselectAll', lang)}
+              </button>
+            </div>
+          )}
 
-        
-        {newQuotesCount > 0 && (
-          <div style={{ backgroundColor: '#d4edda', border: '1px solid #28a745', borderRadius: '8px', padding: '15px', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '20px' }}>🔔</span>
-            <p style={{ margin: 0, color: '#155724', fontWeight: 'bold', fontSize: '15px' }}>
-              {tr(`عندك ${newQuotesCount} عرض سعر جديد على طلباتك — افتح الطلب عشان تشوفه`,
-                `You have ${newQuotesCount} new quote(s) on your requests — open the request to view`)}
-            </p>
-          </div>
-        )}
+          {/* ═══ TABLE VIEW ═══ */}
+          {viewMode === 'table' && (
+            filteredRequests.length === 0 ? (
+              <EmptyState lang={lang} />
+            ) : (
+              <table className="w-full" style={{ tableLayout: 'fixed' }}>
+                <colgroup>
+                  <col style={{ width: '36px' }} />
+                  <col style={{ width: '80px' }} />
+                  <col />
+                  <col style={{ width: '100px' }} />
+                  <col style={{ width: '56px' }} />
+                  <col style={{ width: '96px' }} />
+                  <col style={{ width: '96px' }} />
+                  <col style={{ width: '120px' }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th className={thCls} style={{ textAlign: 'center', padding: '8px 6px' }}>□</th>
+                    {[t('reqId',lang), t('name',lang), t('status',lang), t('quotes',lang), t('location',lang), t('deadline',lang), ''].map((h, i) => (
+                      <th key={i} className={thCls} style={i === 3 ? { textAlign: 'center' } : {}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRequests.map(req => {
+                    const rq = getRequestQuotes(req.id);
+                    const nq = getRequestNewQuotes(req.id);
+                    const isSelected = selectedIds.has(req.id);
+                    return (
+                      <tr key={req.id}
+                        className={`transition-colors cursor-pointer ${isSelected ? 'bg-[#EBF5FF]' : 'hover:bg-[#FAFBFD]'}`}
+                        onClick={() => openRequest(req)}>
+                        <td className={tdCls} style={{ padding: '8px 6px', textAlign: 'center' }} onClick={e => toggleSelect(req.id, e)}>
+                          <input type="checkbox" checked={isSelected} onChange={() => {}}
+                            className="w-3.5 h-3.5 rounded border-slate-300 accent-[#1B9AAA] cursor-pointer" />
+                        </td>
+                        <td className={tdCls}>
+                          <span className="text-[10px] text-[#1B9AAA] font-semibold font-mono">{req.id}</span>
+                        </td>
+                        <td className={tdCls}>
+                          <div className="text-[13px] font-semibold text-slate-900 truncate">{getRequestName(req)}</div>
+                          <div className="flex gap-1 mt-1 flex-wrap">
+                            {getRequestTags(req).slice(0, 3).map((tg, i) => (
+                              <span key={i} className="text-[10px] bg-[#F0F9FF] text-[#0369A1] px-1.5 py-0.5 rounded font-medium">{tg}</span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className={tdCls}><StatusPill status={req.status} hasQuotes={rq.length > 0} lang={lang} /></td>
+                        <td className={`${tdCls} text-center`}>
+                          <span className={`inline-flex items-center justify-center min-w-[26px] h-[22px] rounded-md text-xs font-bold px-1.5 relative ${rq.length > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                            {rq.length}
+                            {nq > 0 && <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-red-500 rounded-full text-white text-[9px] flex items-center justify-center font-bold">{nq}</span>}
+                          </span>
+                        </td>
+                        <td className={tdCls}><span className="text-xs text-slate-500">📍 {req.location || '—'}</span></td>
+                        <td className={tdCls}><span className="text-xs text-slate-600">⏱ {req.deadline || '—'}</span></td>
+                        <td className={tdCls} onClick={e => e.stopPropagation()}>
+                          <div className="flex flex-col gap-1">
+                            <button onClick={() => openRequest(req)}
+                              className="w-full text-[11px] font-semibold text-[#0F4C75] bg-blue-50 border border-blue-100 rounded-md px-2 py-1 hover:bg-blue-100 transition-colors">
+                              {t('view', lang)}
+                            </button>
+                            <button onClick={() => router.push(`/create-request?edit=${req.id}`)}
+                              className="w-full text-[11px] font-semibold text-teal-700 bg-teal-50 border border-teal-100 rounded-md px-2 py-1 hover:bg-teal-100 transition-colors">
+                              {t('edit', lang)}
+                            </button>
+                            <button onClick={() => toggleRequestStatus(req.id)}
+                              className={`w-full text-[11px] font-semibold rounded-md px-2 py-1 transition-colors ${req.status === 'open' ? 'bg-amber-50 border border-amber-100 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 border border-emerald-100 text-emerald-700 hover:bg-emerald-100'}`}>
+                              {req.status === 'open' ? (lang === 'ar' ? 'قفل' : 'Close') : (lang === 'ar' ? 'فتح' : 'Open')}
+                            </button>
+                            <div className="relative">
+                              <button onClick={() => setMoveMenuId(moveMenuId === req.id ? null : req.id)}
+                                className="w-full text-[11px] font-semibold text-violet-700 bg-violet-50 border border-violet-100 rounded-md px-2 py-1 hover:bg-violet-100 transition-colors">
+                                {t('moveTo', lang)} ↕
+                              </button>
+                              {moveMenuId === req.id && (
+                                <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-white border border-[#E2EAF2] rounded-xl shadow-lg overflow-hidden">
+                                  {([
+                                    { col: 'active'   as KanbanCol, ar: 'نشطة',         en: 'Active',   cls: 'hover:bg-emerald-50 text-emerald-700' },
+                                    { col: 'awaiting' as KanbanCol, ar: 'بانتظار عروض', en: 'Awaiting', cls: 'hover:bg-orange-50 text-orange-700'  },
+                                    { col: 'closed'   as KanbanCol, ar: 'مغلقة',        en: 'Closed',   cls: 'hover:bg-slate-100 text-slate-600'   },
+                                  ]).map(m => (
+                                    <button key={m.col} onClick={() => handleMoveRequest(req.id, m.col)}
+                                      className={`w-full text-right px-3 py-1.5 text-[11px] font-semibold transition-colors ${m.cls}`}>
+                                      {lang === 'ar' ? m.ar : m.en}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <button onClick={() => handleDeleteRequest(req.id)}
+                              className="w-full text-[11px] font-semibold text-red-600 bg-red-50 border border-red-100 rounded-md px-2 py-1 hover:bg-red-100 transition-colors">
+                              {t('delete', lang)}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )
+          )}
 
-        
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h1 style={{ color: '#333' }}>{tr('طلباتي', 'My Requests')}</h1>
-          <a href="/create-request" style={{ display: 'inline-block', padding: '10px 20px', backgroundColor: '#28a745', color: 'white', textDecoration: 'none', borderRadius: '4px', fontWeight: 'bold' }}>
-            {tr('+ طلب جديد', '+ New Request')}
-          </a>
-        </div>
-
-        
-        <div style={{ marginBottom: '15px' }}>
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={tr('ابحث بالمدينة أو المادة أو رقم الطلب...', 'Search by city, material or request ID...')}
-            style={{ width: '100%', padding: '10px 16px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '14px', boxSizing: 'border-box', color: '#333', backgroundColor: '#fff' }} />
-        </div>
-
-        
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-          <button onClick={() => setFilter('all')}
-            style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 'bold', backgroundColor: filter === 'all' ? '#007bff' : '#e9ecef', color: filter === 'all' ? 'white' : '#333' }}>
-            {tr('الكل', 'All')} ({requests.length})
-          </button>
-          <button onClick={() => setFilter('open')}
-            style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 'bold', backgroundColor: filter === 'open' ? '#28a745' : '#e9ecef', color: filter === 'open' ? 'white' : '#333' }}>
-            {tr('مفتوح', 'Open')} ({requests.filter(r => r.status === 'open').length})
-          </button>
-          <button onClick={() => setFilter('closed')}
-            style={{ padding: '8px 16px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontWeight: 'bold', backgroundColor: filter === 'closed' ? '#6c757d' : '#e9ecef', color: filter === 'closed' ? 'white' : '#333' }}>
-            {tr('مغلق', 'Closed')} ({requests.filter(r => r.status === 'closed').length})
-          </button>
-        </div>
-
-        
-        {filteredRequests.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#f8f9fa', borderRadius: '8px', color: '#666' }}>
-            <p style={{ fontSize: '18px' }}>{tr('لا توجد طلبات', 'No requests')}</p>
-            <a href="/create-request" style={{ display: 'inline-block', marginTop: '15px', padding: '10px 20px', backgroundColor: '#007bff', color: 'white', textDecoration: 'none', borderRadius: '4px' }}>
-              {tr('إنشاء طلب الآن', 'Create Request Now')}
-            </a>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
-            {filteredRequests.map(request => {
-              const requestQuotes = getRequestQuotes(request.id);
-              const newQuotes = getRequestNewQuotes(request.id);
-              const requestRating = getRequestRating(request.id);
-              return (
-                <div key={request.id} onClick={() => { setSelectedRequest(request); markRequestQuotesAsSeen(request.id); }}
-                  style={{ padding: '20px', border: newQuotes > 0 ? '2px solid #28a745' : '1px solid #ddd', borderRadius: '8px', cursor: 'pointer', backgroundColor: request.status === 'closed' ? '#f0f0f0' : '#fff', position: 'relative' }}>
-                  {newQuotes > 0 && (
-                    <div style={{ position: 'absolute', top: '-10px', left: language === 'ar' ? 'auto' : '-10px', right: language === 'ar' ? '-10px' : 'auto', backgroundColor: '#28a745', color: 'white', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>
-                      {newQuotes}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <h3 style={{ color: '#333', margin: 0 }}>{tr('طلب #', 'Request #')}{request.id}</h3>
-                    <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '12px', backgroundColor: request.status === 'open' ? '#d4edda' : '#e2e3e5', color: request.status === 'open' ? '#155724' : '#383d41' }}>
-                      {request.status === 'open' ? tr('مفتوح', 'Open') : tr('مغلق', 'Closed')}
-                    </span>
-                  </div>
-                  <p style={{ color: '#666', margin: '5px 0' }}><strong>{tr('الموقع:', 'Location:')}</strong> {request.location}</p>
-                  <p style={{ color: '#666', margin: '5px 0' }}><strong>{tr('الميزانية:', 'Budget:')}</strong> {request.budget?.toLocaleString()} {tr('ر.س', 'SAR')}</p>
-                  <p style={{ color: '#666', margin: '5px 0' }}><strong>{tr('الموعد:', 'Deadline:')}</strong> {request.deadline}</p>
-                  <div style={{ marginTop: '10px', padding: '8px', backgroundColor: requestQuotes.length > 0 ? '#fff3cd' : '#f8f9fa', borderRadius: '4px', textAlign: 'center' }}>
-                    <span style={{ fontWeight: 'bold', color: requestQuotes.length > 0 ? '#856404' : '#666' }}>
-                      {requestQuotes.length} {tr('عرض سعر', 'Quote(s)')}
-                      {newQuotes > 0 && (
-                        <span style={{ marginRight: '8px', marginLeft: '8px', backgroundColor: '#28a745', color: 'white', borderRadius: '10px', padding: '2px 8px', fontSize: '12px' }}>
-                          {newQuotes} {tr('جديد', 'new')}
+          {/* ═══ CARDS VIEW ═══ */}
+          {viewMode === 'cards' && (
+            filteredRequests.length === 0 ? <EmptyState lang={lang} /> : (
+              <div className="p-5 grid grid-cols-3 gap-4">
+                {filteredRequests.map(req => {
+                  const rq = getRequestQuotes(req.id);
+                  const nq = getRequestNewQuotes(req.id);
+                  const rating = getRequestRating(req.id);
+                  const isClosed = req.status === 'closed';
+                  return (
+                    <div key={req.id}
+                      className={`border rounded-2xl p-4 cursor-pointer transition-all hover:shadow-md group relative ${selectedIds.has(req.id) ? 'border-[#1B9AAA] bg-[#F0FAFC]' : isClosed ? 'border-slate-200 bg-slate-50' : nq > 0 ? 'border-emerald-300 bg-white shadow-sm' : 'border-[#E2EAF2] bg-white'}`}
+                      onClick={() => openRequest(req)}>
+                      {/* select checkbox */}
+                      <span className="absolute top-2.5 left-2.5 z-10" onClick={e => toggleSelect(req.id, e)}>
+                        <input type="checkbox" checked={selectedIds.has(req.id)} onChange={() => {}}
+                          className="w-3.5 h-3.5 rounded border-slate-300 accent-[#1B9AAA] cursor-pointer" />
+                      </span>
+                      {nq > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                          {nq}
                         </span>
                       )}
-                    </span>
-                  </div>
-                  {requestRating && (
-                    <div style={{ marginTop: '8px', textAlign: 'center' }}>
-                      <span style={{ color: '#ffc107', fontSize: '16px' }}>{'★'.repeat(requestRating.rating)}{'☆'.repeat(5 - requestRating.rating)}</span>
-                      <span style={{ color: '#666', fontSize: '12px', marginRight: '6px', marginLeft: '6px' }}>{tr('تم التقييم', 'Rated')}</span>
-                    </div>
-                  )}
-                  <div style={{ marginTop: '10px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    <button onClick={(e) => { e.stopPropagation(); toggleRequestStatus(request.id); }}
-                      style={{ flex: 1, padding: '8px', backgroundColor: request.status === 'open' ? '#ffc107' : '#28a745', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}>
-                      {request.status === 'open' ? tr('إغلاق', 'Close') : tr('فتح', 'Reopen')}
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); router.push(`/create-request?edit=${request.id}`); }}
-                      style={{ flex: 1, padding: '8px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}>
-                      {tr('تعديل', 'Edit')}
-                    </button>
-                    {requestQuotes.length > 1 && (
-                      <button onClick={(e) => { e.stopPropagation(); setCompareRequest(request); }}
-                        style={{ width: '100%', padding: '8px', backgroundColor: '#6610f2', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>
-                        {tr('مقارنة العروض', 'Compare Quotes')}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        
-        {compareRequest && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-            onClick={() => setCompareRequest(null)}>
-            <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', maxWidth: '900px', width: '95%', maxHeight: '85vh', overflowY: 'auto', direction: language === 'ar' ? 'rtl' : 'ltr' }}
-              onClick={(e) => e.stopPropagation()}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2 style={{ color: '#333', margin: 0 }}>{tr('مقارنة العروض', 'Compare Quotes')} — {tr('طلب #', 'Request #')}{compareRequest.id}</h2>
-                <button onClick={() => setCompareRequest(null)}
-                  style={{ padding: '8px 12px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✕</button>
-              </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#f8f9fa' }}>
-                      <th style={{ padding: '12px', textAlign: language === 'ar' ? 'right' : 'left', borderBottom: '2px solid #dee2e6', color: '#333' }}>{tr('المورد', 'Supplier')}</th>
-                      <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #dee2e6', color: '#333' }}>{tr('السعر', 'Price')}</th>
-                      <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #dee2e6', color: '#333' }}>{tr('مدة التوريد', 'Delivery')}</th>
-                      <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #dee2e6', color: '#333' }}>{tr('الحالة', 'Status')}</th>
-                      <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #dee2e6', color: '#333' }}>{tr('ملاحظات', 'Notes')}</th>
-                      <th style={{ padding: '12px', textAlign: 'center', borderBottom: '2px solid #dee2e6', color: '#333' }}>{tr('إجراء', 'Action')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {getRequestQuotes(compareRequest.id).map(quote => {
-                      const lowestPrice = getLowestPrice(getRequestQuotes(compareRequest.id));
-                      const fastestDelivery = getFastestDelivery(getRequestQuotes(compareRequest.id));
-                      const isCheapest = quote.totalPrice === lowestPrice;
-                      const isFastest = quote.deliveryDays === fastestDelivery;
-                      return (
-                        <tr key={quote.id} style={{ borderBottom: '1px solid #dee2e6', backgroundColor: quote.status === 'accepted' ? '#d4edda' : 'white' }}>
-                          <td style={{ padding: '12px', color: '#333' }}>
-                            <p style={{ margin: 0, fontWeight: 'bold' }}>{quote.supplierCompany}</p>
-                            <p style={{ margin: '2px 0', color: '#666', fontSize: '12px' }}>{quote.supplierName}</p>
-                          </td>
-                          <td style={{ padding: '12px', textAlign: 'center' }}>
-                            <p style={{ margin: 0, fontWeight: 'bold', color: isCheapest ? '#28a745' : '#333', fontSize: '16px' }}>
-                              {quote.totalPrice?.toLocaleString()} {tr('ر.س', 'SAR')}
-                            </p>
-                            {isCheapest && <span style={{ fontSize: '11px', backgroundColor: '#d4edda', color: '#155724', padding: '2px 6px', borderRadius: '10px' }}>{tr('الأرخص', 'Cheapest')}</span>}
-                          </td>
-                          <td style={{ padding: '12px', textAlign: 'center' }}>
-                            <p style={{ margin: 0, fontWeight: 'bold', color: isFastest ? '#007bff' : '#333' }}>
-                              {quote.deliveryDays} {tr('يوم', 'days')}
-                            </p>
-                            {isFastest && <span style={{ fontSize: '11px', backgroundColor: '#cce5ff', color: '#004085', padding: '2px 6px', borderRadius: '10px' }}>{tr('الأسرع', 'Fastest')}</span>}
-                          </td>
-                          <td style={{ padding: '12px', textAlign: 'center' }}>
-                            <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', backgroundColor: quote.status === 'accepted' ? '#28a745' : quote.status === 'rejected' ? '#dc3545' : quote.status === 'revision' ? '#ffc107' : '#6c757d', color: quote.status === 'revision' ? 'black' : 'white' }}>
-                              {quote.status === 'accepted' ? tr('مقبول', 'Accepted') : quote.status === 'rejected' ? tr('مرفوض', 'Rejected') : quote.status === 'revision' ? tr('تعديل', 'Revision') : tr('انتظار', 'Pending')}
-                            </span>
-                          </td>
-                          <td style={{ padding: '12px', textAlign: 'center', color: '#666', fontSize: '13px', maxWidth: '150px' }}>{quote.description || '—'}</td>
-                          <td style={{ padding: '12px', textAlign: 'center' }}>
-                            {quote.status === 'pending' && (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                <button onClick={() => { handleQuoteAction(quote.id, 'accepted'); setCompareRequest(null); }}
-                                  style={{ padding: '6px 12px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
-                                  {tr('قبول', 'Accept')}
-                                </button>
-                                <button onClick={() => handleQuoteAction(quote.id, 'rejected')}
-                                  style={{ padding: '6px 12px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
-                                  {tr('رفض', 'Reject')}
-                                </button>
-                              </div>
-                            )}
-                            {quote.status === 'accepted' && (
-                              <button onClick={() => handleQuoteAction(quote.id, 'pending')}
-                                style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>
-                                {tr('إلغاء', 'Undo')}
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              <div style={{ marginTop: '20px', backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '8px' }}>
-                <p style={{ margin: '0', color: '#333', fontSize: '14px', fontWeight: 'bold' }}>{tr('ملخص المقارنة:', 'Comparison Summary:')}</p>
-                <div style={{ display: 'flex', gap: '20px', marginTop: '10px', flexWrap: 'wrap' }}>
-                  <p style={{ margin: 0, color: '#28a745', fontSize: '14px' }}>✅ {tr('أقل سعر:', 'Lowest Price:')} {getLowestPrice(getRequestQuotes(compareRequest.id))?.toLocaleString()} {tr('ر.س', 'SAR')}</p>
-                  <p style={{ margin: 0, color: '#007bff', fontSize: '14px' }}>⚡ {tr('أسرع توريد:', 'Fastest Delivery:')} {getFastestDelivery(getRequestQuotes(compareRequest.id))} {tr('يوم', 'days')}</p>
-                  <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>📊 {tr('عدد العروض:', 'Total Quotes:')} {getRequestQuotes(compareRequest.id).length}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        
-        {selectedRequest && (
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
-            onClick={() => setSelectedRequest(null)}>
-            <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '8px', maxWidth: '1200px', width: '98%', maxHeight: '95vh', overflowY: 'auto', direction: language === 'ar' ? 'rtl' : 'ltr' }}
-              onClick={(e) => e.stopPropagation()}>
-
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', borderBottom: '2px solid #f0f0f0', paddingBottom: '16px' }}>
-                <div>
-                  <h2 style={{ color: '#333', margin: '0 0 6px 0', fontSize: '22px' }}>
-                    {tr('تفاصيل الطلب', 'Request Details')}
-                  </h2>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                    <span style={{ color: '#007bff', fontWeight: 'bold', fontSize: '15px' }}>#{selectedRequest.id}</span>
-                    <span style={{ padding: '4px 14px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold', backgroundColor: selectedRequest.status === 'open' ? '#d4edda' : '#e2e3e5', color: selectedRequest.status === 'open' ? '#155724' : '#383d41' }}>
-                      {selectedRequest.status === 'open' ? tr('مفتوح', 'Open') : tr('مغلق', 'Closed')}
-                    </span>
-                    {selectedRequest.location && (
-                      <span style={{ color: '#666', fontSize: '14px' }}>📍 {selectedRequest.location}</span>
-                    )}
-                    {selectedRequest.deadline && (
-                      <span style={{ color: '#666', fontSize: '14px' }}>📅 {selectedRequest.deadline}</span>
-                    )}
-                  </div>
-                </div>
-                <button onClick={() => setSelectedRequest(null)}
-                  style={{ padding: '8px 12px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold' }}>✕</button>
-              </div>
-
-              
-              <h3 style={{ color: '#333', marginBottom: '12px', fontSize: '16px' }}>{tr('المواد المطلوبة', 'Required Materials')}</h3>
-              {selectedRequest.materials && selectedRequest.materials.length > 0 ? (
-                <div style={{ overflowX: 'auto', marginBottom: '24px', border: '1px solid #dee2e6', borderRadius: '8px' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                    <thead>
-                      <tr>
-                        <th style={thStyle}>#</th>
-                        <th style={thStyle}>{tr('نوع المادة', 'Material')}</th>
-                        <th style={thStyle}>{tr('الاستخدام', 'Usage')}</th>
-                        <th style={thStyle}>{tr('المقاس', 'Size')}</th>
-                        <th style={thStyle}>{tr('السماكة', 'Thickness')}</th>
-                        <th style={thStyle}>{tr('الفنش', 'Finish')}</th>
-                        <th style={thStyle}>{tr('اللون', 'Color')}</th>
-                        <th style={thStyle}>{tr('الكمية', 'Qty')}</th>
-                        <th style={thStyle}>{tr('السعر المستهدف', 'Target Price')}</th>
-                        <th style={thStyle}>{tr('الصناعة', 'Origin')}</th>
-                        <th style={thStyle}>{tr('تاريخ التوريد', 'Delivery Date')}</th>
-                        <th style={thStyle}>{tr('وصف البند', 'Note')}</th>
-                        <th style={thStyle}>{tr('الصور', 'Images')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {selectedRequest.materials.map((m: any, index: number) => (
-                        <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#fafafa' }}>
-                          <td style={{ ...tdStyle, color: '#666' }}>{index + 1}</td>
-                          <td style={{ ...tdStyle, fontWeight: 'bold' }}>{displayVal(m.type) || '—'}</td>
-                          <td style={tdStyle}>{displayVal(m.usage) || '—'}</td>
-                          <td style={tdStyle}>{m.size || '—'}</td>
-                          <td style={tdStyle}>{m.thickness || '—'}</td>
-                          <td style={tdStyle}>{displayVal(m.finish) || '—'}</td>
-                          <td style={tdStyle}>{displayVal(m.color) || '—'}</td>
-                          <td style={tdStyle}>{m.quantity ? `${m.quantity} ${language === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : '—'}</td>
-                          <td style={tdStyle}>{m.targetPrice ? `${m.targetPrice} ${language === 'en' ? (m.currency === 'ر.س' ? 'SAR' : m.currency === 'د.إ' ? 'AED' : (m.currency || 'SAR')) : (m.currency || 'ر.س')}` : '—'}</td>
-                          <td style={tdStyle}>{displayVal(m.origin) || '—'}</td>
-                          <td style={tdStyle}>{m.deliveryDate || '—'}</td>
-                          <td style={{ ...tdStyle, color: '#666', fontSize: '12px', maxWidth: '120px' }}>{m.note || '—'}</td>
-                          <td style={tdStyle}>
-                            {m.images && m.images.length > 0 ? (
-                              <div style={{ display: 'flex', gap: '4px', justifyContent: 'center' }}>
-                                {m.images.map((img: string, i: number) => (
-                                  <img key={i} src={img} alt=""
-                                    onClick={(e) => { e.stopPropagation(); setLightboxImg(img); }}
-                                    style={{ width: '45px', height: '45px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ddd', cursor: 'zoom-in' }} />
-                                ))}
-                              </div>
-                            ) : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div style={{ backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '4px', marginBottom: '20px' }}>
-                  {selectedRequest.ceramic > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{tr('السيراميك:', 'Ceramic:')}</strong> {selectedRequest.ceramic} m²</p>}
-                  {selectedRequest.porcelain > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{tr('البورسلين:', 'Porcelain:')}</strong> {selectedRequest.porcelain} m²</p>}
-                  {selectedRequest.marble > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{tr('الرخام:', 'Marble:')}</strong> {selectedRequest.marble} m²</p>}
-                  {selectedRequest.granite > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{tr('الجرانيت:', 'Granite:')}</strong> {selectedRequest.granite} m²</p>}
-                  {selectedRequest.terrazzo > 0 && <p style={{ color: '#333', margin: '8px 0' }}>• <strong>{tr('التيرازو:', 'Terrazzo:')}</strong> {selectedRequest.terrazzo} m²</p>}
-                </div>
-              )}
-
-              
-              {selectedRequest.description && (
-                <div style={{ marginBottom: '24px' }}>
-                  <h3 style={{ color: '#333', marginBottom: '8px', fontSize: '16px' }}>{tr('الوصف', 'Description')}</h3>
-                  <p style={{ backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '4px', color: '#333', lineHeight: '1.6', margin: 0 }}>{selectedRequest.description}</p>
-                </div>
-              )}
-
-              
-              <h3 style={{ color: '#333', marginBottom: '12px', fontSize: '16px' }}>
-                {tr('عروض الأسعار', 'Quotes')} ({getRequestQuotes(selectedRequest.id).length})
-              </h3>
-
-              {getRequestQuotes(selectedRequest.id).length === 0 ? (
-                <div style={{ backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '4px', textAlign: 'center', color: '#999', marginBottom: '20px' }}>
-                  {tr('لا توجد عروض أسعار بعد', 'No quotes yet')}
-                </div>
-              ) : (
-                <div style={{ marginBottom: '20px' }}>
-                  {getRequestQuotes(selectedRequest.id).map(quote => {
-                    const supplierData = quote.status === 'accepted' ? getSupplierData(quote.supplierId) : null;
-                    return (
-                      <div key={quote.id} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '15px', marginBottom: '10px', backgroundColor: quote.status === 'accepted' ? '#d4edda' : quote.status === 'rejected' ? '#f8d7da' : quote.status === 'revision' ? '#fff3cd' : '#fff' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                          <div>
-                            <p style={{ margin: '0', fontWeight: 'bold', color: '#333' }}>{quote.supplierCompany}</p>
-                            <p style={{ margin: '3px 0', color: '#666', fontSize: '14px' }}>{quote.supplierName}</p>
-                          </div>
-                          <span style={{ padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', backgroundColor: quote.status === 'accepted' ? '#28a745' : quote.status === 'rejected' ? '#dc3545' : quote.status === 'revision' ? '#ffc107' : '#6c757d', color: quote.status === 'revision' ? 'black' : 'white' }}>
-                            {quote.status === 'accepted' ? tr('مقبول', 'Accepted') : quote.status === 'rejected' ? tr('مرفوض', 'Rejected') : quote.status === 'revision' ? tr('طلب تعديل', 'Revision Requested') : tr('قيد الانتظار', 'Pending')}
-                          </span>
+                      {/* card header */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <span className="text-[10px] text-[#1B9AAA] font-semibold font-mono">#{req.id}</span>
+                          <p className="text-[13px] font-bold text-slate-900 mt-0.5 leading-tight line-clamp-2">{getRequestName(req)}</p>
                         </div>
-                        <p style={{ color: '#333', margin: '5px 0', fontSize: '18px', fontWeight: 'bold' }}>
-                          {quote.totalPrice?.toLocaleString()} {tr('ر.س', 'SAR')}
-                        </p>
-                        <p style={{ color: '#666', margin: '5px 0' }}>
-                          {tr('مدة التوريد:', 'Delivery:')} {quote.deliveryDays} {tr('يوم', 'days')}
-                        </p>
-                        {quote.description && <p style={{ color: '#666', margin: '5px 0', fontSize: '14px' }}>{quote.description}</p>}
-
-                        {quote.status === 'accepted' && supplierData && (
-                          <div style={{ marginTop: '12px', backgroundColor: '#e8f5e9', border: '1px solid #28a745', borderRadius: '6px', padding: '12px' }}>
-                            <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', color: '#155724', fontSize: '14px' }}>{tr('بيانات التواصل مع المورد:', 'Supplier Contact Info:')}</p>
-                            <p style={{ margin: '4px 0', color: '#155724', fontSize: '14px' }}><strong>{tr('الاسم:', 'Name:')}</strong> {supplierData.name}</p>
-                            <p style={{ margin: '4px 0', color: '#155724', fontSize: '14px' }}><strong>{tr('الشركة:', 'Company:')}</strong> {supplierData.company}</p>
-                            <p style={{ margin: '4px 0', color: '#155724', fontSize: '14px' }}><strong>{tr('التليفون:', 'Phone:')}</strong> {supplierData.phone || tr('غير متوفر', 'N/A')}</p>
-                            <p style={{ margin: '4px 0', color: '#155724', fontSize: '14px' }}><strong>{tr('الإيميل:', 'Email:')}</strong> {supplierData.email}</p>
-                          </div>
+                        <StatusPill status={req.status} hasQuotes={rq.length > 0} lang={lang} />
+                      </div>
+                      {/* tags */}
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {getRequestTags(req).slice(0, 4).map((tg, i) => (
+                          <span key={i} className="text-[10px] bg-[#F0F9FF] text-[#0369A1] px-1.5 py-0.5 rounded font-medium">{tg}</span>
+                        ))}
+                      </div>
+                      {/* info row */}
+                      <div className="flex items-center gap-3 text-xs text-slate-500 mb-3">
+                        {req.location && <span>📍 {req.location}</span>}
+                        {req.deadline && <span>⏱ {req.deadline}</span>}
+                      </div>
+                      {/* quotes bar */}
+                      <div className={`rounded-lg px-3 py-2 flex items-center justify-between ${rq.length > 0 ? 'bg-emerald-50 border border-emerald-100' : 'bg-slate-50 border border-slate-100'}`}>
+                        <span className={`text-xs font-bold ${rq.length > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                          {rq.length} {t('quotes', lang)}
+                        </span>
+                        {nq > 0 && <span className="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-semibold">{nq} {t('newQuote', lang)}</span>}
+                      </div>
+                      {/* rating */}
+                      {rating && (
+                        <div className="mt-2 text-center">
+                          <span className="text-amber-400 text-sm">{'★'.repeat(rating.rating)}{'☆'.repeat(5 - rating.rating)}</span>
+                        </div>
+                      )}
+                      {/* actions row 1: عرض | تعديل */}
+                      <div className="flex gap-1.5 mt-3" onClick={e => e.stopPropagation()}>
+                        <button onClick={e => { e.stopPropagation(); openRequest(req); }}
+                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-blue-50 text-[#0F4C75] border border-blue-100 hover:bg-blue-100 transition-colors">
+                          {t('view', lang)}
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); router.push(`/create-request?edit=${req.id}`); }}
+                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 transition-colors">
+                          {t('edit', lang)}
+                        </button>
+                      </div>
+                      {/* actions row 2: فتح/قفل | حذف */}
+                      <div className="flex gap-1.5 mt-1.5" onClick={e => e.stopPropagation()}>
+                        <button onClick={e => { e.stopPropagation(); toggleRequestStatus(req.id); }}
+                          className={`flex-1 text-xs font-semibold py-1.5 rounded-lg transition-colors ${isClosed ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'}`}>
+                          {isClosed ? (lang === 'ar' ? 'فتح' : 'Open') : (lang === 'ar' ? 'قفل' : 'Close')}
+                        </button>
+                        <button onClick={e => { e.stopPropagation(); handleDeleteRequest(req.id); }}
+                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 transition-colors">
+                          {t('delete', lang)}
+                        </button>
+                      </div>
+                      {/* actions row 3: نقل | مقارنة */}
+                      <div className="flex gap-1.5 mt-1.5 relative" onClick={e => e.stopPropagation()}>
+                        <button onClick={e => { e.stopPropagation(); setMoveMenuId(moveMenuId === req.id ? null : req.id); }}
+                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-violet-50 text-violet-700 border border-violet-100 hover:bg-violet-100 transition-colors">
+                          {t('moveTo', lang)} ↕
+                        </button>
+                        {rq.length > 1 && (
+                          <button onClick={e => { e.stopPropagation(); setCompareRequest(req); }}
+                            className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors">
+                            {t('compare', lang)}
+                          </button>
                         )}
-
-                        {quote.status === 'revision' && quote.revisionNote && (
-                          <div style={{ backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: '4px', padding: '10px', marginTop: '10px' }}>
-                            <p style={{ margin: 0, color: '#856404', fontSize: '14px' }}>
-                              <strong>{tr('ملاحظة التعديل:', 'Revision Note:')}</strong> {quote.revisionNote}
-                            </p>
-                          </div>
-                        )}
-
-                        {quote.status === 'pending' && (
-                          <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                            <button onClick={() => handleQuoteAction(quote.id, 'accepted')}
-                              style={{ flex: 1, padding: '8px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                              {tr('قبول', 'Accept')}
-                            </button>
-                            <button onClick={() => setRevisionQuoteId(quote.id)}
-                              style={{ flex: 1, padding: '8px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                              {tr('طلب تعديل', 'Request Revision')}
-                            </button>
-                            <button onClick={() => handleQuoteAction(quote.id, 'rejected')}
-                              style={{ flex: 1, padding: '8px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                              {tr('رفض', 'Reject')}
-                            </button>
-                          </div>
-                        )}
-
-                        {revisionQuoteId === quote.id && (
-                          <div style={{ marginTop: '10px', backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '4px' }}>
-                            <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', color: '#333' }}>
-                              {tr('اكتب ملاحظة التعديل:', 'Write revision note:')}
-                            </p>
-                            <textarea value={revisionNote} onChange={(e) => setRevisionNote(e.target.value)}
-                              placeholder={tr('مثال: عايز السعر أقل، أو مدة التوريد أسرع...', 'Example: Need lower price or faster delivery...')}
-                              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '80px', fontSize: '14px', boxSizing: 'border-box', color: '#333', backgroundColor: '#fff' }} />
-                            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                              <button onClick={() => handleRevisionSubmit(quote.id)}
-                                style={{ flex: 1, padding: '8px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                                {tr('إرسال التعديل', 'Send Revision')}
+                        {moveMenuId === req.id && (
+                          <div className="absolute z-20 bottom-full mb-1 left-0 bg-white border border-[#E2EAF2] rounded-xl shadow-lg overflow-hidden min-w-[140px]">
+                            {([
+                              { col: 'active'   as KanbanCol, ar: 'نشطة',         en: 'Active',   cls: 'hover:bg-emerald-50 text-emerald-700' },
+                              { col: 'awaiting' as KanbanCol, ar: 'بانتظار عروض', en: 'Awaiting', cls: 'hover:bg-orange-50 text-orange-700'  },
+                              { col: 'closed'   as KanbanCol, ar: 'مغلقة',        en: 'Closed',   cls: 'hover:bg-slate-100 text-slate-600'   },
+                            ]).map(m => (
+                              <button key={m.col} onClick={() => handleMoveRequest(req.id, m.col)}
+                                className={`w-full text-right px-4 py-2 text-xs font-semibold transition-colors border-b border-slate-50 last:border-0 ${m.cls}`}>
+                                {lang === 'ar' ? m.ar : m.en}
                               </button>
-                              <button onClick={() => { setRevisionQuoteId(null); setRevisionNote(''); }}
-                                style={{ flex: 1, padding: '8px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                                {tr('إلغاء', 'Cancel')}
-                              </button>
-                            </div>
+                            ))}
                           </div>
                         )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          )}
 
-                        {(quote.status === 'accepted' || quote.status === 'rejected' || quote.status === 'revision') && (
-                          <div style={{ marginTop: '10px' }}>
-                            <button onClick={() => handleQuoteAction(quote.id, 'pending')}
-                              style={{ width: '100%', padding: '8px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                              {tr('إلغاء القرار', 'Undo Decision')}
-                            </button>
+          {/* ═══ KANBAN / مسارات VIEW ═══ */}
+          {viewMode === 'kanban' && (
+            filteredRequests.length === 0 ? <EmptyState lang={lang} /> : (
+              <div className="p-5 grid grid-cols-3 gap-4">
+                {([
+                  { col: 'active'   as KanbanCol, title: t('kanbanActive', lang), color: 'emerald', icon: '🔥' },
+                  { col: 'awaiting' as KanbanCol, title: t('kanbanPend', lang),   color: 'orange',  icon: '⏳' },
+                  { col: 'closed'   as KanbanCol, title: t('kanbanClosed', lang), color: 'slate',   icon: '🔒' },
+                ] as {col: KanbanCol; title: string; color: string; icon: string}[]).map(({ col, title, color, icon }) => (
+                  <KanbanColumn key={col}
+                    col={col} title={title} color={color} icon={icon}
+                    requests={filteredRequests.filter(r => getKanbanCol(r) === col)}
+                    lang={lang} dragOverCol={dragOverCol} draggingId={draggingId}
+                    onOpen={openRequest} onEdit={(id: number) => router.push(`/create-request?edit=${id}`)}
+                    onToggle={toggleRequestStatus} onCompare={setCompareRequest}
+                    onMove={handleMoveRequest}
+                    onDragStart={(id: number) => setDraggingId(id)}
+                    onDragOver={(c: KanbanCol) => setDragOverCol(c)}
+                    onDrop={() => handleKanbanDrop(col)}
+                    onDragEnd={() => { setDraggingId(null); setDragOverCol(null); }}
+                    onSelect={toggleSelect} selectedIds={selectedIds}
+                    getRequestName={getRequestName} getRequestTags={getRequestTags}
+                    getRequestQuotes={getRequestQuotes} getRequestNewQuotes={getRequestNewQuotes} />
+                ))}
+              </div>
+            )
+          )}
+
+          {/* ═══ PROJECTS VIEW ═══ */}
+          {viewMode === 'projects' && (
+            Object.keys(projectGroups).length === 0 ? <EmptyState lang={lang} /> : (
+              <div className="p-5 grid grid-cols-3 gap-4">
+                {Object.entries(projectGroups)
+                  .sort(([, a], [, b]) => b.length - a.length)
+                  .map(([key, reqs]) => {
+                    const projQuotes = reqs.reduce((s, r) => s + getRequestQuotes(r.id).length, 0);
+                    const openCount = reqs.filter(r => r.status === 'open').length;
+                    const closedCount = reqs.filter(r => r.status === 'closed').length;
+                    const hasNew = reqs.some(r => getRequestNewQuotes(r.id) > 0);
+                    return (
+                      <div key={key}
+                        className={`bg-white border rounded-2xl p-5 cursor-pointer hover:shadow-md transition-all relative ${hasNew ? 'border-emerald-300' : 'border-[#E2EAF2]'}`}
+                        onClick={() => { setProjectFilter(key); setViewMode('table'); }}>
+                        {hasNew && <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">!</span>}
+                        <div className="flex items-start gap-3 mb-4">
+                          <div className="w-11 h-11 bg-[#EBF5FF] rounded-xl flex items-center justify-center text-xl shrink-0">📁</div>
+                          <div>
+                            <p className="text-[13px] font-bold text-slate-900 leading-tight">
+                              {key === '__none__' ? t('noProject', lang) : key}
+                            </p>
+                            <p className="text-[11px] text-slate-400 mt-0.5">{t('projReqs', lang, reqs.length)}</p>
                           </div>
-                        )}
+                        </div>
+                        {/* stats */}
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          <div className="bg-slate-50 rounded-lg px-3 py-2">
+                            <p className="text-xs font-bold text-slate-900">{projQuotes}</p>
+                            <p className="text-[10px] text-slate-400">{lang === 'ar' ? 'عروض' : 'quotes'}</p>
+                          </div>
+                          <div className="bg-emerald-50 rounded-lg px-3 py-2">
+                            <p className="text-xs font-bold text-emerald-700">{openCount}</p>
+                            <p className="text-[10px] text-emerald-500">{lang === 'ar' ? 'مفتوح' : 'open'}</p>
+                          </div>
+                        </div>
+                        {/* request name tags */}
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {reqs.slice(0, 3).map(r => (
+                            <span key={r.id} className="text-[10px] bg-[#F0F9FF] text-[#0369A1] px-2 py-0.5 rounded font-medium truncate max-w-[100px]">
+                              {getRequestName(r)}
+                            </span>
+                          ))}
+                          {reqs.length > 3 && <span className="text-[10px] text-slate-400 px-1">+{reqs.length - 3}</span>}
+                        </div>
+                        {/* status bar */}
+                        <div className="flex items-center gap-2">
+                          {openCount > 0 && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              {openCount} {lang === 'ar' ? 'نشط' : 'active'}
+                            </span>
+                          )}
+                          {closedCount > 0 && (
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                              {closedCount} {lang === 'ar' ? 'مغلق' : 'closed'}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-[#1B9AAA] font-semibold mr-auto hover:underline">{t('viewProj', lang)} →</span>
+                        </div>
                       </div>
                     );
                   })}
-                </div>
-              )}
-
-              
-              {getRequestLogs(selectedRequest.id).length > 0 && (
-                <div style={{ marginBottom: '24px' }}>
-                  <h3 style={{ color: '#333', marginBottom: '12px', fontSize: '16px' }}>{tr('تاريخ النشاط', 'Activity History')}</h3>
-                  <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #e9ecef' }}>
-                    {getRequestLogs(selectedRequest.id).map((log, index) => (
-                      <div key={log.id} style={{ padding: '12px 15px', borderBottom: index < getRequestLogs(selectedRequest.id).length - 1 ? '1px solid #e9ecef' : 'none', backgroundColor: index % 2 === 0 ? '#f8f9fa' : 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontSize: '16px' }}>
-                            {log.action.includes('قبول') || log.action.includes('Accepted') ? '✅' :
-                             log.action.includes('رفض') || log.action.includes('Rejected') ? '❌' :
-                             log.action.includes('تعديل') || log.action.includes('Revision') ? '✏️' :
-                             log.action.includes('إغلاق') || log.action.includes('closed') ? '🔒' :
-                             log.action.includes('فتح') || log.action.includes('reopened') ? '🔓' :
-                             log.action.includes('تقييم') || log.action.includes('Rated') ? '⭐' : '📋'}
-                          </span>
-                          <p style={{ margin: 0, color: '#333', fontSize: '13px' }}>
-                            {language === 'ar' ? log.action : log.actionEn}
-                          </p>
-                        </div>
-                        <p style={{ margin: 0, color: '#999', fontSize: '11px', whiteSpace: 'nowrap' }}>
-                          {formatDate(log.timestamp)}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              
-              <div style={{ display: 'flex', gap: '10px', borderTop: '2px solid #f0f0f0', paddingTop: '20px' }}>
-                <button onClick={() => router.push(`/create-request?edit=${selectedRequest.id}`)}
-                  style={{ flex: 1, padding: '12px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}>
-                  {tr('تعديل', 'Edit')}
-                </button>
-                <button
-                  onClick={() => { if (selectedRequest.status === 'closed') { toggleRequestStatus(selectedRequest.id); setSelectedRequest(null); } }}
-                  style={{ flex: 1, padding: '12px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: selectedRequest.status === 'closed' ? 'pointer' : 'not-allowed', fontWeight: 'bold', fontSize: '15px', opacity: selectedRequest.status === 'closed' ? 1 : 0.4 }}
-                  disabled={selectedRequest.status === 'open'}>
-                  {tr('فتح', 'Open')}
-                </button>
-                <button
-                  onClick={() => { if (selectedRequest.status === 'open') { toggleRequestStatus(selectedRequest.id); setSelectedRequest(null); } }}
-                  style={{ flex: 1, padding: '12px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: selectedRequest.status === 'open' ? 'pointer' : 'not-allowed', fontWeight: 'bold', fontSize: '15px', opacity: selectedRequest.status === 'open' ? 1 : 0.4 }}
-                  disabled={selectedRequest.status === 'closed'}>
-                  {tr('إغلاق', 'Close')}
-                </button>
-                <button onClick={() => handleDeleteRequest(selectedRequest.id)}
-                  style={{ flex: 1, padding: '12px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}>
-                  {tr('حذف', 'Delete')}
-                </button>
               </div>
+            )
+          )}
+        </div>
+      </div>
+
+      {/* ══════════ MODALS ══════════ */}
+
+      {/* Rating Modal */}
+      {showRatingModal && ratingQuote && (
+        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-7 max-w-sm w-full" dir={dir}>
+            <h2 className="text-lg font-bold text-slate-900 text-center mb-1">{t('rateSupplier', lang)}</h2>
+            <p className="text-slate-500 text-sm text-center mb-5">{t('rateExp', lang)} <strong>{ratingQuote.supplierCompany}</strong>؟</p>
+            <div className="flex justify-center gap-2 mb-2">
+              {[1, 2, 3, 4, 5].map(star => (
+                <span key={star} onClick={() => setRatingStars(star)}
+                  className={`text-4xl cursor-pointer transition-colors ${star <= ratingStars ? 'text-amber-400' : 'text-slate-200'}`}>★</span>
+              ))}
+            </div>
+            <p className="text-center text-xs text-slate-400 mb-5">
+              {ratingStars === 1 ? t('poor', lang) : ratingStars === 2 ? t('fair', lang) : ratingStars === 3 ? t('good', lang) : ratingStars === 4 ? t('vgood', lang) : ratingStars === 5 ? t('excellent', lang) : ''}
+            </p>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">{t('rateComments', lang)}</label>
+            <textarea value={ratingComment} onChange={e => setRatingComment(e.target.value)}
+              placeholder={t('rateWrite', lang)} rows={3}
+              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-700 bg-white outline-none focus:border-[#1B9AAA] resize-none mb-4" />
+            <div className="flex gap-3">
+              <button onClick={handleSubmitRating}
+                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-sm transition-colors">{t('submitRating', lang)}</button>
+              <button onClick={() => { setShowRatingModal(false); setRatingStars(0); setRatingComment(''); }}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-2.5 rounded-xl text-sm transition-colors">{t('skip', lang)}</button>
             </div>
           </div>
-        )}
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxImg && (
+        <div className="fixed inset-0 bg-black/92 z-[9999] flex items-center justify-center cursor-zoom-out" onClick={() => setLightboxImg(null)}>
+          <img src={lightboxImg} alt="" className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg" />
+          <button onClick={() => setLightboxImg(null)}
+            className="absolute top-5 right-5 bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-sm">✕</button>
+        </div>
+      )}
+
+      {/* Compare Modal */}
+      {compareRequest && (
+        <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4" onClick={() => setCompareRequest(null)}>
+          <div className="bg-white rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto" dir={dir} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-bold text-slate-900">{t('compareTitle', lang)} — <span className="text-[#1B9AAA]">#{compareRequest.id}</span></h2>
+              <button onClick={() => setCompareRequest(null)} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center font-bold hover:bg-red-100 text-lg">✕</button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm border-collapse">
+                <thead>
+                  <tr className="bg-[#0F4C75] text-white">
+                    {[t('supplier',lang), t('price',lang), t('delivery',lang), t('status',lang), t('notesL',lang), t('action',lang)].map(h => (
+                      <th key={h} className="px-4 py-3 text-right font-semibold text-xs whitespace-nowrap">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {getRequestQuotes(compareRequest.id).map((quote, i) => {
+                    const lowestP = getLowestPrice(getRequestQuotes(compareRequest.id));
+                    const fastestD = getFastestDelivery(getRequestQuotes(compareRequest.id));
+                    return (
+                      <tr key={quote.id} className={`border-b border-slate-100 ${i % 2 === 0 ? 'bg-white' : 'bg-[#F8FAFC]'} ${quote.status === 'accepted' ? '!bg-emerald-50' : ''}`}>
+                        <td className="px-4 py-3">
+                          <p className="font-bold text-slate-900 text-sm">{quote.supplierCompany}</p>
+                          <p className="text-slate-400 text-xs">{quote.supplierName}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className={`font-bold text-sm ${quote.totalPrice === lowestP ? 'text-emerald-600' : 'text-slate-900'}`}>{quote.totalPrice?.toLocaleString()} {t('sar', lang)}</p>
+                          {quote.totalPrice === lowestP && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">{t('cheapest', lang)}</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className={`font-bold text-sm ${quote.deliveryDays === fastestD ? 'text-blue-600' : 'text-slate-900'}`}>{quote.deliveryDays} {t('days', lang)}</p>
+                          {quote.deliveryDays === fastestD && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">{t('fastest', lang)}</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`text-[11px] font-semibold px-2 py-1 rounded-full ${quote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : quote.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'}`}>
+                            {quote.status === 'accepted' ? t('accepted',lang) : quote.status === 'rejected' ? t('rejected',lang) : t('pendingQ',lang)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-500 max-w-[120px]">{quote.description || '—'}</td>
+                        <td className="px-4 py-3">
+                          {quote.status === 'pending' && (
+                            <div className="flex flex-col gap-1">
+                              <button onClick={() => { handleQuoteAction(quote.id, 'accepted'); setCompareRequest(null); }}
+                                className="text-[11px] font-bold bg-emerald-500 text-white px-3 py-1 rounded-lg hover:bg-emerald-600">{t('accept',lang)}</button>
+                              <button onClick={() => handleQuoteAction(quote.id, 'rejected')}
+                                className="text-[11px] font-bold bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600">{t('reject',lang)}</button>
+                            </div>
+                          )}
+                          {quote.status === 'accepted' && (
+                            <button onClick={() => handleQuoteAction(quote.id, 'pending')}
+                              className="text-[11px] font-bold bg-slate-200 text-slate-600 px-3 py-1 rounded-lg hover:bg-slate-300">{t('undo',lang)}</button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-4 bg-[#F8FAFC] rounded-xl px-4 py-3 flex gap-6 flex-wrap">
+              <span className="text-emerald-600 text-sm font-semibold">✅ {t('lowestP',lang)} {getLowestPrice(getRequestQuotes(compareRequest.id))?.toLocaleString()} {t('sar',lang)}</span>
+              <span className="text-blue-600 text-sm font-semibold">⚡ {t('fastestD',lang)} {getFastestDelivery(getRequestQuotes(compareRequest.id))} {t('days',lang)}</span>
+              <span className="text-slate-500 text-sm">📊 {t('totalQ',lang)} {getRequestQuotes(compareRequest.id).length}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {selectedRequest && (
+        <DetailModal
+          req={selectedRequest} lang={lang} dir={dir}
+          quotes={getRequestQuotes(selectedRequest.id)}
+          logs={getRequestLogs(selectedRequest.id)}
+          revisionQuoteId={revisionQuoteId} revisionNote={revisionNote}
+          setRevisionQuoteId={setRevisionQuoteId} setRevisionNote={setRevisionNote}
+          onClose={() => setSelectedRequest(null)}
+          onToggle={() => { toggleRequestStatus(selectedRequest.id); setSelectedRequest(null); }}
+          onDelete={() => handleDeleteRequest(selectedRequest.id)}
+          onEdit={() => router.push(`/create-request?edit=${selectedRequest.id}`)}
+          onQuoteAction={handleQuoteAction} onRevisionSubmit={handleRevisionSubmit}
+          getSupplierData={getSupplierData} setLightboxImg={setLightboxImg}
+          displayVal={displayVal} formatDate={formatDate} arToEn={arToEn}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ══════════ SUB-COMPONENTS ══════════ */
+
+function EmptyState({ lang }: { lang: Lang }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-3xl mb-4">📋</div>
+      <h3 className="text-slate-700 font-bold text-base mb-1">{lang === 'ar' ? 'لا توجد طلبات' : 'No requests'}</h3>
+      <p className="text-slate-400 text-sm mb-5">{lang === 'ar' ? 'ابدأ بإنشاء طلب تسعير جديد' : 'Start by creating a new pricing request'}</p>
+      <Link href="/create-request"
+        className="bg-[#0F4C75] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#0D3F63] transition-colors">
+        {lang === 'ar' ? '+ طلب جديد' : '+ New Request'}
+      </Link>
+    </div>
+  );
+}
+
+function KanbanColumn({ col, title, color, icon, requests, lang, dragOverCol, draggingId, onOpen, onEdit, onToggle, onCompare, onMove, onDragStart, onDragOver, onDrop, onDragEnd, onSelect, selectedIds, getRequestName, getRequestTags, getRequestQuotes, getRequestNewQuotes }: any) {
+  const [openMoveId, setOpenMoveId] = useState<number | null>(null);
+  const colStyles: Record<string, { header: string; dot: string; card: string; dropzone: string }> = {
+    emerald: { header: 'bg-emerald-50 border-emerald-200 text-emerald-800', dot: 'bg-emerald-500', card: 'border-emerald-100 hover:border-emerald-300', dropzone: 'border-emerald-400 bg-emerald-50' },
+    orange:  { header: 'bg-orange-50 border-orange-200 text-orange-800',   dot: 'bg-orange-400',  card: 'border-orange-100 hover:border-orange-300',  dropzone: 'border-orange-400 bg-orange-50'  },
+    slate:   { header: 'bg-slate-100 border-slate-200 text-slate-600',     dot: 'bg-slate-400',   card: 'border-slate-200 hover:border-slate-300',    dropzone: 'border-slate-400 bg-slate-100'   },
+  };
+  const s = colStyles[color];
+  const isDropTarget = dragOverCol === col && draggingId !== null;
+  return (
+    <div className="flex flex-col gap-2"
+      onDragOver={e => { e.preventDefault(); onDragOver(col); }}
+      onDrop={e => { e.preventDefault(); onDrop(); }}
+      onDragLeave={() => {}}>
+      <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${s.header} mb-1`}>
+        <span>{icon}</span>
+        <span className="text-xs font-bold">{title}</span>
+        <span className={`mr-auto text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center text-white ${s.dot}`}>{requests.length}</span>
+      </div>
+      {/* drop zone placeholder when dragging over */}
+      {isDropTarget && (
+        <div className={`border-2 border-dashed rounded-xl py-5 text-center text-xs font-semibold transition-all ${s.dropzone}`}>
+          {lang === 'ar' ? '↓ اسحب هنا' : '↓ Drop here'}
+        </div>
+      )}
+      {requests.length === 0 && !isDropTarget && (
+        <div className="border-2 border-dashed border-slate-200 rounded-xl py-8 text-center text-slate-300 text-xs">—</div>
+      )}
+      {requests.map((req: Request) => {
+        const rq = getRequestQuotes(req.id);
+        const nq = getRequestNewQuotes(req.id);
+        const isClosed = req.status === 'closed';
+        const isDragging = draggingId === req.id;
+        return (
+          <div key={req.id}
+            draggable
+            onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; onDragStart(req.id); }}
+            onDragEnd={onDragEnd}
+            className={`bg-white border rounded-xl p-3 cursor-grab active:cursor-grabbing transition-all hover:shadow-sm relative select-none ${isDragging ? 'opacity-40 scale-95' : ''} ${selectedIds?.has(req.id) ? 'border-[#1B9AAA] bg-[#F0FAFC]' : s.card}`}
+            onClick={() => !isDragging && onOpen(req)}>
+            {/* drag handle + checkbox */}
+            <div className="flex items-center justify-between mb-1" onClick={e => e.stopPropagation()}>
+              <span className="text-slate-200 text-xs select-none">⠿</span>
+              <input type="checkbox" checked={selectedIds?.has(req.id) || false} onChange={() => {}}
+                onClick={e => { e.stopPropagation(); onSelect?.(req.id, e); }}
+                className="w-3 h-3 rounded border-slate-300 accent-[#1B9AAA] cursor-pointer" />
+            </div>
+            {nq > 0 && <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{nq}</span>}
+            <span className="text-[10px] text-[#1B9AAA] font-mono font-semibold">#{req.id}</span>
+            <p className="text-xs font-bold text-slate-900 mt-0.5 mb-2 line-clamp-2">{getRequestName(req)}</p>
+            <div className="flex flex-wrap gap-1 mb-2">
+              {getRequestTags(req).slice(0, 2).map((tg: string, i: number) => (
+                <span key={i} className="text-[9px] bg-[#F0F9FF] text-[#0369A1] px-1.5 py-0.5 rounded">{tg}</span>
+              ))}
+            </div>
+            {req.location && <p className="text-[10px] text-slate-400 mb-1">📍 {req.location}</p>}
+            <div className="flex items-center justify-between mb-1.5">
+              <span className={`text-[10px] font-semibold ${rq.length > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{rq.length} {lang === 'ar' ? 'عروض' : 'quotes'}</span>
+            </div>
+            {/* action buttons */}
+            <div className="flex gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
+              <button onClick={e => { e.stopPropagation(); onOpen(req); }}
+                className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-[#0F4C75] border border-blue-100 transition-colors hover:bg-blue-100">
+                {lang === 'ar' ? 'عرض' : 'View'}
+              </button>
+              <button onClick={e => { e.stopPropagation(); onEdit(req.id); }}
+                className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 border border-teal-100 transition-colors hover:bg-teal-100">
+                {lang === 'ar' ? 'تعديل' : 'Edit'}
+              </button>
+              <button onClick={e => { e.stopPropagation(); onToggle(req.id); }}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors ${isClosed ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+                {isClosed ? (lang === 'ar' ? 'فتح' : 'Open') : (lang === 'ar' ? 'قفل' : 'Close')}
+              </button>
+              {rq.length > 1 && (
+                <button onClick={e => { e.stopPropagation(); onCompare(req); }}
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 border border-purple-200 transition-colors">
+                  {lang === 'ar' ? 'قارن' : 'Compare'}
+                </button>
+              )}
+            </div>
+            {/* نقل button + dropdown */}
+            {onMove && (
+              <div className="relative mt-1" onClick={e => e.stopPropagation()}>
+                <button onClick={e => { e.stopPropagation(); setOpenMoveId(openMoveId === req.id ? null : req.id); }}
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-violet-50 text-violet-700 border border-violet-100 transition-colors hover:bg-violet-100 w-full text-center">
+                  {lang === 'ar' ? 'نقل ↕' : 'Move ↕'}
+                </button>
+                {openMoveId === req.id && (
+                  <div className="absolute z-20 bottom-full mb-1 left-0 bg-white border border-[#E2EAF2] rounded-xl shadow-lg overflow-hidden min-w-[140px]">
+                    {([
+                      { c: 'active'   as KanbanCol, ar: 'نشطة',         en: 'Active',   cls: 'hover:bg-emerald-50 text-emerald-700' },
+                      { c: 'awaiting' as KanbanCol, ar: 'بانتظار عروض', en: 'Awaiting', cls: 'hover:bg-orange-50 text-orange-700'  },
+                      { c: 'closed'   as KanbanCol, ar: 'مغلقة',        en: 'Closed',   cls: 'hover:bg-slate-100 text-slate-600'   },
+                    ]).filter(m => m.c !== col).map(m => (
+                      <button key={m.c} onClick={() => { onMove(req.id, m.c); setOpenMoveId(null); }}
+                        className={`w-full text-right px-4 py-2 text-[11px] font-semibold transition-colors border-b border-slate-50 last:border-0 ${m.cls}`}>
+                        {lang === 'ar' ? m.ar : m.en}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DetailModal({ req, lang, dir, quotes, logs, revisionQuoteId, revisionNote, setRevisionQuoteId, setRevisionNote, onClose, onToggle, onDelete, onEdit, onQuoteAction, onRevisionSubmit, getSupplierData, setLightboxImg, displayVal, formatDate, arToEn }: any) {
+  const tr = (ar: string, en: string) => lang === 'ar' ? ar : en;
+  const thStyle: React.CSSProperties = { padding: '8px 10px', backgroundColor: '#0F4C75', color: 'white', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', textAlign: 'center', border: '1px solid #0D3F63' };
+  const tdStyle: React.CSSProperties = { padding: '7px 10px', color: '#334155', fontSize: 12, textAlign: 'center', border: '1px solid #E2EAF2' };
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[95vh] overflow-y-auto" dir={dir} onClick={e => e.stopPropagation()}>
+        {/* header */}
+        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-lg font-bold text-slate-900">{tr('تفاصيل الطلب', 'Request Details')}</h2>
+            <span className="text-[#1B9AAA] font-bold text-sm">#{req.id}</span>
+            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${req.status === 'open' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'}`}>
+              {req.status === 'open' ? tr('مفتوح', 'Open') : tr('مغلق', 'Closed')}
+            </span>
+            {req.location && <span className="text-slate-400 text-sm">📍 {req.location}</span>}
+            {req.deadline && <span className="text-slate-400 text-sm">⏱ {req.deadline}</span>}
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center font-bold hover:bg-red-100 text-lg">✕</button>
+        </div>
+
+        <div className="p-5 space-y-5">
+          {/* materials */}
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 mb-3">{tr('المواد المطلوبة', 'Required Materials')}</h3>
+            {req.materials && req.materials.length > 0 ? (
+              <div className="overflow-x-auto border border-slate-200 rounded-xl">
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      {['#', tr('نوع المادة','Material'), tr('الاستخدام','Usage'), tr('المقاس','Size'), tr('السماكة','Thickness'), tr('الفنش','Finish'), tr('اللون','Color'), tr('الكمية','Qty'), tr('السعر المستهدف','Target Price'), tr('الصناعة','Origin'), tr('تاريخ التوريد','Delivery Date'), tr('وصف البند','Note'), tr('الصور','Images')].map(h => (
+                        <th key={h} style={thStyle}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {req.materials.map((m: any, i: number) => (
+                      <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#fff' : '#F8FAFC' }}>
+                        <td style={tdStyle}>{i + 1}</td>
+                        <td style={{ ...tdStyle, fontWeight: 700 }}>{displayVal(m.type) || '—'}</td>
+                        <td style={tdStyle}>{displayVal(m.usage) || '—'}</td>
+                        <td style={tdStyle}>{m.size || '—'}</td>
+                        <td style={tdStyle}>{m.thickness || '—'}</td>
+                        <td style={tdStyle}>{displayVal(m.finish) || '—'}</td>
+                        <td style={tdStyle}>{displayVal(m.color) || '—'}</td>
+                        <td style={tdStyle}>{m.quantity ? `${m.quantity} ${lang === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : '—'}</td>
+                        <td style={tdStyle}>{m.targetPrice ? `${m.targetPrice} ${lang === 'en' ? (m.currency === 'ر.س' ? 'SAR' : m.currency || 'SAR') : (m.currency || 'ر.س')}` : '—'}</td>
+                        <td style={tdStyle}>{displayVal(m.origin) || '—'}</td>
+                        <td style={tdStyle}>{m.deliveryDate || '—'}</td>
+                        <td style={{ ...tdStyle, maxWidth: 120, fontSize: 11 }}>{m.note || '—'}</td>
+                        <td style={tdStyle}>
+                          {m.images && m.images.length > 0 ? (
+                            <div className="flex gap-1 justify-center">
+                              {m.images.map((img: string, j: number) => (
+                                <img key={j} src={img} alt="" onClick={e => { e.stopPropagation(); setLightboxImg(img); }}
+                                  className="w-10 h-10 object-cover rounded border border-slate-200 cursor-zoom-in" />
+                              ))}
+                            </div>
+                          ) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-600 space-y-1">
+                {req.ceramic > 0 && <p>• {tr('سيراميك','Ceramic')}: {req.ceramic} m²</p>}
+                {req.porcelain > 0 && <p>• {tr('بورسلان','Porcelain')}: {req.porcelain} m²</p>}
+                {req.marble > 0 && <p>• {tr('رخام','Marble')}: {req.marble} m²</p>}
+                {req.granite > 0 && <p>• {tr('جرانيت','Granite')}: {req.granite} m²</p>}
+                {req.terrazzo > 0 && <p>• {tr('تيرازو','Terrazzo')}: {req.terrazzo} m²</p>}
+              </div>
+            )}
+          </div>
+
+          {/* description */}
+          {req.description && (
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 mb-2">{tr('الوصف', 'Description')}</h3>
+              <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-600">{req.description}</div>
+            </div>
+          )}
+
+          {/* quotes */}
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 mb-3">{tr('عروض الأسعار', 'Quotes')} ({quotes.length})</h3>
+            {quotes.length === 0 ? (
+              <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-400 text-center">{tr('لا توجد عروض أسعار بعد', 'No quotes yet')}</div>
+            ) : (
+              <div className="space-y-3">
+                {quotes.map((quote: Quote) => {
+                  const supplierData = quote.status === 'accepted' ? getSupplierData(quote.supplierId) : null;
+                  return (
+                    <div key={quote.id} className={`border rounded-xl p-4 ${quote.status === 'accepted' ? 'bg-emerald-50 border-emerald-200' : quote.status === 'rejected' ? 'bg-red-50 border-red-200' : quote.status === 'revision' ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'}`}>
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="font-bold text-slate-900 text-sm">{quote.supplierCompany}</p>
+                          <p className="text-slate-400 text-xs">{quote.supplierName}</p>
+                        </div>
+                        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${quote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : quote.status === 'rejected' ? 'bg-red-100 text-red-700' : quote.status === 'revision' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                          {quote.status === 'accepted' ? tr('مقبول','Accepted') : quote.status === 'rejected' ? tr('مرفوض','Rejected') : quote.status === 'revision' ? tr('طلب تعديل','Revision Requested') : tr('قيد الانتظار','Pending')}
+                        </span>
+                      </div>
+                      <p className="text-xl font-bold text-slate-900">{quote.totalPrice?.toLocaleString()} {tr('ر.س','SAR')}</p>
+                      <p className="text-xs text-slate-500 mt-1">{tr('مدة التوريد:','Delivery:')} {quote.deliveryDays} {tr('يوم','days')}</p>
+                      {quote.description && <p className="text-xs text-slate-500 mt-1">{quote.description}</p>}
+
+                      {quote.status === 'accepted' && supplierData && (
+                        <div className="mt-3 bg-emerald-100 border border-emerald-200 rounded-xl p-3 text-sm text-emerald-800 space-y-1">
+                          <p className="font-bold mb-1">{tr('بيانات التواصل مع المورد:', 'Supplier Contact:')}</p>
+                          <p><strong>{tr('الاسم:','Name:')}</strong> {supplierData.name}</p>
+                          <p><strong>{tr('الشركة:','Company:')}</strong> {supplierData.company}</p>
+                          <p><strong>{tr('التليفون:','Phone:')}</strong> {supplierData.phone || tr('غير متوفر','N/A')}</p>
+                          <p><strong>{tr('الإيميل:','Email:')}</strong> {supplierData.email}</p>
+                        </div>
+                      )}
+                      {quote.status === 'revision' && quote.revisionNote && (
+                        <div className="mt-3 bg-amber-100 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+                          <strong>{tr('ملاحظة التعديل:','Revision Note:')}</strong> {quote.revisionNote}
+                        </div>
+                      )}
+                      {quote.status === 'pending' && (
+                        <div className="flex gap-2 mt-3">
+                          <button onClick={() => onQuoteAction(quote.id, 'accepted')} className="flex-1 bg-emerald-500 text-white text-xs font-bold py-2 rounded-lg hover:bg-emerald-600">{tr('قبول','Accept')}</button>
+                          <button onClick={() => setRevisionQuoteId(quote.id)} className="flex-1 bg-amber-400 text-white text-xs font-bold py-2 rounded-lg hover:bg-amber-500">{tr('طلب تعديل','Revision')}</button>
+                          <button onClick={() => onQuoteAction(quote.id, 'rejected')} className="flex-1 bg-red-500 text-white text-xs font-bold py-2 rounded-lg hover:bg-red-600">{tr('رفض','Reject')}</button>
+                        </div>
+                      )}
+                      {revisionQuoteId === quote.id && (
+                        <div className="mt-3 bg-white border border-amber-200 rounded-xl p-3">
+                          <p className="text-xs font-bold text-slate-700 mb-2">{tr('اكتب ملاحظة التعديل:','Write revision note:')}</p>
+                          <textarea value={revisionNote} onChange={e => setRevisionNote(e.target.value)}
+                            placeholder={tr('مثال: أريد سعر أقل أو توريد أسرع...','Ex: Need lower price or faster delivery...')}
+                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 bg-white outline-none resize-none min-h-[70px] mb-2" />
+                          <div className="flex gap-2">
+                            <button onClick={() => onRevisionSubmit(quote.id)} className="flex-1 bg-amber-400 text-white text-xs font-bold py-1.5 rounded-lg">{tr('إرسال التعديل','Send Revision')}</button>
+                            <button onClick={() => { setRevisionQuoteId(null); setRevisionNote(''); }} className="flex-1 bg-slate-100 text-slate-600 text-xs font-bold py-1.5 rounded-lg">{tr('إلغاء','Cancel')}</button>
+                          </div>
+                        </div>
+                      )}
+                      {(quote.status === 'accepted' || quote.status === 'rejected' || quote.status === 'revision') && (
+                        <button onClick={() => onQuoteAction(quote.id, 'pending')} className="mt-2 w-full bg-slate-100 text-slate-600 text-xs font-bold py-1.5 rounded-lg hover:bg-slate-200">{tr('إلغاء القرار','Undo Decision')}</button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* activity log */}
+          {logs.length > 0 && (
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 mb-3">{tr('تاريخ النشاط', 'Activity History')}</h3>
+              <div className="border border-slate-200 rounded-xl overflow-hidden">
+                {logs.map((log: ActivityLog, i: number) => (
+                  <div key={log.id} className={`flex items-center justify-between px-4 py-3 text-xs border-b border-slate-100 last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
+                    <span className="text-slate-700">
+                      {log.action.includes('قبول') || log.action.includes('Accepted') ? '✅' : log.action.includes('رفض') || log.action.includes('Rejected') ? '❌' : log.action.includes('تعديل') || log.action.includes('Revision') ? '✏️' : log.action.includes('إغلاق') || log.action.includes('closed') ? '🔒' : log.action.includes('فتح') || log.action.includes('reopened') ? '🔓' : log.action.includes('تقييم') || log.action.includes('Rated') ? '⭐' : '📋'}{' '}
+                      {lang === 'ar' ? log.action : log.actionEn}
+                    </span>
+                    <span className="text-slate-400 whitespace-nowrap mr-4">{formatDate(log.timestamp)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* footer actions */}
+        <div className="flex gap-3 p-5 border-t border-slate-100">
+          <button onClick={onClose} className="flex-1 bg-slate-100 text-slate-600 font-semibold py-2.5 rounded-xl text-sm hover:bg-slate-200">{tr('إغلاق','Close')}</button>
+          <button onClick={onEdit} className="flex-1 bg-[#1B9AAA] text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-[#158494]">{tr('تعديل','Edit')}</button>
+          <button onClick={onToggle}
+            className={`flex-1 font-semibold py-2.5 rounded-xl text-sm transition-colors ${req.status === 'open' ? 'bg-amber-400 text-white hover:bg-amber-500' : 'bg-emerald-500 text-white hover:bg-emerald-600'}`}>
+            {req.status === 'open' ? tr('إغلاق الطلب','Close Request') : tr('فتح الطلب','Open Request')}
+          </button>
+          <button onClick={onDelete} className="flex-1 bg-red-500 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-red-600">{tr('حذف','Delete')}</button>
+        </div>
       </div>
     </div>
   );
