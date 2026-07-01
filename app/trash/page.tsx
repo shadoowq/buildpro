@@ -173,7 +173,7 @@ export default function Trash() {
                 {search ? t('لا توجد نتائج', 'No results found', lang) : t('السلة فارغة', 'Trash is Empty', lang)}
               </h3>
               <p className="text-stone-400 text-sm mb-5">
-                {t('الطلبات والمسودات المحذوفة هتظهر هنا', 'Deleted requests and drafts will appear here', lang)}
+                {t('ستظهر هنا الطلبات والمسودات المحذوفة', 'Deleted requests and drafts will appear here', lang)}
               </p>
               <Link href="/my-requests"
                 className="bg-[#C0603E] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#9C4C31] transition-colors">

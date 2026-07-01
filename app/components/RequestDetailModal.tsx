@@ -130,8 +130,8 @@ export default function RequestDetailModal({
                           <p className="font-bold mb-1">{tr('بيانات التواصل مع المورد:', 'Supplier Contact:')}</p>
                           <p><strong>{tr('الاسم:','Name:')}</strong> {supplierData.name}</p>
                           <p><strong>{tr('الشركة:','Company:')}</strong> {supplierData.company}</p>
-                          <p><strong>{tr('التليفون:','Phone:')}</strong> {supplierData.phone || tr('غير متوفر','N/A')}</p>
-                          <p><strong>{tr('الإيميل:','Email:')}</strong> {supplierData.email}</p>
+                          <p><strong>{tr('الهاتف:','Phone:')}</strong> {supplierData.phone || tr('غير متوفر','N/A')}</p>
+                          <p><strong>{tr('البريد الإلكتروني:','Email:')}</strong> {supplierData.email}</p>
                         </div>
                       )}
                       {quote.status === 'revision' && quote.revisionNote && (

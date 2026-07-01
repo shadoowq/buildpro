@@ -452,7 +452,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     attachedFilesLabel: 'الملفات المرفقة', selectedSuppliersLabel: 'الموردين المختارين',
     maxImages: 'وصلت للحد الأقصى (صورتين)',
     zoomReset: 'إعادة ضبط', download: 'تحميل', close: 'إغلاق',
-    zoomHint: 'استخدم عجلة الموس للتكبير والتصغير',
+    zoomHint: 'استخدم عجلة الفأرة للتكبير والتصغير',
   } : {
     hint: 'Select from the list and press "+ OR" to add another option',
     projectNameLabel: 'Project Name', projectNamePlaceholder: 'e.g. Riyadh Villa - Ground Floor',
@@ -553,7 +553,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
           <h3 style={{ color: '#1C1917', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             {tx.materials}
             <HelpTooltip lang={language}
-              textAr="أضف كل مادة كبند مستقل. لو بند فيه أكتر من خيار مقبول (مثلاً لونين)، اختار الأول واضغط +أو عشان تضيف خيار تاني لنفس البند."
+              textAr="أضف كل مادة كبند مستقل. إذا كان لأحد الحقول أكثر من خيار مقبول (مثلاً لونان)، اختر الأول ثم اضغط «+أو» لإضافة خيار آخر لنفس البند."
               textEn='Add each material as its own row. If a field has more than one acceptable option (e.g. two colors), pick one and press "+OR" to add another option to the same item.' />
           </h3>
           <div style={{ overflowX: 'auto', border: '1px solid #E8DFD3', borderRadius: '8px' }}>
@@ -593,7 +593,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       {tx.targetPrice}
                       <HelpTooltip lang={language}
-                        textAr="السعر اللي حابب توصله لكل وحدة (اختياري) — بيساعد الموردين يعرفوا ميزانيتك."
+                        textAr="السعر الذي ترغب في الوصول إليه لكل وحدة (اختياري) — يساعد الموردين على معرفة ميزانيتك."
                         textEn="The price per unit you're aiming for (optional) — helps suppliers understand your budget." />
                     </span>
                   </th>
@@ -701,7 +701,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
             <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '5px' }}>
               {tx.deadline}
               <HelpTooltip lang={language}
-                textAr="آخر تاريخ يقدر فيه الموردين يرسلوا عروض أسعار على هذا الطلب."
+                textAr="آخر تاريخ يمكن للموردين خلاله إرسال عروض أسعار على هذا الطلب."
                 textEn="The last date suppliers can submit price quotes for this request." />
             </label>
             <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} style={fieldStyle} />
@@ -740,7 +740,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
             <label style={{ fontWeight: 'bold', color: '#1C1917', fontSize: '16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               {tx.suppliers}
               <HelpTooltip lang={language}
-                textAr="الطلب هيتبعت بس للموردين اللي تحددهم هنا. تقدر تختار مورد واحد أو أكتر."
+                textAr="سيُرسَل الطلب فقط إلى الموردين الذين تحددهم هنا. يمكنك اختيار مورد واحد أو أكثر."
                 textEn="Your request will only be sent to the suppliers you select here. You can choose one or more." />
             </label>
             {suppliers.length > 0 && (

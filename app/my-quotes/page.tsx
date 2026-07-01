@@ -65,7 +65,7 @@ const T = {
   sendRev:      { ar: 'إرسال',               en: 'Send'                  },
   cancel:       { ar: 'إلغاء',               en: 'Cancel'                },
   reqLabel:     { ar: 'طلب',                 en: 'Request'               },
-  newBanner:    { ar: (n: number) => `عندك ${n} عرض جديد لم يُراجَع بعد`, en: (n: number) => `You have ${n} new unreviewed quote${n > 1 ? 's' : ''}` },
+  newBanner:    { ar: (n: number) => `لديك ${n} عرض جديد لم تتم مراجعته بعد`, en: (n: number) => `You have ${n} new unreviewed quote${n > 1 ? 's' : ''}` },
   compare:      { ar: 'مقارنة العروض',        en: 'Compare Quotes'        },
   supplier:     { ar: 'المورد',              en: 'Supplier'              },
   price:        { ar: 'السعر',               en: 'Price'                 },
@@ -213,7 +213,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
             <h1 className="text-white text-xl font-bold mb-1 flex items-center gap-2">
               {tFn('title', lang)}
               <HelpTooltip lang={lang}
-                textAr="قبول عرض ما بيرفضش باقي العروض تلقائيًا — لازم تتعامل مع كل عرض لوحده. وأي قرار (قبول/رفض) تقدر تتراجع عنه بزرار «إلغاء القرار»."
+                textAr="قبول أحد العروض لا يؤدي إلى رفض باقي العروض تلقائيًا — يجب التعامل مع كل عرض على حدة. ويمكن التراجع عن أي قرار (قبول أو رفض) باستخدام زر «إلغاء القرار»."
                 textEn='Accepting a quote does not auto-reject the others — you handle each one individually. Any decision (accept/reject) can be undone with the "Undo" button.' />
             </h1>
             <p className="text-white/50 text-xs">

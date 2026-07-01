@@ -13,7 +13,7 @@ const T = {
   subtitle:     { ar: 'كل التحديثات على طلباتك وعروضك', en: 'All updates on your requests and quotes' },
   markAllRead:  { ar: 'تحديد الكل كمقروء',  en: 'Mark all as read'      },
   noNotifs:     { ar: 'لا توجد إشعارات بعد', en: 'No notifications yet' },
-  noNotifsSub:  { ar: 'هتظهر هنا أي تحديثات على طلباتك', en: 'Updates on your requests will show up here' },
+  noNotifsSub:  { ar: 'ستظهر هنا أي تحديثات على طلباتك', en: 'Updates on your requests will show up here' },
 };
 
 function t(key: keyof typeof T, lang: Lang): string {

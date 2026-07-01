@@ -113,8 +113,8 @@ const T = {
   contact:      { ar: 'بيانات التواصل:',   en: 'Contact Info:'      },
   nameL:        { ar: 'الاسم:',            en: 'Name:'              },
   companyL:     { ar: 'الشركة:',           en: 'Company:'           },
-  phoneL:       { ar: 'التليفون:',         en: 'Phone:'             },
-  emailL:       { ar: 'الإيميل:',          en: 'Email:'             },
+  phoneL:       { ar: 'الهاتف:',           en: 'Phone:'             },
+  emailL:       { ar: 'البريد الإلكتروني:', en: 'Email:'             },
   na:           { ar: 'غير متوفر',         en: 'N/A'                },
   revNoteLabel: { ar: 'ملاحظة التعديل:',   en: 'Revision Note:'     },
   writeRevNote: { ar: 'اكتب ملاحظة التعديل:', en: 'Write revision note:' },
@@ -155,10 +155,10 @@ const T = {
   good:         { ar: 'جيد',             en: 'Good'               },
   vgood:        { ar: 'جيد جداً',         en: 'Very Good'          },
   excellent:    { ar: 'ممتاز',            en: 'Excellent'          },
-  selectRating: { ar: 'من فضلك اختار تقييم', en: 'Please select a rating' },
+  selectRating: { ar: 'يرجى اختيار تقييم', en: 'Please select a rating' },
   rated:        { ar: 'تم التقييم',        en: 'Rated'              },
   // Notifications
-  newQuoteBanner:{ ar: (n: number) => `عندك ${n} عرض سعر جديد على طلباتك`, en: (n: number) => `You have ${n} new quote(s) on your requests` },
+  newQuoteBanner:{ ar: (n: number) => `لديك ${n} عرض سعر جديد على طلباتك`, en: (n: number) => `You have ${n} new quote(s) on your requests` },
   // Bulk & multi-select
   selectAll:     { ar: 'تحديد الكل',       en: 'Select All'            },
   deselectAll:   { ar: 'إلغاء التحديد',    en: 'Deselect All'          },
@@ -651,6 +651,11 @@ export default function MyRequests() {
                 </button>
               ))}
             </div>
+            {viewMode === 'projects' && (
+              <HelpTooltip lang={lang}
+                textAr="يتم التجميع حسب «اسم المشروع» الذي أدخلته عند إنشاء الطلب. الطلبات التي لا تحمل اسم مشروع تُجمَّع معًا."
+                textEn='Grouped by the "Project Name" you typed when creating each request. Requests without a project name are grouped together.' />
+            )}
           </div>
 
           {/* ── FILTER ROW ── */}
@@ -802,7 +807,7 @@ export default function MyRequests() {
                             </button>
                             <button onClick={() => toggleRequestStatus(req.id)}
                               className={`w-full text-[11px] font-semibold rounded-md px-2 py-1 transition-colors ${req.status === 'open' ? 'bg-amber-50 border border-amber-100 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 border border-emerald-100 text-emerald-700 hover:bg-emerald-100'}`}>
-                              {req.status === 'open' ? (lang === 'ar' ? 'قفل' : 'Close') : (lang === 'ar' ? 'فتح' : 'Open')}
+                              {req.status === 'open' ? (lang === 'ar' ? 'إغلاق' : 'Close') : (lang === 'ar' ? 'فتح' : 'Open')}
                             </button>
                             <div className="relative">
                               <button onClick={() => setMoveMenuId(moveMenuId === req.id ? null : req.id)}
@@ -916,7 +921,7 @@ export default function MyRequests() {
                       <div className="flex gap-1.5 mt-1.5" onClick={e => e.stopPropagation()}>
                         <button onClick={e => { e.stopPropagation(); toggleRequestStatus(req.id); }}
                           className={`flex-1 text-xs font-semibold py-1.5 rounded-lg transition-colors ${isClosed ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100'}`}>
-                          {isClosed ? (lang === 'ar' ? 'فتح' : 'Open') : (lang === 'ar' ? 'قفل' : 'Close')}
+                          {isClosed ? (lang === 'ar' ? 'فتح' : 'Open') : (lang === 'ar' ? 'إغلاق' : 'Close')}
                         </button>
                         <button onClick={e => { e.stopPropagation(); handleDeleteRequest(req.id); }}
                           className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-red-50 text-red-600 border border-red-100 hover:bg-red-100 transition-colors">
@@ -1198,9 +1203,9 @@ function KanbanColumn({ col, title, color, icon, requests, lang, dragOverCol, dr
   const s = colStyles[color];
   const isDropTarget = dragOverCol === col && draggingId !== null;
   const colHelp: Record<string, { ar: string; en: string }> = {
-    active:   { ar: 'الطلبات المفتوحة اللي وصلها عرض سعر واحد على الأقل. تقدر تسحب أي طلب لعمود تاني يدويًا.', en: 'Open requests that have received at least one quote. You can drag any request to another column manually.' },
-    awaiting: { ar: 'الطلبات المفتوحة اللي لسه ملهاش عروض أسعار. تقدر تسحب أي طلب لعمود تاني يدويًا.', en: "Open requests that haven't received any quotes yet. You can drag any request to another column manually." },
-    closed:   { ar: 'الطلبات المقفولة، أو أي طلب نقلته هنا يدويًا.', en: 'Closed requests, or any request you moved here manually.' },
+    active:   { ar: 'الطلبات المفتوحة التي وصلها عرض سعر واحد على الأقل. يمكنك سحب أي طلب إلى عمود آخر يدويًا.', en: 'Open requests that have received at least one quote. You can drag any request to another column manually.' },
+    awaiting: { ar: 'الطلبات المفتوحة التي لم تصلها أي عروض أسعار بعد. يمكنك سحب أي طلب إلى عمود آخر يدويًا.', en: "Open requests that haven't received any quotes yet. You can drag any request to another column manually." },
+    closed:   { ar: 'الطلبات المغلقة، أو أي طلب قمت بنقله إلى هنا يدويًا.', en: 'Closed requests, or any request you moved here manually.' },
   };
   return (
     <div className="flex flex-col gap-2"
@@ -1265,7 +1270,7 @@ function KanbanColumn({ col, title, color, icon, requests, lang, dragOverCol, dr
               </button>
               <button onClick={e => { e.stopPropagation(); onToggle(req.id); }}
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors ${isClosed ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
-                {isClosed ? (lang === 'ar' ? 'فتح' : 'Open') : (lang === 'ar' ? 'قفل' : 'Close')}
+                {isClosed ? (lang === 'ar' ? 'فتح' : 'Open') : (lang === 'ar' ? 'إغلاق' : 'Close')}
               </button>
               {rq.length > 1 && (
                 <button onClick={e => { e.stopPropagation(); onCompare(req); }}

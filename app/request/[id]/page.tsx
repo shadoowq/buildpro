@@ -315,7 +315,7 @@ export default function RequestDetailPage() {
                 🔗 {linkCopied ? t('linkCopied', lang) : t('shareLink', lang)}
               </button>
               <HelpTooltip lang={lang}
-                textAr="الرابط ده هيشتغل بس وانت داخل بنفس حسابك — مش قابل للمشاركة مع مورد أو حساب تاني."
+                textAr="يعمل هذا الرابط فقط أثناء تسجيل دخولك بحسابك الخاص — ولا يمكن مشاركته مع مورد أو حساب آخر."
                 textEn="This link only works while you're signed into your own account — it can't be shared with a supplier or another account." />
             </span>
             <button onClick={handleDuplicate}

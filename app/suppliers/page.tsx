@@ -74,8 +74,8 @@ const T = {
   noSuppliers: { ar: 'لا يوجد موردون بعد',   en: 'No suppliers yet'     },
   noSuppSub:   { ar: 'عندما يرسل موردون عروض على طلباتك ستظهر هنا', en: 'Suppliers who quote your requests will appear here' },
   noResults:   { ar: 'لا توجد نتائج',        en: 'No results found'     },
-  phone:       { ar: 'التليفون:',            en: 'Phone:'               },
-  email:       { ar: 'الإيميل:',             en: 'Email:'               },
+  phone:       { ar: 'الهاتف:',              en: 'Phone:'               },
+  email:       { ar: 'البريد الإلكتروني:',   en: 'Email:'               },
   city:        { ar: 'المدينة:',             en: 'City:'                },
   noContact:   { ar: 'غير متوفر',            en: 'N/A'                  },
 };

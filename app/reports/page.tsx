@@ -599,7 +599,7 @@ export default function ReportsPage() {
                           textAr="متوسط عدد الأيام بين تاريخ إنشاء الطلب وتاريخ استلام كل عرض سعر عليه، محسوب على كل العروض."
                           textEn="Average number of days between a request's creation date and when each quote on it was submitted, across all quotes." />}
                         {i === 4 && <HelpTooltip lang={lang}
-                          textAr="نسبة العروض اللي قبلتها من إجمالي كل العروض اللي استلمتها (بغض النظر عن الطلب)."
+                          textAr="نسبة العروض التي قبلتها من إجمالي جميع العروض التي استلمتها (بصرف النظر عن الطلب)."
                           textEn="Percentage of all quotes you've received (across every request) that you ended up accepting." />}
                       </div>
                       <div className="text-[10px] text-stone-400 mt-0.5">{k.sub}</div>

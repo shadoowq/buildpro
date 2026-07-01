@@ -201,7 +201,7 @@ export default function Drafts() {
                 {search ? t('لا توجد نتائج', 'No results found', lang) : t('لا توجد مسودات', 'No Drafts Yet', lang)}
               </h3>
               <p className="text-stone-400 text-sm mb-5">
-                {t('لما تحفظ طلب كمسودة هيظهر هنا', 'When you save a request as draft it will appear here', lang)}
+                {t('عندما تحفظ طلبًا كمسودة، سيظهر هنا', 'When you save a request as draft it will appear here', lang)}
               </p>
               <Link href="/create-request"
                 className="bg-[#C0603E] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#9C4C31] transition-colors">
