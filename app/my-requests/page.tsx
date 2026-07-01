@@ -6,6 +6,7 @@ import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
 import RequestDetailModal from '../components/RequestDetailModal';
 import RatingModal from '../components/RatingModal';
+import HelpTooltip from '../components/HelpTooltip';
 import { displayVal, appendActivityLog, setQuoteStatus, softDeleteRequest, softDeleteRequests } from '../lib/requestHelpers';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -1196,6 +1197,11 @@ function KanbanColumn({ col, title, color, icon, requests, lang, dragOverCol, dr
   };
   const s = colStyles[color];
   const isDropTarget = dragOverCol === col && draggingId !== null;
+  const colHelp: Record<string, { ar: string; en: string }> = {
+    active:   { ar: 'الطلبات المفتوحة اللي وصلها عرض سعر واحد على الأقل. تقدر تسحب أي طلب لعمود تاني يدويًا.', en: 'Open requests that have received at least one quote. You can drag any request to another column manually.' },
+    awaiting: { ar: 'الطلبات المفتوحة اللي لسه ملهاش عروض أسعار. تقدر تسحب أي طلب لعمود تاني يدويًا.', en: "Open requests that haven't received any quotes yet. You can drag any request to another column manually." },
+    closed:   { ar: 'الطلبات المقفولة، أو أي طلب نقلته هنا يدويًا.', en: 'Closed requests, or any request you moved here manually.' },
+  };
   return (
     <div className="flex flex-col gap-2"
       onDragOver={e => { e.preventDefault(); onDragOver(col); }}
@@ -1204,6 +1210,7 @@ function KanbanColumn({ col, title, color, icon, requests, lang, dragOverCol, dr
       <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${s.header} mb-1`}>
         <span>{icon}</span>
         <span className="text-xs font-bold">{title}</span>
+        <HelpTooltip lang={lang} textAr={colHelp[col].ar} textEn={colHelp[col].en} />
         <span className={`mr-auto text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center text-white ${s.dot}`}>{requests.length}</span>
       </div>
       {/* drop zone placeholder when dragging over */}

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import ContractorNav from '../components/ContractorNav';
+import HelpTooltip from '../components/HelpTooltip';
 
 type Lang = 'ar' | 'en';
 
@@ -592,7 +593,15 @@ export default function ReportsPage() {
                     <div className="w-10 h-10 bg-[#F3EAE0] rounded-xl flex items-center justify-center text-xl shrink-0">{k.icon}</div>
                     <div>
                       <div className={`text-2xl font-black ${k.color}`}>{k.val}</div>
-                      <div className="text-xs font-semibold text-stone-700 mt-0.5">{k.label}</div>
+                      <div className="text-xs font-semibold text-stone-700 mt-0.5 flex items-center gap-1">
+                        {k.label}
+                        {i === 3 && <HelpTooltip lang={lang}
+                          textAr="متوسط عدد الأيام بين تاريخ إنشاء الطلب وتاريخ استلام كل عرض سعر عليه، محسوب على كل العروض."
+                          textEn="Average number of days between a request's creation date and when each quote on it was submitted, across all quotes." />}
+                        {i === 4 && <HelpTooltip lang={lang}
+                          textAr="نسبة العروض اللي قبلتها من إجمالي كل العروض اللي استلمتها (بغض النظر عن الطلب)."
+                          textEn="Percentage of all quotes you've received (across every request) that you ended up accepting." />}
+                      </div>
                       <div className="text-[10px] text-stone-400 mt-0.5">{k.sub}</div>
                     </div>
                   </div>

@@ -7,6 +7,7 @@ import ContractorNav from '../components/ContractorNav'
 import RequestDetailModal from '../components/RequestDetailModal'
 import { appendActivityLog, setQuoteStatus, softDeleteRequest, displayVal } from '../lib/requestHelpers'
 import { buildNotifications, notifIconMap, timeAgo, NotifItem } from '../lib/notifications'
+import HelpTooltip from '../components/HelpTooltip'
 import { useToast } from '../components/Toast'
 import { useConfirm } from '../components/ConfirmDialog'
 
@@ -637,8 +638,11 @@ export default function DashboardPage() {
 
           {/* Real Monthly Activity */}
           <div className="bg-white border border-[#E8DFD3] rounded-xl overflow-hidden">
-            <div className="px-3.5 py-3 border-b border-[#F1EAE0]">
+            <div className="px-3.5 py-3 border-b border-[#F1EAE0] flex items-center gap-1.5">
               <span className="text-xs font-bold text-stone-900">{tStr('monthActivity', lang)}</span>
+              <HelpTooltip lang={lang}
+                textAr="كل رقم هنا بيقارن نشاط الشهر الحالي بإجمالي كل طلباتك/عروضك من الأول (مش شهر بشهر). النسبة بتوضح مين نسبة الشهر ده من الإجمالي."
+                textEn="Each number compares this month's activity to your all-time total (not month-over-month). The bar shows this month's share of that total." />
             </div>
             <div className="px-3.5 py-3 flex flex-col gap-3">
               {(() => {

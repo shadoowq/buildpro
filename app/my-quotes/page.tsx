@@ -7,6 +7,7 @@ import ContractorNav from '../components/ContractorNav';
 import StatusBadge from '../components/StatusBadge';
 import { formatDate, appendActivityLog, setQuoteStatus } from '../lib/requestHelpers';
 import { useConfirm } from '../components/ConfirmDialog';
+import HelpTooltip from '../components/HelpTooltip';
 
 type Lang = 'ar' | 'en';
 type QuoteStatus = 'pending' | 'accepted' | 'rejected' | 'revision';
@@ -209,7 +210,12 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
             <p className="text-white/50 text-xs mb-1">
               {new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
-            <h1 className="text-white text-xl font-bold mb-1">{tFn('title', lang)}</h1>
+            <h1 className="text-white text-xl font-bold mb-1 flex items-center gap-2">
+              {tFn('title', lang)}
+              <HelpTooltip lang={lang}
+                textAr="قبول عرض ما بيرفضش باقي العروض تلقائيًا — لازم تتعامل مع كل عرض لوحده. وأي قرار (قبول/رفض) تقدر تتراجع عنه بزرار «إلغاء القرار»."
+                textEn='Accepting a quote does not auto-reject the others — you handle each one individually. Any decision (accept/reject) can be undone with the "Undo" button.' />
+            </h1>
             <p className="text-white/50 text-xs">
               {allQuotes.length > 0
                 ? `${allQuotes.length} ${lang === 'ar' ? 'عرض على جميع طلباتك' : 'quotes across all your requests'}`
