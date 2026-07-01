@@ -22,25 +22,23 @@ export default function PrintQuote() {
     const savedLang = localStorage.getItem('language') as Lang || 'ar';
     setLang(savedLang);
 
+    const cu = localStorage.getItem('currentUser');
+    const currentUser = cu ? JSON.parse(cu) : null;
+
     const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
     const found = allQuotes.find(q => q.id === id);
-    setQuote(found || null);
 
-    if (found) {
-      const allReqs: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
-      const foundReq = allReqs.find(r => r.id === found.requestId);
+    const allReqs: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
+    const foundReq = found ? allReqs.find(r => r.id === found.requestId) : undefined;
+    const owned = found && foundReq && currentUser && foundReq.contractorId === currentUser.email;
+
+    setQuote(owned ? found! : null);
+
+    if (owned) {
       setReq(foundReq || null);
-
-      if (foundReq) {
-        const cu = localStorage.getItem('currentUser');
-        if (cu) {
-          const u = JSON.parse(cu);
-          if (u.email === foundReq.contractorId) setContractor(u);
-          else { const s = localStorage.getItem(`user_${foundReq.contractorId}`); if (s) setContractor(JSON.parse(s)); }
-        }
-      }
-      const supStored = localStorage.getItem(`user_${found.supplierId}`);
-      setSupplier(supStored ? JSON.parse(supStored) : { name: found.supplierName, company: found.supplierCompany, email: found.supplierId });
+      if (currentUser.email === foundReq!.contractorId) setContractor(currentUser);
+      const supStored = localStorage.getItem(`user_${found!.supplierId}`);
+      setSupplier(supStored ? JSON.parse(supStored) : { name: found!.supplierName, company: found!.supplierCompany, email: found!.supplierId });
     }
     setReady(true);
   }, [id]);
@@ -76,7 +74,7 @@ export default function PrintQuote() {
 
   const materials = getMaterials();
   const S = {
-    th:  { background: '#0F4C75', color: '#fff', fontWeight: 700, padding: '7px 8px', textAlign: 'right' as const, border: '1px solid #0D3F63', fontSize: 11 },
+    th:  { background: '#0F4C75', color: '#fff', fontWeight: 700, padding: '7px 8px', textAlign: (lang === 'ar' ? 'right' : 'left') as 'right' | 'left', border: '1px solid #0D3F63', fontSize: 11 },
     tdE: { border: '1px solid #E2EAF2', padding: '6px 8px', color: '#334155', fontSize: 11 },
     tdO: { border: '1px solid #E2EAF2', padding: '6px 8px', color: '#334155', fontSize: 11, background: '#F8FAFC' },
   };

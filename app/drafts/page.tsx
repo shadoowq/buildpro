@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
+import { displayVal, arToEn } from '../lib/requestHelpers';
+import { useConfirm } from '../components/ConfirmDialog';
 
 type Lang = 'ar' | 'en';
 
@@ -12,6 +14,8 @@ interface MaterialRow {
   usage: string; quantity: string; unit: string;
   [key: string]: any;
 }
+
+interface AttachedFile { name: string; type: string; data: string; }
 
 interface Draft {
   id: number;
@@ -22,6 +26,7 @@ interface Draft {
   deadline: string;
   description: string;
   selectedSuppliers: string[];
+  attachedFiles?: AttachedFile[];
   savedAt: string;
 }
 
@@ -29,6 +34,7 @@ function t(ar: string, en: string, lang: Lang) { return lang === 'ar' ? ar : en;
 
 
 export default function Drafts() {
+  const confirmDialog = useConfirm();
   const [lang, setLang] = useState<Lang>('ar');
   const [user, setUser] = useState<any>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
@@ -66,15 +72,15 @@ export default function Drafts() {
       deadline: draft.deadline,
       description: draft.description,
       selectedSuppliers: draft.selectedSuppliers,
-      attachedFiles: [],
+      attachedFiles: draft.attachedFiles || [],
     }));
     localStorage.setItem('currentDraftId', String(draft.id));
     localStorage.setItem('loadingFromDraft', 'true');
     router.push(`/create-request?draft=${draft.id}`);
   };
 
-  const handleDelete = (draftId: number) => {
-    if (!confirm(t('هل أنت متأكد من حذف هذه المسودة؟', 'Are you sure you want to delete this draft?', lang))) return;
+  const handleDelete = async (draftId: number) => {
+    if (!(await confirmDialog(t('هل أنت متأكد من حذف هذه المسودة؟', 'Are you sure you want to delete this draft?', lang), { confirmText: t('حذف', 'Delete', lang), danger: true }))) return;
     const allDrafts = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
     const updated = allDrafts.filter((d: Draft) => d.id !== draftId);
     localStorage.setItem('requestDrafts', JSON.stringify(updated));
@@ -85,7 +91,7 @@ export default function Drafts() {
     if (draft.projectName?.trim()) return draft.projectName.trim();
     const valid = draft.materials.filter(m => m.type?.trim() || m.typePending?.trim());
     if (valid.length === 0) return t('مسودة بدون اسم', 'Unnamed Draft', lang);
-    return valid.map(m => m.type || m.typePending).filter(Boolean).join('، ');
+    return valid.map(m => displayVal(m.type || m.typePending, lang)).filter(Boolean).join(lang === 'ar' ? '، ' : ', ');
   };
 
   const getMaterialCount = (draft: Draft) =>
@@ -257,8 +263,8 @@ export default function Drafts() {
                           .slice(0, 6)
                           .map((m, i) => (
                             <span key={i} className="text-[10px] bg-[#F0F9FF] text-[#0369A1] px-2 py-0.5 rounded-md font-medium">
-                              {m.type || m.typePending}
-                              {m.quantity ? ` · ${m.quantity} ${m.unit || 'م²'}` : ''}
+                              {displayVal(m.type || m.typePending, lang)}
+                              {m.quantity ? ` · ${m.quantity} ${lang === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : ''}
                             </span>
                           ))}
                         {matCount > 6 && (

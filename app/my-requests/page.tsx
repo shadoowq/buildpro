@@ -1,25 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
+import RequestDetailModal from '../components/RequestDetailModal';
+import { displayVal, appendActivityLog, setQuoteStatus, softDeleteRequest, softDeleteRequests } from '../lib/requestHelpers';
+import { useToast } from '../components/Toast';
+import { useConfirm } from '../components/ConfirmDialog';
 
-const arToEn: Record<string, string> = {
-  'سيراميك': 'Ceramic', 'بورسلان': 'Porcelain', 'رخام': 'Marble',
-  'جرانيت': 'Granite', 'تيرازو': 'Terrazzo', 'حجر طبيعي': 'Natural Stone',
-  'أرضيات': 'Flooring', 'جدران': 'Walls', 'وزر': 'Skirting',
-  'درج': 'Stairs', 'مغاسل': 'Sinks', 'واجهات': 'Facades', 'أسطح': 'Surfaces',
-  'بوليش': 'Polished', 'مات': 'Matte', 'ساتان': 'Satin',
-  'بوشهامر': 'Bush-hammered', 'لابراتو': 'Labradorite', 'أنتيك': 'Antique',
-  'أبيض': 'White', 'كريمي': 'Cream', 'رمادي فاتح': 'Light Gray',
-  'رمادي غامق': 'Dark Gray', 'أسود': 'Black', 'بيج': 'Beige',
-  'بني': 'Brown', 'خشبي': 'Wood', 'أزرق': 'Blue', 'أخضر': 'Green',
-  'وطني': 'Local', 'صيني': 'Chinese', 'أوروبي': 'European',
-  'إيطالي': 'Italian', 'إسباني': 'Spanish', 'تركي': 'Turkish',
-  'عماني': 'Omani', 'إماراتي': 'Emirati', 'مصري': 'Egyptian', 'هندي': 'Indian',
-  'م²': 'm²', 'م طولي': 'Linear m', 'قطعة': 'Piece', 'حبة': 'Unit',
-};
+function ReqIdParamReader({ onFound }: { onFound: (id: number) => void }) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const reqId = searchParams.get('reqId');
+    if (reqId) onFound(Number(reqId));
+  }, [searchParams, onFound]);
+  return null;
+}
 
 type Lang = 'ar' | 'en';
 type ViewMode = 'table' | 'cards' | 'kanban' | 'projects';
@@ -236,6 +233,8 @@ function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void 
 }
 
 export default function MyRequests() {
+  const showToast = useToast();
+  const confirmDialog = useConfirm();
   const [lang, setLang] = useState<Lang>('ar');
   const [user, setUser] = useState<any>(null);
   const [requests, setRequests] = useState<Request[]>([]);
@@ -266,6 +265,7 @@ export default function MyRequests() {
   const [showFilters, setShowFilters] = useState(false);
   const [moveMenuId, setMoveMenuId] = useState<number | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [pendingReqId, setPendingReqId] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -297,20 +297,11 @@ export default function MyRequests() {
 
   /* ── helpers ── */
   const addActivityLog = (requestId: number, action: string, actionEn: string) => {
-    const allLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-    const newLog: ActivityLog = { id: Date.now(), requestId, action, actionEn, timestamp: new Date().toISOString() };
-    allLogs.push(newLog);
-    localStorage.setItem('activityLogs', JSON.stringify(allLogs));
-    setActivityLogs(allLogs);
+    setActivityLogs(appendActivityLog(requestId, action, actionEn));
   };
   const getRequestLogs = (id: number) =>
     activityLogs.filter(l => l.requestId === id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   const getRequestRating = (id: number) => ratings.find(r => r.requestId === id) || null;
-  const getSupplierData = (supplierId: string) => {
-    const fromKey = localStorage.getItem(`user_${supplierId}`);
-    if (fromKey) return JSON.parse(fromKey);
-    return (JSON.parse(localStorage.getItem('users') || '[]')).find((u: any) => u.email === supplierId) || null;
-  };
   const getNewQuotesCount = () => {
     const ids = requests.map(r => r.id);
     return quotes.filter(q => ids.includes(q.requestId) && q.status === 'pending' && !seenQuotes.includes(q.id)).length;
@@ -326,17 +317,11 @@ export default function MyRequests() {
   const getRequestQuotes = (id: number) => quotes.filter(q => q.requestId === id);
   const getLowestPrice = (qs: Quote[]) => qs.length === 0 ? null : Math.min(...qs.map(q => q.totalPrice));
   const getFastestDelivery = (qs: Quote[]) => qs.length === 0 ? null : Math.min(...qs.map(q => q.deliveryDays));
-  const formatDate = (ts: string) => new Date(ts).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US');
-  const displayVal = (val: string) => {
-    if (!val) return '—';
-    if (lang === 'en') return val.split(' أو ').map(p => arToEn[p.trim()] || p.trim()).join(' / ');
-    return val;
-  };
   const getRequestName = (req: Request) => {
     if (req.projectName?.trim()) return req.projectName.trim();
     if (req.materials && req.materials.length > 0) {
       const types = [...new Set(req.materials.map((m: any) => m.type || m.typePending).filter(Boolean))];
-      if (types.length > 0) return types.map(tp => displayVal(tp as string)).join(' — ');
+      if (types.length > 0) return types.map(tp => displayVal(tp as string, lang)).join(' — ');
     }
     const parts: string[] = [];
     if (req.ceramic > 0) parts.push(`${lang === 'ar' ? 'سيراميك' : 'Ceramic'} ${req.ceramic}m²`);
@@ -393,23 +378,15 @@ export default function MyRequests() {
     addActivityLog(newReq.id, `تم إنشاء طلب بنسخ طلب #${req.id}`, `Duplicated from request #${req.id}`);
   };
 
-  const handleDeleteRequest = (requestId: number) => {
-    if (!confirm(t('confirmDelete', lang))) return;
-    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
-    const newAll = allRequests.filter((req: Request) => req.id !== requestId);
-    localStorage.setItem('requests', JSON.stringify(newAll));
-    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const newQuotes = allQuotes.filter((q: Quote) => q.requestId !== requestId);
-    localStorage.setItem('quotes', JSON.stringify(newQuotes));
+  const handleDeleteRequest = async (requestId: number) => {
+    if (!(await confirmDialog(t('confirmDelete', lang), { confirmText: t('delete', lang), danger: true }))) return;
+    const newAll = softDeleteRequest(requestId) as unknown as Request[];
     setRequests(newAll.filter((req: Request) => req.contractorId === user.email));
-    setQuotes(newQuotes);
     setSelectedRequest(null);
+    showToast(lang === 'ar' ? 'تم نقل الطلب لسلة المهملات' : 'Moved to trash');
   };
   const handleQuoteAction = (quoteId: number, action: 'accepted' | 'rejected' | 'pending') => {
-    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const quote = allQuotes.find((q: Quote) => q.id === quoteId);
-    const updated = allQuotes.map((q: Quote) => q.id === quoteId ? { ...q, status: action } : q);
-    localStorage.setItem('quotes', JSON.stringify(updated));
+    const { quotes: updated, quote } = setQuoteStatus(quoteId, action);
     setQuotes(updated);
     if (quote) {
       if (action === 'accepted') addActivityLog(quote.requestId, `تم قبول عرض ${quote.supplierCompany} بسعر ${quote.totalPrice} ر.س`, `Accepted quote from ${quote.supplierCompany} at ${quote.totalPrice} SAR`);
@@ -418,18 +395,15 @@ export default function MyRequests() {
     }
   };
   const handleRevisionSubmit = (quoteId: number) => {
-    if (!revisionNote.trim()) { alert(lang === 'ar' ? 'من فضلك اكتب ملاحظة التعديل' : 'Please write a revision note'); return; }
-    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const quote = allQuotes.find((q: Quote) => q.id === quoteId);
-    const updated = allQuotes.map((q: Quote) => q.id === quoteId ? { ...q, status: 'revision', revisionNote } : q);
-    localStorage.setItem('quotes', JSON.stringify(updated));
+    if (!revisionNote.trim()) { showToast(lang === 'ar' ? 'من فضلك اكتب ملاحظة التعديل' : 'Please write a revision note', 'error'); return; }
+    const { quotes: updated, quote } = setQuoteStatus(quoteId, 'revision', revisionNote);
     setQuotes(updated);
     if (quote) addActivityLog(quote.requestId, `تم طلب تعديل على عرض ${quote.supplierCompany}: "${revisionNote}"`, `Requested revision on ${quote.supplierCompany}: "${revisionNote}"`);
     setRevisionQuoteId(null);
     setRevisionNote('');
   };
   const handleSubmitRating = () => {
-    if (ratingStars === 0) { alert(t('selectRating', lang)); return; }
+    if (ratingStars === 0) { showToast(t('selectRating', lang), 'error'); return; }
     if (!ratingRequest || !ratingQuote) return;
     const allRatings = JSON.parse(localStorage.getItem('ratings') || '[]');
     const newRating: Rating = { id: Date.now(), requestId: ratingRequest.id, supplierId: ratingQuote.supplierId, supplierCompany: ratingQuote.supplierCompany, rating: ratingStars, comment: ratingComment, createdAt: new Date().toISOString() };
@@ -438,10 +412,19 @@ export default function MyRequests() {
     setRatings(allRatings);
     addActivityLog(ratingRequest.id, `تم تقييم ${ratingQuote.supplierCompany} بـ ${ratingStars} نجوم`, `Rated ${ratingQuote.supplierCompany} ${ratingStars} stars`);
     setShowRatingModal(false); setRatingStars(0); setRatingComment(''); setRatingRequest(null); setRatingQuote(null);
-    alert(lang === 'ar' ? 'تم إرسال التقييم بنجاح!' : 'Rating submitted successfully!');
+    showToast(lang === 'ar' ? 'تم إرسال التقييم بنجاح!' : 'Rating submitted successfully!');
   };
 
   const openRequest = (req: Request) => { setSelectedRequest(req); markRequestQuotesAsSeen(req.id); };
+
+  /* ── deep-link: open a specific request via ?reqId= ── */
+  useEffect(() => {
+    if (pendingReqId === null || requests.length === 0) return;
+    const found = requests.find(r => r.id === pendingReqId);
+    if (found) openRequest(found);
+    setPendingReqId(null);
+    router.replace('/my-requests');
+  }, [pendingReqId, requests]);
 
   /* ── multi-select ── */
   const toggleSelect = (id: number, e?: React.MouseEvent) => {
@@ -452,17 +435,12 @@ export default function MyRequests() {
     if (selectedIds.size === filteredRequests.length) setSelectedIds(new Set());
     else setSelectedIds(new Set(filteredRequests.map(r => r.id)));
   };
-  const handleBulkDelete = () => {
-    if (!confirm(lang === 'ar' ? `هل أنت متأكد من حذف ${selectedIds.size} طلبات؟` : `Delete ${selectedIds.size} requests?`)) return;
-    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
-    const newAll = allRequests.filter((r: Request) => !selectedIds.has(r.id));
-    localStorage.setItem('requests', JSON.stringify(newAll));
-    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const newQuotes = allQuotes.filter((q: Quote) => !selectedIds.has(q.requestId));
-    localStorage.setItem('quotes', JSON.stringify(newQuotes));
+  const handleBulkDelete = async () => {
+    if (!(await confirmDialog(lang === 'ar' ? `هل أنت متأكد من حذف ${selectedIds.size} طلبات؟` : `Delete ${selectedIds.size} requests?`, { confirmText: t('delete', lang), danger: true }))) return;
+    const newAll = softDeleteRequests([...selectedIds]) as unknown as Request[];
     setRequests(newAll.filter((r: Request) => r.contractorId === user.email));
-    setQuotes(newQuotes);
     setSelectedIds(new Set());
+    showToast(lang === 'ar' ? 'تم نقل الطلبات لسلة المهملات' : 'Moved to trash');
   };
   const handleBulkSetStatus = (status: 'open' | 'closed') => {
     const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
@@ -546,6 +524,10 @@ export default function MyRequests() {
   /* ════════════════════════════════════════ RENDER ════════════════════════════════════════ */
   return (
     <div className="min-h-screen bg-[#F0F4F8] font-cairo" dir={dir}>
+
+      <Suspense fallback={null}>
+        <ReqIdParamReader onFound={setPendingReqId} />
+      </Suspense>
 
       <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/my-requests" />
 
@@ -1185,7 +1167,7 @@ export default function MyRequests() {
 
       {/* Detail Modal */}
       {selectedRequest && (
-        <DetailModal
+        <RequestDetailModal
           req={selectedRequest} lang={lang} dir={dir}
           quotes={getRequestQuotes(selectedRequest.id)}
           logs={getRequestLogs(selectedRequest.id)}
@@ -1196,8 +1178,7 @@ export default function MyRequests() {
           onDelete={() => handleDeleteRequest(selectedRequest.id)}
           onEdit={() => router.push(`/create-request?edit=${selectedRequest.id}`)}
           onQuoteAction={handleQuoteAction} onRevisionSubmit={handleRevisionSubmit}
-          getSupplierData={getSupplierData} setLightboxImg={setLightboxImg}
-          displayVal={displayVal} formatDate={formatDate} arToEn={arToEn}
+          setLightboxImg={setLightboxImg}
         />
       )}
     </div>
@@ -1330,187 +1311,3 @@ function KanbanColumn({ col, title, color, icon, requests, lang, dragOverCol, dr
   );
 }
 
-function DetailModal({ req, lang, dir, quotes, logs, revisionQuoteId, revisionNote, setRevisionQuoteId, setRevisionNote, onClose, onToggle, onDelete, onEdit, onQuoteAction, onRevisionSubmit, getSupplierData, setLightboxImg, displayVal, formatDate, arToEn }: any) {
-  const tr = (ar: string, en: string) => lang === 'ar' ? ar : en;
-  const thStyle: React.CSSProperties = { padding: '8px 10px', backgroundColor: '#0F4C75', color: 'white', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', textAlign: 'center', border: '1px solid #0D3F63' };
-  const tdStyle: React.CSSProperties = { padding: '7px 10px', color: '#334155', fontSize: 12, textAlign: 'center', border: '1px solid #E2EAF2' };
-  return (
-    <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[95vh] overflow-y-auto" dir={dir} onClick={e => e.stopPropagation()}>
-        {/* header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-100">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-lg font-bold text-slate-900">{tr('تفاصيل الطلب', 'Request Details')}</h2>
-            <span className="text-[#1B9AAA] font-bold text-sm">#{req.id}</span>
-            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${req.status === 'open' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'}`}>
-              {req.status === 'open' ? tr('مفتوح', 'Open') : tr('مغلق', 'Closed')}
-            </span>
-            {req.location && <span className="text-slate-400 text-sm">📍 {req.location}</span>}
-            {req.deadline && <span className="text-slate-400 text-sm">⏱ {req.deadline}</span>}
-          </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center font-bold hover:bg-red-100 text-lg">✕</button>
-        </div>
-
-        <div className="p-5 space-y-5">
-          {/* materials */}
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 mb-3">{tr('المواد المطلوبة', 'Required Materials')}</h3>
-            {req.materials && req.materials.length > 0 ? (
-              <div className="overflow-x-auto border border-slate-200 rounded-xl">
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      {['#', tr('نوع المادة','Material'), tr('الاستخدام','Usage'), tr('المقاس','Size'), tr('السماكة','Thickness'), tr('الفنش','Finish'), tr('اللون','Color'), tr('الكمية','Qty'), tr('السعر المستهدف','Target Price'), tr('الصناعة','Origin'), tr('تاريخ التوريد','Delivery Date'), tr('وصف البند','Note'), tr('الصور','Images')].map(h => (
-                        <th key={h} style={thStyle}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {req.materials.map((m: any, i: number) => (
-                      <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#fff' : '#F8FAFC' }}>
-                        <td style={tdStyle}>{i + 1}</td>
-                        <td style={{ ...tdStyle, fontWeight: 700 }}>{displayVal(m.type) || '—'}</td>
-                        <td style={tdStyle}>{displayVal(m.usage) || '—'}</td>
-                        <td style={tdStyle}>{m.size || '—'}</td>
-                        <td style={tdStyle}>{m.thickness || '—'}</td>
-                        <td style={tdStyle}>{displayVal(m.finish) || '—'}</td>
-                        <td style={tdStyle}>{displayVal(m.color) || '—'}</td>
-                        <td style={tdStyle}>{m.quantity ? `${m.quantity} ${lang === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : '—'}</td>
-                        <td style={tdStyle}>{m.targetPrice ? `${m.targetPrice} ${lang === 'en' ? (m.currency === 'ر.س' ? 'SAR' : m.currency || 'SAR') : (m.currency || 'ر.س')}` : '—'}</td>
-                        <td style={tdStyle}>{displayVal(m.origin) || '—'}</td>
-                        <td style={tdStyle}>{m.deliveryDate || '—'}</td>
-                        <td style={{ ...tdStyle, maxWidth: 120, fontSize: 11 }}>{m.note || '—'}</td>
-                        <td style={tdStyle}>
-                          {m.images && m.images.length > 0 ? (
-                            <div className="flex gap-1 justify-center">
-                              {m.images.map((img: string, j: number) => (
-                                <img key={j} src={img} alt="" onClick={e => { e.stopPropagation(); setLightboxImg(img); }}
-                                  className="w-10 h-10 object-cover rounded border border-slate-200 cursor-zoom-in" />
-                              ))}
-                            </div>
-                          ) : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-600 space-y-1">
-                {req.ceramic > 0 && <p>• {tr('سيراميك','Ceramic')}: {req.ceramic} m²</p>}
-                {req.porcelain > 0 && <p>• {tr('بورسلان','Porcelain')}: {req.porcelain} m²</p>}
-                {req.marble > 0 && <p>• {tr('رخام','Marble')}: {req.marble} m²</p>}
-                {req.granite > 0 && <p>• {tr('جرانيت','Granite')}: {req.granite} m²</p>}
-                {req.terrazzo > 0 && <p>• {tr('تيرازو','Terrazzo')}: {req.terrazzo} m²</p>}
-              </div>
-            )}
-          </div>
-
-          {/* description */}
-          {req.description && (
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 mb-2">{tr('الوصف', 'Description')}</h3>
-              <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-600">{req.description}</div>
-            </div>
-          )}
-
-          {/* quotes */}
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 mb-3">{tr('عروض الأسعار', 'Quotes')} ({quotes.length})</h3>
-            {quotes.length === 0 ? (
-              <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-400 text-center">{tr('لا توجد عروض أسعار بعد', 'No quotes yet')}</div>
-            ) : (
-              <div className="space-y-3">
-                {quotes.map((quote: Quote) => {
-                  const supplierData = quote.status === 'accepted' ? getSupplierData(quote.supplierId) : null;
-                  return (
-                    <div key={quote.id} className={`border rounded-xl p-4 ${quote.status === 'accepted' ? 'bg-emerald-50 border-emerald-200' : quote.status === 'rejected' ? 'bg-red-50 border-red-200' : quote.status === 'revision' ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'}`}>
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <p className="font-bold text-slate-900 text-sm">{quote.supplierCompany}</p>
-                          <p className="text-slate-400 text-xs">{quote.supplierName}</p>
-                        </div>
-                        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${quote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : quote.status === 'rejected' ? 'bg-red-100 text-red-700' : quote.status === 'revision' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
-                          {quote.status === 'accepted' ? tr('مقبول','Accepted') : quote.status === 'rejected' ? tr('مرفوض','Rejected') : quote.status === 'revision' ? tr('طلب تعديل','Revision Requested') : tr('قيد الانتظار','Pending')}
-                        </span>
-                      </div>
-                      <p className="text-xl font-bold text-slate-900">{quote.totalPrice?.toLocaleString()} {tr('ر.س','SAR')}</p>
-                      <p className="text-xs text-slate-500 mt-1">{tr('مدة التوريد:','Delivery:')} {quote.deliveryDays} {tr('يوم','days')}</p>
-                      {quote.description && <p className="text-xs text-slate-500 mt-1">{quote.description}</p>}
-
-                      {quote.status === 'accepted' && supplierData && (
-                        <div className="mt-3 bg-emerald-100 border border-emerald-200 rounded-xl p-3 text-sm text-emerald-800 space-y-1">
-                          <p className="font-bold mb-1">{tr('بيانات التواصل مع المورد:', 'Supplier Contact:')}</p>
-                          <p><strong>{tr('الاسم:','Name:')}</strong> {supplierData.name}</p>
-                          <p><strong>{tr('الشركة:','Company:')}</strong> {supplierData.company}</p>
-                          <p><strong>{tr('التليفون:','Phone:')}</strong> {supplierData.phone || tr('غير متوفر','N/A')}</p>
-                          <p><strong>{tr('الإيميل:','Email:')}</strong> {supplierData.email}</p>
-                        </div>
-                      )}
-                      {quote.status === 'revision' && quote.revisionNote && (
-                        <div className="mt-3 bg-amber-100 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
-                          <strong>{tr('ملاحظة التعديل:','Revision Note:')}</strong> {quote.revisionNote}
-                        </div>
-                      )}
-                      {quote.status === 'pending' && (
-                        <div className="flex gap-2 mt-3">
-                          <button onClick={() => onQuoteAction(quote.id, 'accepted')} className="flex-1 bg-emerald-500 text-white text-xs font-bold py-2 rounded-lg hover:bg-emerald-600">{tr('قبول','Accept')}</button>
-                          <button onClick={() => setRevisionQuoteId(quote.id)} className="flex-1 bg-amber-400 text-white text-xs font-bold py-2 rounded-lg hover:bg-amber-500">{tr('طلب تعديل','Revision')}</button>
-                          <button onClick={() => onQuoteAction(quote.id, 'rejected')} className="flex-1 bg-red-500 text-white text-xs font-bold py-2 rounded-lg hover:bg-red-600">{tr('رفض','Reject')}</button>
-                        </div>
-                      )}
-                      {revisionQuoteId === quote.id && (
-                        <div className="mt-3 bg-white border border-amber-200 rounded-xl p-3">
-                          <p className="text-xs font-bold text-slate-700 mb-2">{tr('اكتب ملاحظة التعديل:','Write revision note:')}</p>
-                          <textarea value={revisionNote} onChange={e => setRevisionNote(e.target.value)}
-                            placeholder={tr('مثال: أريد سعر أقل أو توريد أسرع...','Ex: Need lower price or faster delivery...')}
-                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 bg-white outline-none resize-none min-h-[70px] mb-2" />
-                          <div className="flex gap-2">
-                            <button onClick={() => onRevisionSubmit(quote.id)} className="flex-1 bg-amber-400 text-white text-xs font-bold py-1.5 rounded-lg">{tr('إرسال التعديل','Send Revision')}</button>
-                            <button onClick={() => { setRevisionQuoteId(null); setRevisionNote(''); }} className="flex-1 bg-slate-100 text-slate-600 text-xs font-bold py-1.5 rounded-lg">{tr('إلغاء','Cancel')}</button>
-                          </div>
-                        </div>
-                      )}
-                      {(quote.status === 'accepted' || quote.status === 'rejected' || quote.status === 'revision') && (
-                        <button onClick={() => onQuoteAction(quote.id, 'pending')} className="mt-2 w-full bg-slate-100 text-slate-600 text-xs font-bold py-1.5 rounded-lg hover:bg-slate-200">{tr('إلغاء القرار','Undo Decision')}</button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* activity log */}
-          {logs.length > 0 && (
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 mb-3">{tr('تاريخ النشاط', 'Activity History')}</h3>
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                {logs.map((log: ActivityLog, i: number) => (
-                  <div key={log.id} className={`flex items-center justify-between px-4 py-3 text-xs border-b border-slate-100 last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                    <span className="text-slate-700">
-                      {log.action.includes('قبول') || log.action.includes('Accepted') ? '✅' : log.action.includes('رفض') || log.action.includes('Rejected') ? '❌' : log.action.includes('تعديل') || log.action.includes('Revision') ? '✏️' : log.action.includes('إغلاق') || log.action.includes('closed') ? '🔒' : log.action.includes('فتح') || log.action.includes('reopened') ? '🔓' : log.action.includes('تقييم') || log.action.includes('Rated') ? '⭐' : '📋'}{' '}
-                      {lang === 'ar' ? log.action : log.actionEn}
-                    </span>
-                    <span className="text-slate-400 whitespace-nowrap mr-4">{formatDate(log.timestamp)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* footer actions */}
-        <div className="flex gap-3 p-5 border-t border-slate-100">
-          <button onClick={onClose} className="flex-1 bg-slate-100 text-slate-600 font-semibold py-2.5 rounded-xl text-sm hover:bg-slate-200">{tr('إغلاق','Close')}</button>
-          <button onClick={onEdit} className="flex-1 bg-[#1B9AAA] text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-[#158494]">{tr('تعديل','Edit')}</button>
-          <button onClick={onToggle}
-            className={`flex-1 font-semibold py-2.5 rounded-xl text-sm transition-colors ${req.status === 'open' ? 'bg-amber-400 text-white hover:bg-amber-500' : 'bg-emerald-500 text-white hover:bg-emerald-600'}`}>
-            {req.status === 'open' ? tr('إغلاق الطلب','Close Request') : tr('فتح الطلب','Open Request')}
-          </button>
-          <button onClick={onDelete} className="flex-1 bg-red-500 text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-red-600">{tr('حذف','Delete')}</button>
-        </div>
-      </div>
-    </div>
-  );
-}

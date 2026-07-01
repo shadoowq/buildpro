@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
+import StatusBadge from '../components/StatusBadge';
+import { formatDate, appendActivityLog, setQuoteStatus } from '../lib/requestHelpers';
 
 type Lang = 'ar' | 'en';
 type QuoteStatus = 'pending' | 'accepted' | 'rejected' | 'revision';
@@ -100,22 +102,6 @@ function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void 
   );
 }
 
-function StatusBadge({ status, lang }: { status: QuoteStatus; lang: Lang }) {
-  const map = {
-    pending:  { cls: 'bg-orange-50 text-orange-700 border-orange-200',   dot: 'bg-orange-400' },
-    accepted: { cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-    rejected: { cls: 'bg-red-50 text-red-600 border-red-200',            dot: 'bg-red-500'    },
-    revision: { cls: 'bg-amber-50 text-amber-700 border-amber-200',       dot: 'bg-amber-400'  },
-  };
-  const s = map[status];
-  return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${s.cls}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-      {tFn(status === 'revision' ? 'revision' : status, lang)}
-    </span>
-  );
-}
-
 /* ══════════════════════ CONTRACTOR VIEW ══════════════════════ */
 function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: string; setLang: (l: Lang) => void }) {
   const router = useRouter();
@@ -162,35 +148,23 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
   };
 
   const handleQuoteAction = (quoteId: number, action: QuoteStatus | 'pending') => {
-    const all = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const q = all.find((x: Quote) => x.id === quoteId);
-    const updated = all.map((x: Quote) => x.id === quoteId ? { ...x, status: action } : x);
-    localStorage.setItem('quotes', JSON.stringify(updated));
-    setAllQuotes(prev => prev.map(x => x.id === quoteId ? { ...x, status: action as QuoteStatus } : x));
+    const { quotes: updated, quote: q } = setQuoteStatus(quoteId, action);
+    setAllQuotes(updated.filter((x: Quote) => myRequests.some(r => r.id === x.requestId)));
     if (q) {
-      const logs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
       const actionText = action === 'accepted'
         ? { ar: `تم قبول عرض ${q.supplierCompany} بسعر ${q.totalPrice} ر.س`, en: `Accepted quote from ${q.supplierCompany} at ${q.totalPrice} SAR` }
         : action === 'rejected'
         ? { ar: `تم رفض عرض ${q.supplierCompany}`, en: `Rejected quote from ${q.supplierCompany}` }
         : { ar: `تم إلغاء القرار على عرض ${q.supplierCompany}`, en: `Undid decision on ${q.supplierCompany}` };
-      logs.push({ id: Date.now(), requestId: q.requestId, action: actionText.ar, actionEn: actionText.en, timestamp: new Date().toISOString() });
-      localStorage.setItem('activityLogs', JSON.stringify(logs));
+      appendActivityLog(q.requestId, actionText.ar, actionText.en);
     }
   };
 
   const handleRevisionSubmit = (quoteId: number) => {
     if (!revisionNote.trim()) return;
-    const all = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const q = all.find((x: Quote) => x.id === quoteId);
-    const updated = all.map((x: Quote) => x.id === quoteId ? { ...x, status: 'revision', revisionNote } : x);
-    localStorage.setItem('quotes', JSON.stringify(updated));
-    setAllQuotes(prev => prev.map(x => x.id === quoteId ? { ...x, status: 'revision', revisionNote } : x));
-    if (q) {
-      const logs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-      logs.push({ id: Date.now(), requestId: q.requestId, action: `طلب تعديل على عرض ${q.supplierCompany}: "${revisionNote}"`, actionEn: `Revision on ${q.supplierCompany}: "${revisionNote}"`, timestamp: new Date().toISOString() });
-      localStorage.setItem('activityLogs', JSON.stringify(logs));
-    }
+    const { quotes: updated, quote: q } = setQuoteStatus(quoteId, 'revision', revisionNote);
+    setAllQuotes(updated.filter((x: Quote) => myRequests.some(r => r.id === x.requestId)));
+    if (q) appendActivityLog(q.requestId, `طلب تعديل على عرض ${q.supplierCompany}: "${revisionNote}"`, `Revision on ${q.supplierCompany}: "${revisionNote}"`);
     setRevisionQuoteId(null);
     setRevisionNote('');
   };
@@ -571,7 +545,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                     <p className="text-xs text-amber-700 mt-0.5">{q.revisionNote}</p>
                   </div>
                 )}
-                <p className="text-[10px] text-slate-400 mt-3">{tFn('submittedOn', lang)} {new Date(q.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</p>
+                <p className="text-[10px] text-slate-400 mt-3">{tFn('submittedOn', lang)} {formatDate(q.createdAt, lang)}</p>
               </div>
             );
           })

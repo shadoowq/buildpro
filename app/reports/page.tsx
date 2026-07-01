@@ -89,7 +89,7 @@ export default function ReportsPage() {
   const report1 = useMemo(() => requests.map(req => {
     const rq = quotes.filter(q => q.requestId === req.id);
     const accepted = rq.find(q => q.status === 'accepted');
-    const prices = rq.map(q => Number(q.totalPrice));
+    const prices = rq.map(q => Number(q.totalPrice)).filter(p => !isNaN(p));
     const minP = prices.length ? Math.min(...prices) : null;
     const maxP = prices.length ? Math.max(...prices) : null;
     const savings = accepted && maxP ? maxP - Number(accepted.totalPrice) : null;
@@ -128,11 +128,13 @@ export default function ReportsPage() {
     const map: Record<string, { month: string; reqs: number; quotesReceived: number; accepted: number; totalVal: number }> = {};
     const getM = (d: string) => d.slice(0, 7);
     requests.forEach(r => {
+      if (!r.createdAt) return;
       const m = getM(r.createdAt);
       if (!map[m]) map[m] = { month: m, reqs: 0, quotesReceived: 0, accepted: 0, totalVal: 0 };
       map[m].reqs++;
     });
     quotes.forEach(q => {
+      if (!q.createdAt) return;
       const m = getM(q.createdAt);
       if (!map[m]) map[m] = { month: m, reqs: 0, quotesReceived: 0, accepted: 0, totalVal: 0 };
       map[m].quotesReceived++;
@@ -142,9 +144,20 @@ export default function ReportsPage() {
   }, [requests, quotes]);
 
   /* ── REPORT 5: Materials ── */
+  const getReqTypes = (req: Request): string[] => {
+    if (req.materials?.length) return req.materials.map((m: any) => m.type || m.typePending).filter(Boolean);
+    const types: string[] = [];
+    if (req.ceramic > 0)   types.push(t('سيراميك','Ceramic', lang));
+    if (req.porcelain > 0) types.push(t('بورسلان','Porcelain', lang));
+    if (req.marble > 0)    types.push(t('رخام','Marble', lang));
+    if (req.granite > 0)   types.push(t('جرانيت','Granite', lang));
+    if (req.terrazzo > 0)  types.push(t('تيرازو','Terrazzo', lang));
+    return types;
+  };
+
   const report5 = useMemo(() => {
     const map: Record<string, { type: string; reqCount: number; totalQty: number; unit: string; quoteCount: number; acceptedPrices: number[] }> = {};
-    const add = (type: string, qty: number, unit: string, reqId: number) => {
+    const add = (type: string, qty: number, unit: string) => {
       const k = type.trim();
       if (!k) return;
       if (!map[k]) map[k] = { type: k, reqCount: 0, totalQty: 0, unit, quoteCount: 0, acceptedPrices: [] };
@@ -154,20 +167,20 @@ export default function ReportsPage() {
       if (req.materials?.length) {
         req.materials.forEach((m: any) => {
           const type = m.type || m.typePending;
-          if (type?.trim()) add(type, parseFloat(m.quantity) || 0, m.unit || 'م²', req.id);
+          if (type?.trim()) add(type, parseFloat(m.quantity) || 0, m.unit || 'م²');
         });
       } else {
-        if (req.ceramic > 0)   add(t('سيراميك','Ceramic', lang), req.ceramic, 'م²', req.id);
-        if (req.porcelain > 0) add(t('بورسلان','Porcelain', lang), req.porcelain, 'م²', req.id);
-        if (req.marble > 0)    add(t('رخام','Marble', lang), req.marble, 'م²', req.id);
-        if (req.granite > 0)   add(t('جرانيت','Granite', lang), req.granite, 'م²', req.id);
-        if (req.terrazzo > 0)  add(t('تيرازو','Terrazzo', lang), req.terrazzo, 'م²', req.id);
+        if (req.ceramic > 0)   add(t('سيراميك','Ceramic', lang), req.ceramic, 'م²');
+        if (req.porcelain > 0) add(t('بورسلان','Porcelain', lang), req.porcelain, 'م²');
+        if (req.marble > 0)    add(t('رخام','Marble', lang), req.marble, 'م²');
+        if (req.granite > 0)   add(t('جرانيت','Granite', lang), req.granite, 'م²');
+        if (req.terrazzo > 0)  add(t('تيرازو','Terrazzo', lang), req.terrazzo, 'م²');
       }
     });
     quotes.forEach(q => {
       const req = requests.find(r => r.id === q.requestId);
       if (!req) return;
-      const types = req.materials?.length ? req.materials.map((m: any) => m.type || m.typePending).filter(Boolean) : [];
+      const types = getReqTypes(req);
       types.forEach((type: string) => {
         if (map[type]) {
           map[type].quoteCount++;
@@ -315,7 +328,7 @@ export default function ReportsPage() {
               {[
                 { icon: '🏢', bg: 'bg-blue-50',    val: report2.length,                                                              label: t('موردون تعاملنا معهم','Suppliers',lang) },
                 { icon: '✅', bg: 'bg-emerald-50', val: report2.reduce((s,r)=>s+r.accepted,0),                                       label: t('عروض مقبولة','Accepted Quotes',lang) },
-                { icon: '⭐', bg: 'bg-amber-50',   val: report2.length ? (report2.reduce((s,r)=>s+(r.ratingCount?r.rating/r.ratingCount:0),0)/report2.length).toFixed(1) : '—', label: t('متوسط التقييم','Avg Rating',lang) },
+                { icon: '⭐', bg: 'bg-amber-50',   val: (() => { const rated = report2.filter(r => r.ratingCount > 0); return rated.length ? (rated.reduce((s,r)=>s+r.rating/r.ratingCount,0)/rated.length).toFixed(1) : '—'; })(), label: t('متوسط التقييم','Avg Rating',lang) },
                 { icon: '⚡', bg: 'bg-teal-50',    val: report2.length ? `${Math.round(report2.reduce((s,r)=>s+(r.total?r.totalDays/r.total:0),0)/report2.length)} ${t('يوم','days',lang)}` : '—', label: t('متوسط مدة التوريد','Avg Delivery',lang) },
               ].map((s, i) => (
                 <div key={i} className="bg-white border border-[#E2EAF2] rounded-xl p-4">
@@ -523,13 +536,13 @@ export default function ReportsPage() {
                   <thead>
                     <tr>
                       {['#', t('نوع المادة','Material Type',lang), t('عدد الطلبات','Requests',lang), t('إجمالي الكمية','Total Qty',lang),
-                        t('متوسط الوحدة','Unit',lang), t('عروض واردة','Quotes',lang), t('متوسط السعر المقبول','Avg Accepted Price',lang)
+                        t('عروض واردة','Quotes',lang), t('متوسط السعر المقبول','Avg Accepted Price',lang)
                       ].map(h => <th key={h} className={TH}>{h}</th>)}
                     </tr>
                   </thead>
                   <tbody>
                     {report5.length === 0 && (
-                      <tr><td colSpan={7} className="text-center py-10 text-slate-400 text-sm">{t('لا توجد مواد','No materials data',lang)}</td></tr>
+                      <tr><td colSpan={6} className="text-center py-10 text-slate-400 text-sm">{t('لا توجد مواد','No materials data',lang)}</td></tr>
                     )}
                     {report5.map((m, i) => {
                       const avgAccepted = m.acceptedPrices.length ? Math.round(m.acceptedPrices.reduce((s,p)=>s+p,0)/m.acceptedPrices.length) : null;
@@ -540,7 +553,6 @@ export default function ReportsPage() {
                           <td className={`${td} font-bold text-slate-900`}>{m.type}</td>
                           <td className={`${td} text-center font-bold`}>{m.reqCount}</td>
                           <td className={`${td} font-bold`}>{m.totalQty.toLocaleString()} {m.unit}</td>
-                          <td className={td}>{m.unit}</td>
                           <td className={`${td} text-center`}>{m.quoteCount || '—'}</td>
                           <td className={`${td} font-bold text-[#0F4C75]`}>{avgAccepted ? `${fmtN(avgAccepted, lang)} ${t('ر.س','SAR',lang)}` : '—'}</td>
                         </tr>

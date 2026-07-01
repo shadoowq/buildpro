@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../../components/ContractorNav';
+import StatusBadge from '../../components/StatusBadge';
+import { formatDate, displayVal, arToEn, appendActivityLog, setQuoteStatus } from '../../lib/requestHelpers';
 
 type Lang = 'ar' | 'en';
 type QuoteStatus = 'pending' | 'accepted' | 'rejected' | 'revision';
@@ -98,22 +100,6 @@ const T = {
 
 function t(key: keyof typeof T, lang: Lang): string { return (T[key] as any)[lang]; }
 
-function StatusBadge({ status, lang }: { status: QuoteStatus; lang: Lang }) {
-  const map = {
-    pending:  { cls: 'bg-orange-50 text-orange-700 border-orange-200',    dot: 'bg-orange-400'  },
-    accepted: { cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-    rejected: { cls: 'bg-red-50 text-red-600 border-red-200',             dot: 'bg-red-500'     },
-    revision: { cls: 'bg-amber-50 text-amber-700 border-amber-200',       dot: 'bg-amber-400'   },
-  };
-  const s = map[status];
-  return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${s.cls}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-      {t(status === 'revision' ? 'revision' : status, lang)}
-    </span>
-  );
-}
-
 export default function RequestDetailPage() {
   const router = useRouter();
   const params = useParams();
@@ -158,19 +144,13 @@ export default function RequestDetailPage() {
   const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
 
   const addLog = (ar: string, en: string) => {
-    const allLogs: ActivityLog[] = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-    const newLog: ActivityLog = { id: Date.now(), requestId: id, action: ar, actionEn: en, timestamp: new Date().toISOString() };
-    allLogs.push(newLog);
-    localStorage.setItem('activityLogs', JSON.stringify(allLogs));
-    setLogs(prev => [newLog, ...prev]);
+    const allLogs = appendActivityLog(id, ar, en);
+    setLogs(allLogs.filter((l: ActivityLog) => l.requestId === id).sort((a: ActivityLog, b: ActivityLog) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
   };
 
   const handleQuoteAction = (quoteId: number, action: QuoteStatus | 'pending') => {
-    const all: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const q = all.find(x => x.id === quoteId);
-    const updated = all.map(x => x.id === quoteId ? { ...x, status: action } : x);
-    localStorage.setItem('quotes', JSON.stringify(updated));
-    setQuotes(updated.filter(q => q.requestId === id));
+    const { quotes: updated, quote: q } = setQuoteStatus(quoteId, action);
+    setQuotes(updated.filter((x: Quote) => x.requestId === id));
     if (q) {
       if (action === 'accepted') addLog(`تم قبول عرض ${q.supplierCompany} بسعر ${q.totalPrice} ر.س`, `Accepted ${q.supplierCompany} at ${q.totalPrice} SAR`);
       else if (action === 'rejected') addLog(`تم رفض عرض ${q.supplierCompany}`, `Rejected ${q.supplierCompany}`);
@@ -181,11 +161,8 @@ export default function RequestDetailPage() {
   const handleRevisionSubmit = (quoteId: number) => {
     if (!revisionNote.trim()) { setRevisionError(true); return; }
     setRevisionError(false);
-    const all: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const q = all.find(x => x.id === quoteId);
-    const updated = all.map(x => x.id === quoteId ? { ...x, status: 'revision' as QuoteStatus, revisionNote } : x);
-    localStorage.setItem('quotes', JSON.stringify(updated));
-    setQuotes(updated.filter(q => q.requestId === id));
+    const { quotes: updated, quote: q } = setQuoteStatus(quoteId, 'revision', revisionNote);
+    setQuotes(updated.filter((x: Quote) => x.requestId === id));
     if (q) addLog(`طلب تعديل على عرض ${q.supplierCompany}: "${revisionNote}"`, `Revision on ${q.supplierCompany}: "${revisionNote}"`);
     setRevisionQuoteId(null);
     setRevisionNote('');
@@ -280,7 +257,7 @@ export default function RequestDetailPage() {
             <div className="flex gap-3 mt-2 text-white/50 text-xs flex-wrap">
               {request.location && <span>📍 {request.location}</span>}
               {request.deadline && <span>⏱ {request.deadline}</span>}
-              <span>📅 {new Date(request.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</span>
+              <span>📅 {formatDate(request.createdAt, lang)}</span>
             </div>
           </div>
           {/* action buttons */}
@@ -350,15 +327,15 @@ export default function RequestDetailPage() {
                     {request.materials.map((m: any, i: number) => (
                       <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[#F8FAFC]'}>
                         <td className="border border-slate-200 px-3 py-2 font-bold text-slate-900 text-center">{i + 1}</td>
-                        <td className="border border-slate-200 px-3 py-2 font-bold text-slate-900">{m.type || '—'}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.usage || '—'}</td>
+                        <td className="border border-slate-200 px-3 py-2 font-bold text-slate-900">{displayVal(m.type, lang)}</td>
+                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{displayVal(m.usage, lang)}</td>
                         <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.size || '—'}</td>
                         <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.thickness || '—'}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.finish || '—'}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.color || '—'}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.quantity ? `${m.quantity} ${m.unit || 'م²'}` : '—'}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.targetPrice ? `${m.targetPrice} ${m.currency || 'ر.س'}` : '—'}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.origin || '—'}</td>
+                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{displayVal(m.finish, lang)}</td>
+                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{displayVal(m.color, lang)}</td>
+                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.quantity ? `${m.quantity} ${lang === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : '—'}</td>
+                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.targetPrice ? `${m.targetPrice} ${lang === 'en' ? (m.currency === 'ر.س' ? 'SAR' : m.currency || 'SAR') : (m.currency || 'ر.س')}` : '—'}</td>
+                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{displayVal(m.origin, lang)}</td>
                         <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.deliveryDate || '—'}</td>
                         <td className="border border-slate-200 px-3 py-2 text-slate-700 max-w-[120px]">{m.note || '—'}</td>
                         <td className="border border-slate-200 px-3 py-2 print:hidden">
@@ -444,7 +421,7 @@ export default function RequestDetailPage() {
                       {q.status === 'revision' && q.revisionNote && (
                         <p className="text-xs text-amber-700 mt-1 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">✏ {q.revisionNote}</p>
                       )}
-                      <p className="text-[10px] text-slate-300 mt-1">{new Date(q.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</p>
+                      <p className="text-[10px] text-slate-300 mt-1">{formatDate(q.createdAt, lang)}</p>
                     </div>
                     {/* actions */}
                     <div className="flex gap-1.5 shrink-0 flex-wrap print:hidden">

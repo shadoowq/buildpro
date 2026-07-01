@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { buildNotifications, notifIconMap, timeAgo, NotifItem } from '../lib/notifications';
+import { purgeExpiredTrash } from '../lib/requestHelpers';
 
 type Lang = 'ar' | 'en';
 
@@ -11,15 +13,6 @@ interface ContractorNavProps {
   setLang: (l: Lang) => void;
   userName: string;
   active: string;
-}
-
-interface NotifItem {
-  id: string;
-  type: 'quote' | 'accepted' | 'rejected' | 'revision';
-  textAr: string;
-  textEn: string;
-  time: Date;
-  unread: boolean;
 }
 
 const NAV_LINKS = [
@@ -31,23 +24,13 @@ const NAV_LINKS = [
   { labelAr: 'التقارير',     labelEn: 'Reports',      href: '/reports'     },
 ];
 
-function timeAgo(date: Date, lang: Lang): string {
-  const diff = Date.now() - date.getTime();
-  const m = Math.floor(diff / 60000);
-  const h = Math.floor(diff / 3600000);
-  const d = Math.floor(diff / 86400000);
-  if (m < 1)  return lang === 'ar' ? 'الآن'       : 'Just now';
-  if (m < 60) return lang === 'ar' ? `${m}د`      : `${m}m`;
-  if (h < 24) return lang === 'ar' ? `${h}س`      : `${h}h`;
-  return             lang === 'ar' ? `${d} يوم`   : `${d}d`;
-}
-
 export default function ContractorNav({ lang, setLang, userName, active }: ContractorNavProps) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [notifs, setNotifs] = useState<NotifItem[]>([]);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+  const [trashCount, setTrashCount] = useState(0);
   const bellRef = useRef<HTMLDivElement>(null);
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
@@ -61,34 +44,16 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
 
     const allReqs = (JSON.parse(localStorage.getItem('requests') || '[]') as any[])
       .filter(r => r.contractorId === user.email);
-    const reqIds = new Set(allReqs.map(r => r.id));
+    const reqIds = allReqs.map(r => r.id);
 
-    const items: NotifItem[] = (JSON.parse(localStorage.getItem('quotes') || '[]') as any[])
-      .filter(q => reqIds.has(q.requestId))
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 10)
-      .map(q => {
-        const type: NotifItem['type'] =
-          q.status === 'accepted' ? 'accepted'
-          : q.status === 'rejected' ? 'rejected'
-          : q.status === 'revision' ? 'revision'
-          : 'quote';
-        return {
-          id:      `q-${q.id}`,
-          type,
-          textAr:  type === 'quote'    ? `${q.supplierCompany} أرسل عرض على طلب #${q.requestId}`
-                 : type === 'accepted' ? `تم قبول عرض ${q.supplierCompany} بسعر ${Number(q.totalPrice).toLocaleString()} ر.س`
-                 : type === 'rejected' ? `تم رفض عرض ${q.supplierCompany}`
-                 :                      `طلب تعديل على عرض ${q.supplierCompany}`,
-          textEn:  type === 'quote'    ? `${q.supplierCompany} quoted request #${q.requestId}`
-                 : type === 'accepted' ? `Accepted ${q.supplierCompany} at ${Number(q.totalPrice).toLocaleString()} SAR`
-                 : type === 'rejected' ? `Rejected quote from ${q.supplierCompany}`
-                 :                      `Revision requested on ${q.supplierCompany}`,
-          time:    new Date(q.createdAt),
-          unread:  q.status === 'pending',
-        };
-      });
-    setNotifs(items);
+    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+    const allLogs   = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+    setNotifs(buildNotifications(allQuotes, allLogs, reqIds, { limit: 10 }));
+
+    purgeExpiredTrash();
+    const deletedRequests = (JSON.parse(localStorage.getItem('deletedRequests') || '[]') as any[])
+      .filter(r => r.contractorId === user.email);
+    setTrashCount(deletedRequests.length);
   }, []);
 
   useEffect(() => {
@@ -115,9 +80,6 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
   };
 
   const handleLogout = () => { localStorage.removeItem('currentUser'); router.push('/login'); };
-
-  const typeIcon = { quote: '📄', accepted: '✅', rejected: '❌', revision: '✏' };
-  const typeBg   = { quote: 'bg-blue-50', accepted: 'bg-emerald-50', rejected: 'bg-red-50', revision: 'bg-amber-50' };
 
   return (
     <>
@@ -166,7 +128,7 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
               <div className={`absolute top-11 ${lang === 'ar' ? 'left-0' : 'right-0'} w-80 bg-white border border-[#E2EAF2] rounded-2xl shadow-xl z-50 overflow-hidden`}>
                 <div className="flex items-center justify-between px-4 py-3 border-b border-[#F1F5F9]">
                   <span className="text-sm font-bold text-slate-900">{lang === 'ar' ? 'الإشعارات' : 'Notifications'}</span>
-                  <Link href="/my-quotes" onClick={() => setBellOpen(false)}
+                  <Link href="/notifications" onClick={() => setBellOpen(false)}
                     className="text-[10px] text-[#1B9AAA] font-semibold hover:underline">
                     {lang === 'ar' ? 'عرض الكل' : 'View all'}
                   </Link>
@@ -181,15 +143,16 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
                   <div className="max-h-72 overflow-y-auto divide-y divide-[#F8FAFC]">
                     {notifs.map(n => {
                       const isNew = n.unread && !seenIds.has(n.id);
+                      const icon = notifIconMap[n.type];
                       return (
-                        <Link key={n.id} href="/my-quotes" onClick={() => setBellOpen(false)}
+                        <Link key={n.id} href={`/my-requests?reqId=${n.requestId}`} onClick={() => setBellOpen(false)}
                           className={`flex items-start gap-2.5 px-4 py-3 hover:bg-[#F8FAFC] transition-colors ${isNew ? 'bg-blue-50/40' : ''}`}>
-                          <div className={`w-8 h-8 rounded-lg ${typeBg[n.type]} flex items-center justify-center text-sm shrink-0 mt-0.5`}>
-                            {typeIcon[n.type]}
+                          <div className={`w-8 h-8 rounded-lg ${icon.bg} flex items-center justify-center text-sm shrink-0 mt-0.5`}>
+                            {icon.icon}
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-[11px] text-slate-700 leading-relaxed">{lang === 'ar' ? n.textAr : n.textEn}</p>
-                            <p className="text-[10px] text-slate-400 mt-0.5">{timeAgo(n.time, lang)}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{timeAgo(n.timestamp, lang)}</p>
                           </div>
                           {isNew && <span className="w-1.5 h-1.5 rounded-full bg-[#1B9AAA] shrink-0 mt-1.5" />}
                         </Link>
@@ -200,6 +163,17 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
               </div>
             )}
           </div>
+
+          {/* trash */}
+          <Link href="/trash"
+            className="relative w-9 h-9 rounded-lg border border-[#E2EAF2] flex items-center justify-center hover:bg-[#F0F4F8] transition-colors">
+            🗑
+            {trashCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-slate-400 rounded-full text-white text-[9px] font-bold flex items-center justify-center px-0.5 border-2 border-white">
+                {trashCount > 9 ? '9+' : trashCount}
+              </span>
+            )}
+          </Link>
 
           {/* avatar */}
           <Link href="/profile"

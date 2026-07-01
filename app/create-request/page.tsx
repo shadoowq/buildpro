@@ -4,6 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { saudiCities, getCityName } from '@/app/lib/translations';
 import Navbar from '../components/Navbar';
+import { appendActivityLog } from '../lib/requestHelpers';
+import { useToast } from '../components/Toast';
 
 interface MaterialRow {
   id: number;
@@ -66,6 +68,7 @@ const isRowValid = (m: MaterialRow) =>
   !!(m.type?.trim() || m.typePending?.trim() || m.usage?.trim() || m.size?.trim() || m.quantity?.trim() || m.finish?.trim() || m.color?.trim());
 
 export default function CreateRequest() {
+  const showToast = useToast();
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
   const [user, setUser] = useState<any>(null);
   const [suppliers, setSuppliers] = useState<any[]>([]);
@@ -83,6 +86,7 @@ export default function CreateRequest() {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [pageTitle, setPageTitle] = useState('إنشاء طلب جديد');
 const [isDraftEdit, setIsDraftEdit] = useState(false);
+  const [existingQuotesCount, setExistingQuotesCount] = useState(0);
   const skipSaveRef = useRef(false);
   const router = useRouter();
 
@@ -109,6 +113,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     const draftId = params.get('draft');
 
     if (editId) {
+      skipSaveRef.current = true;
       const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
       const req = allRequests.find((r: any) => r.id === parseInt(editId));
       if (req) {
@@ -128,6 +133,9 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
         if (req.description) setDescription(req.description);
         if (req.selectedSuppliers) setSelectedSuppliers(req.selectedSuppliers);
         if (req.attachedFiles) setAttachedFiles(req.attachedFiles);
+
+        const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+        setExistingQuotesCount(allQuotes.filter((q: any) => q.requestId === req.id).length);
       }
     } else if (draftId) {
       skipSaveRef.current = true;
@@ -143,6 +151,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
         if (parsed.deadline) setDeadline(parsed.deadline);
         if (parsed.description) setDescription(parsed.description);
         if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
+        if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
       }
       localStorage.removeItem('loadingFromDraft');
     } else {
@@ -275,15 +284,15 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     })));
     const valid = materials.filter(isRowValid);
     if (selectedSuppliers.length === 0) {
-      alert(language === 'ar' ? 'الرجاء اختيار مورد واحد على الأقل' : 'Please select at least one supplier');
+      showToast(language === 'ar' ? 'الرجاء اختيار مورد واحد على الأقل' : 'Please select at least one supplier', 'error');
       return false;
     }
     if (valid.length === 0) {
-      alert(language === 'ar' ? 'الرجاء إضافة بيانات في مادة واحدة على الأقل' : 'Please fill at least one material row');
+      showToast(language === 'ar' ? 'الرجاء إضافة بيانات في مادة واحدة على الأقل' : 'Please fill at least one material row', 'error');
       return false;
     }
     if (!location) {
-      alert(language === 'ar' ? 'الرجاء اختيار المدينة' : 'Please select a city');
+      showToast(language === 'ar' ? 'الرجاء اختيار المدينة' : 'Please select a city', 'error');
       return false;
     }
     return true;
@@ -336,26 +345,25 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       }
       return true;
     } catch {
-      alert(language === 'ar' ? 'حجم الملفات كبير جداً' : 'Files too large');
+      showToast(language === 'ar' ? 'حجم الملفات كبير جداً' : 'Files too large', 'error');
       return false;
     }
   };
 
   const handleDirectSend = () => {
-    if (isDraftEdit) {
-      handleSaveDraft();
-      return;
-    }
     if (!validate()) return;
     if (editMode && editRequestId) {
       const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
       const updated = allRequests.map((r: any) => r.id === editRequestId ? { ...buildRequest(), id: editRequestId, createdAt: r.createdAt } : r);
       localStorage.setItem('requests', JSON.stringify(updated));
-      alert(language === 'ar' ? 'تم حفظ التعديلات بنجاح!' : 'Changes saved successfully!');
+      appendActivityLog(editRequestId, 'تم تعديل الطلب', 'Request edited');
+      showToast(language === 'ar' ? 'تم حفظ التعديلات بنجاح!' : 'Changes saved successfully!');
       router.push('/my-requests');
     } else {
-      if (saveRequest(buildRequest())) {
-        alert(language === 'ar' ? 'تم إرسال الطلب بنجاح!' : 'Request sent successfully!');
+      const newReq = buildRequest();
+      if (saveRequest(newReq)) {
+        appendActivityLog(newReq.id, 'تم إنشاء الطلب', 'Request created');
+        showToast(language === 'ar' ? 'تم إرسال الطلب بنجاح!' : 'Request sent successfully!');
         router.push('/my-requests');
       }
     }
@@ -368,11 +376,14 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
       const updated = allRequests.map((r: any) => r.id === editRequestId ? { ...buildRequest(), id: editRequestId, createdAt: r.createdAt } : r);
       localStorage.setItem('requests', JSON.stringify(updated));
-      alert(language === 'ar' ? 'تم حفظ التعديلات بنجاح!' : 'Changes saved successfully!');
+      appendActivityLog(editRequestId, 'تم تعديل الطلب', 'Request edited');
+      showToast(language === 'ar' ? 'تم حفظ التعديلات بنجاح!' : 'Changes saved successfully!');
       router.push('/my-requests');
     } else {
-      if (saveRequest(buildRequest())) {
-        alert(language === 'ar' ? 'تم إرسال الطلب بنجاح!' : 'Request sent successfully!');
+      const newReq = buildRequest();
+      if (saveRequest(newReq)) {
+        appendActivityLog(newReq.id, 'تم إنشاء الطلب', 'Request created');
+        showToast(language === 'ar' ? 'تم إرسال الطلب بنجاح!' : 'Request sent successfully!');
         router.push('/my-requests');
       }
     }
@@ -409,18 +420,22 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       id: currentDraftId ? parseInt(currentDraftId) : Date.now(),
       contractorId: user?.email,
       projectName, materials, location, deadline, description,
-      selectedSuppliers,
+      selectedSuppliers, attachedFiles,
       savedAt: new Date().toISOString(),
     };
-    const allDrafts = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
-    const exists = allDrafts.find((d: any) => d.id === draftData.id);
-    const updated = exists
-      ? allDrafts.map((d: any) => d.id === draftData.id ? draftData : d)
-      : [...allDrafts, draftData];
-    localStorage.setItem('requestDrafts', JSON.stringify(updated));
-    localStorage.removeItem(STORAGE_KEY);
-    alert(language === 'ar' ? 'تم حفظ التعديلات بنجاح!' : 'Changes saved successfully!');
-    router.push('/drafts');
+    try {
+      const allDrafts = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
+      const exists = allDrafts.find((d: any) => d.id === draftData.id);
+      const updated = exists
+        ? allDrafts.map((d: any) => d.id === draftData.id ? draftData : d)
+        : [...allDrafts, draftData];
+      localStorage.setItem('requestDrafts', JSON.stringify(updated));
+      localStorage.removeItem(STORAGE_KEY);
+      showToast(language === 'ar' ? 'تم حفظ التعديلات بنجاح!' : 'Changes saved successfully!');
+      router.push('/drafts');
+    } catch {
+      showToast(language === 'ar' ? 'حجم الملفات كبير جداً' : 'Files too large', 'error');
+    }
   };
 
   const OPTIONS = {
@@ -449,7 +464,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     notes: 'ملاحظات عامة (اختياري)', notesPlaceholder: 'أضف ملاحظات أو تفاصيل إضافية...',
     suppliers: 'اختر الموردين', noSuppliers: 'لا يوجد موردين مسجلين بعد',
     selectAll: 'اختيار الكل', deselectAll: 'إلغاء الكل',
-    reviewBtn: 'مراجعة الطلب', sendBtn: editMode ? 'حفظ التعديلات' : 'إرسال الطلب', draftBtn: 'حفظ مسودة',
+    reviewBtn: 'مراجعة الطلب', sendBtn: editRequestId ? 'حفظ التعديلات' : 'إرسال الطلب', draftBtn: 'حفظ مسودة',
     select: 'اختر...', optional: 'اختياري', orBtn: '+ أو',
     previewTitle: 'مراجعة الطلب قبل الإرسال', submittedBy: 'مقدم الطلب', dateTime: 'تاريخ ووقت المراجعة',
     confirm: 'تأكيد وإرسال الطلب', print: 'طباعة', back: 'رجوع للتعديل', noValue: '—',
@@ -472,7 +487,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     notes: 'General Notes (Optional)', notesPlaceholder: 'Add notes or extra details...',
     suppliers: 'Select Suppliers', noSuppliers: 'No suppliers registered yet',
     selectAll: 'Select All', deselectAll: 'Deselect All',
-    reviewBtn: 'Review Request', sendBtn: editMode ? 'Save Changes' : 'Send Request', draftBtn: 'Save Draft',
+    reviewBtn: 'Review Request', sendBtn: editRequestId ? 'Save Changes' : 'Send Request', draftBtn: 'Save Draft',
     select: 'Select...', optional: 'Optional', orBtn: '+ OR',
     previewTitle: 'Review Request Before Sending', submittedBy: 'Submitted By', dateTime: 'Review Date & Time',
     confirm: 'Confirm & Send Request', print: 'Print', back: 'Back to Edit', noValue: '—',
@@ -533,6 +548,14 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
         <h1 style={{ color: '#0F172A', marginBottom: '10px' }}>{pageTitle}</h1>
         <p style={{ color: '#64748B', fontSize: '13px', marginBottom: '20px' }}>{tx.hint}</p>
+
+        {editMode && !isDraftEdit && existingQuotesCount > 0 && (
+          <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px', color: '#92400E', fontSize: '13px' }}>
+            {language === 'ar'
+              ? `⚠ هذا الطلب عليه بالفعل ${existingQuotesCount} عرض سعر — تعديل المواد أو الكميات لن يغيّر الأسعار المقدَّمة بالفعل`
+              : `⚠ This request already has ${existingQuotesCount} quote(s) — editing materials or quantities won't change prices already submitted`}
+          </div>
+        )}
 
         <div style={{ marginBottom: '20px' }}>
           <label style={labelStyle}>{tx.projectNameLabel}</label>

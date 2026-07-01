@@ -29,10 +29,12 @@ export default function PrintRequest() {
     const savedLang = localStorage.getItem('language') as Lang || 'ar';
     setLang(savedLang);
     const userData = localStorage.getItem('currentUser');
-    if (userData) setUser(JSON.parse(userData));
+    const currentUser = userData ? JSON.parse(userData) : null;
+    if (currentUser) setUser(currentUser);
     const allReqs: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
     const found = allReqs.find(r => r.id === id);
-    setReq(found || null);
+    const owned = found && currentUser && found.contractorId === currentUser.email;
+    setReq(owned ? found! : null);
     setReady(true);
   }, [id]);
 
@@ -83,7 +85,7 @@ export default function PrintRequest() {
   };
 
   const S = {
-    th:  { background: '#0F4C75', color: '#fff', fontWeight: 700, padding: '7px 8px', textAlign: 'right' as const, border: '1px solid #0D3F63', whiteSpace: 'nowrap' as const, fontSize: 11 },
+    th:  { background: '#0F4C75', color: '#fff', fontWeight: 700, padding: '7px 8px', textAlign: (lang === 'ar' ? 'right' : 'left') as 'right' | 'left', border: '1px solid #0D3F63', whiteSpace: 'nowrap' as const, fontSize: 11 },
     tdE: { border: '1px solid #E2EAF2', padding: '6px 8px', color: '#334155', fontSize: 11 },
     tdO: { border: '1px solid #E2EAF2', padding: '6px 8px', color: '#334155', fontSize: 11, background: '#F8FAFC' },
   };
