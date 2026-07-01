@@ -658,7 +658,7 @@ export default function DashboardPage() {
                 <div key={p.ar}>
                   <div className="flex justify-between mb-1.5">
                     <span className="text-[11px] text-stone-700 font-medium">{lang === 'ar' ? p.ar : p.en}</span>
-                    <span className="text-[11px] text-stone-400">{p.val}</span>
+                    <span className="text-[11px] text-stone-400" dir="ltr">{p.val}</span>
                   </div>
                   <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
                     <div className={`h-1.5 rounded-full transition-all ${p.color}`} style={{ width: `${p.pct}%` }} />

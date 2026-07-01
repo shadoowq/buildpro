@@ -602,7 +602,7 @@ export default function ReportsPage() {
                           textAr="نسبة العروض التي قبلتها من إجمالي جميع العروض التي استلمتها (بصرف النظر عن الطلب)."
                           textEn="Percentage of all quotes you've received (across every request) that you ended up accepting." />}
                       </div>
-                      <div className="text-[10px] text-stone-400 mt-0.5">{k.sub}</div>
+                      <div className="text-[10px] text-stone-400 mt-0.5" dir={k.sub.includes('/') ? 'ltr' : undefined}>{k.sub}</div>
                     </div>
                   </div>
                 </div>
