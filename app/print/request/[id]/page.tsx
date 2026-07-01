@@ -26,15 +26,19 @@ export default function PrintRequest() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
-    const userData = localStorage.getItem('currentUser');
-    const currentUser = userData ? JSON.parse(userData) : null;
-    if (currentUser) setUser(currentUser);
-    const allReqs: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
-    const found = allReqs.find(r => r.id === id);
-    const owned = found && currentUser && found.contractorId === currentUser.email;
-    setReq(owned ? found! : null);
+    try {
+      const savedLang = localStorage.getItem('language') as Lang || 'ar';
+      setLang(savedLang);
+      const userData = localStorage.getItem('currentUser');
+      const currentUser = userData ? JSON.parse(userData) : null;
+      if (currentUser) setUser(currentUser);
+      const allReqs: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
+      const found = allReqs.find(r => r.id === id);
+      const owned = found && currentUser && found.contractorId === currentUser.email;
+      setReq(owned ? found! : null);
+    } catch {
+      setReq(null);
+    }
     setReady(true);
   }, [id]);
 

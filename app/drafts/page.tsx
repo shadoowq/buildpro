@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
-import { displayVal, arToEn } from '../lib/requestHelpers';
+import { displayVal, arToEn, softDeleteDraft, softDeleteDrafts, purgeExpiredTrash } from '../lib/requestHelpers';
 import { useConfirm } from '../components/ConfirmDialog';
+import { useToast } from '../components/Toast';
 
 type Lang = 'ar' | 'en';
 
@@ -35,11 +36,13 @@ function t(ar: string, en: string, lang: Lang) { return lang === 'ar' ? ar : en;
 
 export default function Drafts() {
   const confirmDialog = useConfirm();
+  const showToast = useToast();
   const [lang, setLang] = useState<Lang>('ar');
   const [user, setUser] = useState<any>(null);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [search, setSearch] = useState('');
   const [userName, setUserName] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const router = useRouter();
 
   useEffect(() => {
@@ -50,6 +53,7 @@ export default function Drafts() {
     setUser(parsedUser);
     if (parsedUser.name) setUserName(parsedUser.name);
 
+    purgeExpiredTrash(30);
     const allDrafts = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
     const myDrafts = allDrafts.filter((d: Draft) => d.contractorId === parsedUser.email);
     setDrafts(myDrafts.sort((a: Draft, b: Draft) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()));
@@ -74,17 +78,31 @@ export default function Drafts() {
       selectedSuppliers: draft.selectedSuppliers,
       attachedFiles: draft.attachedFiles || [],
     }));
-    localStorage.setItem('currentDraftId', String(draft.id));
     localStorage.setItem('loadingFromDraft', 'true');
     router.push(`/create-request?draft=${draft.id}`);
   };
 
   const handleDelete = async (draftId: number) => {
     if (!(await confirmDialog(t('هل أنت متأكد من حذف هذه المسودة؟', 'Are you sure you want to delete this draft?', lang), { confirmText: t('حذف', 'Delete', lang), danger: true }))) return;
-    const allDrafts = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
-    const updated = allDrafts.filter((d: Draft) => d.id !== draftId);
-    localStorage.setItem('requestDrafts', JSON.stringify(updated));
+    softDeleteDraft(draftId);
     setDrafts(prev => prev.filter(d => d.id !== draftId));
+    setSelectedIds(prev => { const s = new Set(prev); s.delete(draftId); return s; });
+    showToast(t('تم نقل المسودة لسلة المهملات', 'Draft moved to trash', lang));
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  };
+
+  const handleBulkDelete = async () => {
+    if (!(await confirmDialog(
+      lang === 'ar' ? `هل أنت متأكد من حذف ${selectedIds.size} مسودة؟` : `Delete ${selectedIds.size} draft(s)?`,
+      { confirmText: t('حذف', 'Delete', lang), danger: true }
+    ))) return;
+    softDeleteDrafts([...selectedIds]);
+    setDrafts(prev => prev.filter(d => !selectedIds.has(d.id)));
+    setSelectedIds(new Set());
+    showToast(t('تم نقل المسودات لسلة المهملات', 'Drafts moved to trash', lang));
   };
 
   const getDraftName = (draft: Draft) => {
@@ -141,7 +159,7 @@ export default function Drafts() {
       <div className="grid grid-cols-3 gap-3 px-7 py-5">
         {[
           { icon: '✏️', bg: 'bg-amber-50',   val: drafts.length,                                               label: t('إجمالي المسودات', 'Total Drafts', lang) },
-          { icon: '📋', bg: 'bg-blue-50',    val: drafts.reduce((s, d) => s + getMaterialCount(d), 0),         label: t('إجمالي المواد', 'Total Materials', lang) },
+          { icon: '📋', bg: 'bg-[#F3EAE0]',  val: drafts.reduce((s, d) => s + getMaterialCount(d), 0),         label: t('إجمالي المواد', 'Total Materials', lang) },
           { icon: '📍', bg: 'bg-emerald-50', val: [...new Set(drafts.map(d => d.location).filter(Boolean))].length, label: t('مدن مختلفة', 'Different Cities', lang) },
         ].map((s, i) => (
           <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4">
@@ -157,13 +175,21 @@ export default function Drafts() {
         <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
 
           {/* search bar */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F1EAE0]">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F1EAE0] flex-wrap gap-2">
             <span className="text-sm font-bold text-stone-900">{t('المسودات المحفوظة', 'Saved Drafts', lang)}</span>
-            <div className="flex items-center gap-2 bg-[#FAF7F2] border border-[#E8DFD3] rounded-lg px-3 py-1.5 w-56">
-              <span className="text-stone-300 text-sm">🔍</span>
-              <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-                placeholder={t('ابحث عن مسودة...', 'Search drafts...', lang)}
-                className="bg-transparent border-none outline-none text-xs font-cairo w-full placeholder-stone-300 text-stone-700" />
+            <div className="flex items-center gap-2">
+              {selectedIds.size > 0 && (
+                <button onClick={handleBulkDelete}
+                  className="text-xs font-semibold px-3 py-1.5 bg-red-50 text-red-500 border border-red-100 rounded-lg hover:bg-red-100 transition-colors">
+                  {t('حذف المحدد', 'Delete Selected', lang)} ({selectedIds.size})
+                </button>
+              )}
+              <div className="flex items-center gap-2 bg-[#FAF7F2] border border-[#E8DFD3] rounded-lg px-3 py-1.5 w-56">
+                <span className="text-stone-300 text-sm">🔍</span>
+                <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+                  placeholder={t('ابحث عن مسودة...', 'Search drafts...', lang)}
+                  className="bg-transparent border-none outline-none text-xs font-cairo w-full placeholder-stone-300 text-stone-700" />
+              </div>
             </div>
           </div>
 
@@ -194,8 +220,10 @@ export default function Drafts() {
                   <div key={draft.id} className="px-5 py-4 hover:bg-[#FFFDF9] transition-colors group">
                     <div className="flex items-start justify-between gap-4">
 
-                      {/* left: icon + info */}
+                      {/* left: checkbox + icon + info */}
                       <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <input type="checkbox" checked={selectedIds.has(draft.id)} onChange={() => toggleSelect(draft.id)}
+                          className="mt-3 shrink-0 cursor-pointer" />
                         <div className="w-10 h-10 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-center text-lg shrink-0 mt-0.5">
                           📝
                         </div>

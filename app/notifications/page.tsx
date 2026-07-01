@@ -48,11 +48,9 @@ export default function NotificationsPage() {
 
     const savedLang = localStorage.getItem('language') as Lang;
     if (savedLang) setLang(savedLang);
-    const interval = setInterval(() => {
-      const nl = localStorage.getItem('language') as Lang || 'ar';
-      setLang(prev => prev !== nl ? nl : prev);
-    }, 100);
-    return () => clearInterval(interval);
+    const onStorage = (e: StorageEvent) => { if (e.key === 'language' && e.newValue) setLang(e.newValue as Lang); };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, [router]);
 
   const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
@@ -105,7 +103,7 @@ export default function NotificationsPage() {
               const isNew = !seenIds.has(n.id);
               return (
                 <Link key={n.id} href={`/my-requests?reqId=${n.requestId}`} onClick={() => markRead(n.id)}
-                  className={`flex gap-3 px-5 py-4 border-b border-[#FAF7F2] last:border-0 hover:bg-[#FFFDF9] transition-colors ${isNew ? 'bg-blue-50/40' : ''}`}>
+                  className={`flex gap-3 px-5 py-4 border-b border-[#FAF7F2] last:border-0 hover:bg-[#FFFDF9] transition-colors ${isNew ? 'bg-[#F3EAE0]/40' : ''}`}>
                   <div className={`w-9 h-9 rounded-lg ${icon.bg} flex items-center justify-center text-base ${icon.color} shrink-0`}>
                     {icon.icon}
                   </div>

@@ -81,7 +81,6 @@ export default function Navbar() {
           <button
             onClick={() => {
               localStorage.removeItem('createRequestDraft');
-              localStorage.removeItem('currentDraftId');
               router.push('/create-request');
             }}
             className="text-xs px-3 py-1.5 rounded-lg font-medium bg-[#8A7B6C] text-white hover:bg-[#6F6255] transition-colors"

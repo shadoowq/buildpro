@@ -6,6 +6,7 @@ import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
 import StatusBadge from '../components/StatusBadge';
 import { formatDate, appendActivityLog, setQuoteStatus } from '../lib/requestHelpers';
+import { useConfirm } from '../components/ConfirmDialog';
 
 type Lang = 'ar' | 'en';
 type QuoteStatus = 'pending' | 'accepted' | 'rejected' | 'revision';
@@ -105,6 +106,7 @@ function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void 
 /* ══════════════════════ CONTRACTOR VIEW ══════════════════════ */
 function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: string; setLang: (l: Lang) => void }) {
   const router = useRouter();
+  const confirmDialog = useConfirm();
   const [allQuotes, setAllQuotes] = useState<Quote[]>([]);
   const [myRequests, setMyRequests] = useState<Request[]>([]);
   const [filter, setFilter] = useState<FilterTab>('all');
@@ -147,7 +149,14 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
     return `#${String(req.id).slice(-4)}`;
   };
 
-  const handleQuoteAction = (quoteId: number, action: QuoteStatus | 'pending') => {
+  const handleQuoteAction = async (quoteId: number, action: QuoteStatus | 'pending') => {
+    if (action === 'accepted' || action === 'rejected') {
+      const msg = action === 'accepted'
+        ? (lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?')
+        : (lang === 'ar' ? 'هل أنت متأكد من رفض هذا العرض؟' : 'Reject this quote?');
+      const confirmText = action === 'accepted' ? (lang === 'ar' ? 'قبول' : 'Accept') : (lang === 'ar' ? 'رفض' : 'Reject');
+      if (!(await confirmDialog(msg, { confirmText, danger: action === 'rejected' }))) return;
+    }
     const { quotes: updated, quote: q } = setQuoteStatus(quoteId, action);
     setAllQuotes(updated.filter((x: Quote) => myRequests.some(r => r.id === x.requestId)));
     if (q) {
@@ -175,10 +184,10 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
   const lowestPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
 
   const stats = [
-    { icon: '📥', bg: 'bg-teal-50', val: allQuotes.length, label: tFn('totalQ', lang), badge: null },
+    { icon: '📥', bg: 'bg-[#F3EAE0]', val: allQuotes.length, label: tFn('totalQ', lang), badge: null },
     { icon: '⏳', bg: 'bg-orange-50', val: allQuotes.filter(q => q.status === 'pending').length, label: tFn('pendingQ', lang), badge: newCount > 0 ? `${newCount} ${lang === 'ar' ? 'جديد' : 'new'}` : null },
     { icon: '✅', bg: 'bg-emerald-50', val: allQuotes.filter(q => q.status === 'accepted').length, label: tFn('acceptedQ', lang), badge: null },
-    { icon: '💰', bg: 'bg-blue-50', val: lowestPrice !== null ? lowestPrice.toLocaleString() : '—', label: tFn('lowestPrice', lang), badge: lowestPrice !== null ? tFn('sar', lang) : null },
+    { icon: '💰', bg: 'bg-amber-50', val: lowestPrice !== null ? lowestPrice.toLocaleString() : '—', label: tFn('lowestPrice', lang), badge: lowestPrice !== null ? tFn('sar', lang) : null },
   ];
 
   /* group quotes by request for display */
@@ -306,7 +315,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                       <thead>
                         <tr className="bg-[#C0603E] text-white">
                           {[tFn('supplier', lang), tFn('price', lang), tFn('delivery', lang), tFn('notes', lang), tFn('status', lang), tFn('action', lang)].map(h => (
-                            <th key={h} className="px-4 py-2.5 text-right font-semibold">{h}</th>
+                            <th key={h} className={`px-4 py-2.5 font-semibold ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -324,10 +333,10 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                               {q.id === cheapestId && <span className="block text-[9px] text-emerald-600 font-semibold">{tFn('cheapest', lang)}</span>}
                             </td>
                             <td className="px-4 py-3">
-                              <span className={`font-semibold ${q.id === fastestId ? 'text-blue-600' : 'text-stone-700'}`}>
+                              <span className={`font-semibold ${q.id === fastestId ? 'text-[#C0603E]' : 'text-stone-700'}`}>
                                 {q.deliveryDays} {tFn('days', lang)}
                               </span>
-                              {q.id === fastestId && <span className="block text-[9px] text-blue-600 font-semibold">{tFn('fastest', lang)}</span>}
+                              {q.id === fastestId && <span className="block text-[9px] text-[#C0603E] font-semibold">{tFn('fastest', lang)}</span>}
                             </td>
                             <td className="px-4 py-3 text-stone-500 max-w-[160px]">{q.description || '—'}</td>
                             <td className="px-4 py-3"><StatusBadge status={q.status} lang={lang} /></td>
@@ -379,9 +388,9 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                               <p className="text-sm font-bold text-stone-900">{q.supplierCompany}</p>
                               <p className="text-[11px] text-stone-400">{q.supplierName}</p>
                               <StatusBadge status={q.status} lang={lang} />
-                              {isNew && <span className="text-[9px] bg-blue-500 text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
+                              {isNew && <span className="text-[9px] bg-[#C0603E] text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
                               {q.id === cheapestId && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{tFn('cheapest', lang)}</span>}
-                              {q.id === fastestId && <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">{tFn('fastest', lang)}</span>}
+                              {q.id === fastestId && <span className="text-[9px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded-full font-bold">{tFn('fastest', lang)}</span>}
                             </div>
                             <div className="flex gap-4 mt-1.5">
                               <span className="text-base font-bold text-stone-900">{Number(q.totalPrice).toLocaleString()} <span className="text-xs font-medium text-stone-500">{tFn('sar', lang)}</span></span>

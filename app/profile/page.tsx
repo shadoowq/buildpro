@@ -4,15 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
+import { saudiCities, getCityName } from '../lib/translations';
 
 type Lang = 'ar' | 'en';
-
-const SAUDI_CITIES = [
-  'الرياض', 'جدة', 'مكة المكرمة', 'المدينة المنورة', 'الدمام',
-  'الخبر', 'الطائف', 'تبوك', 'بريدة', 'الأحساء',
-  'القصيم', 'أبها', 'جازان', 'نجران', 'حائل',
-  'ينبع', 'خميس مشيط', 'الجبيل', 'القطيف', 'الظهران',
-];
 
 const T = {
   title:         { ar: 'الملف الشخصي',          en: 'My Profile'              },
@@ -161,8 +155,7 @@ export default function ProfilePage() {
     // check current password — always required
     const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
     const dbUser = allUsers.find((u: any) => u.email === user.email);
-    if (!currentPass) { setPassMsg({ type: 'err', text: t('passWrong', lang) }); return; }
-    if (dbUser && dbUser.password && dbUser.password !== currentPass) {
+    if (!currentPass || !dbUser || dbUser.password !== currentPass) {
       setPassMsg({ type: 'err', text: t('passWrong', lang) });
       return;
     }
@@ -255,7 +248,7 @@ export default function ProfilePage() {
               <Field label={t('city', lang)}>
                 <select value={city} onChange={e => setCity(e.target.value)} className={inputCls}>
                   <option value="">{t('selectCity', lang)}</option>
-                  {SAUDI_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  {saudiCities.map(c => <option key={c} value={c}>{getCityName(c, lang)}</option>)}
                 </select>
               </Field>
             </div>
@@ -303,7 +296,7 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-4">
               <p className="text-[10px] text-stone-400 mb-1">{t('role', lang)}</p>
-              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full ${user.userType === 'contractor' ? 'bg-[#F3EAE0] text-[#C0603E]' : 'bg-teal-50 text-teal-700'}`}>
+              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full ${user.userType === 'contractor' ? 'bg-[#F3EAE0] text-[#C0603E]' : 'bg-stone-100 text-stone-600'}`}>
                 {user.userType === 'contractor' ? '👷' : '🏢'} {user.userType === 'contractor' ? t('contractor', lang) : t('supplier', lang)}
               </span>
             </div>

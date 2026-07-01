@@ -146,7 +146,7 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
                       const icon = notifIconMap[n.type];
                       return (
                         <Link key={n.id} href={`/my-requests?reqId=${n.requestId}`} onClick={() => setBellOpen(false)}
-                          className={`flex items-start gap-2.5 px-4 py-3 hover:bg-[#FAF7F2] transition-colors ${isNew ? 'bg-blue-50/40' : ''}`}>
+                          className={`flex items-start gap-2.5 px-4 py-3 hover:bg-[#FAF7F2] transition-colors ${isNew ? 'bg-[#F3EAE0]/40' : ''}`}>
                           <div className={`w-8 h-8 rounded-lg ${icon.bg} flex items-center justify-center text-sm shrink-0 mt-0.5`}>
                             {icon.icon}
                           </div>

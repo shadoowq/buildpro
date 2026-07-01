@@ -22,19 +22,20 @@ type ConfirmFn = (message: string, options?: ConfirmOptions) => Promise<boolean>
 const ConfirmContext = createContext<ConfirmFn | null>(null);
 
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<ConfirmState | null>(null);
+  const [queue, setQueue] = useState<ConfirmState[]>([]);
+  const state = queue[0] || null;
 
   const confirmDialog: ConfirmFn = (message, options) => {
     const lang = (typeof window !== 'undefined' ? localStorage.getItem('language') : 'ar') as 'ar' | 'en' | null;
     const dir: Dir = lang === 'en' ? 'ltr' : 'rtl';
     return new Promise<boolean>(resolve => {
-      setState({ message, options, dir, resolve });
+      setQueue(prev => [...prev, { message, options, dir, resolve }]);
     });
   };
 
   const handle = (result: boolean) => {
     state?.resolve(result);
-    setState(null);
+    setQueue(prev => prev.slice(1));
   };
 
   return (

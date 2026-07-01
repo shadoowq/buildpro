@@ -223,9 +223,9 @@ export default function SuppliersPage() {
     : 0;
 
   const stats = [
-    { icon: '🏢', bg: 'bg-blue-50',    val: suppliers.length,                label: t('total', lang)       },
+    { icon: '🏢', bg: 'bg-[#F3EAE0]',  val: suppliers.length,                label: t('total', lang)       },
     { icon: '⭐', bg: 'bg-amber-50',   val: avgRatingAll > 0 ? avgRatingAll.toFixed(1) : '—', label: t('avgRating', lang)  },
-    { icon: '📥', bg: 'bg-teal-50',    val: totalQuotes,                      label: t('totalQuotes', lang) },
+    { icon: '📥', bg: 'bg-stone-100',  val: totalQuotes,                      label: t('totalQuotes', lang) },
     { icon: '✅', bg: 'bg-emerald-50', val: totalAccepted,                    label: t('accepted', lang)    },
   ];
 
@@ -401,7 +401,7 @@ export default function SuppliersPage() {
                     <thead>
                       <tr className="bg-[#C0603E] text-white">
                         {[t('reqLabel', lang), t('price', lang), t('delivery', lang), t('status', lang), t('date', lang)].map(h => (
-                          <th key={h} className="px-4 py-2.5 text-right font-semibold">{h}</th>
+                          <th key={h} className={`px-4 py-2.5 font-semibold ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{h}</th>
                         ))}
                       </tr>
                     </thead>

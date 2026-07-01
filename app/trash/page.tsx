@@ -4,11 +4,17 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
-import { displayVal, restoreRequest, permanentlyDeleteRequest, purgeExpiredTrash, RequestLike } from '../lib/requestHelpers';
+import { displayVal, restoreRequest, permanentlyDeleteRequest, purgeExpiredTrash, restoreDraft, permanentlyDeleteDraft, RequestLike } from '../lib/requestHelpers';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
 
 type Lang = 'ar' | 'en';
+
+interface DraftLike {
+  id: number; contractorId: string; projectName?: string;
+  materials: any[]; location: string; deletedAt: string;
+  [key: string]: any;
+}
 
 const RETENTION_DAYS = 30;
 
@@ -22,6 +28,7 @@ export default function Trash() {
   const [user, setUser] = useState<any>(null);
   const [userName, setUserName] = useState('');
   const [items, setItems] = useState<RequestLike[]>([]);
+  const [draftItems, setDraftItems] = useState<DraftLike[]>([]);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -36,6 +43,10 @@ export default function Trash() {
     const allDeleted = JSON.parse(localStorage.getItem('deletedRequests') || '[]');
     const mine = allDeleted.filter((r: RequestLike) => r.contractorId === parsedUser.email);
     setItems(mine.sort((a: RequestLike, b: RequestLike) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime()));
+
+    const allDeletedDrafts = JSON.parse(localStorage.getItem('deletedDrafts') || '[]');
+    const myDrafts = allDeletedDrafts.filter((d: DraftLike) => d.contractorId === parsedUser.email);
+    setDraftItems(myDrafts.sort((a: DraftLike, b: DraftLike) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime()));
 
     const savedLang = localStorage.getItem('language') as Lang || 'ar';
     setLang(savedLang);
@@ -59,6 +70,13 @@ export default function Trash() {
     return parts.join(' — ') || `#${String(req.id).slice(-4)}`;
   };
 
+  const getDraftName = (draft: DraftLike) => {
+    if (draft.projectName?.trim()) return draft.projectName.trim();
+    const valid = (draft.materials || []).filter((m: any) => m.type?.trim() || m.typePending?.trim());
+    if (valid.length === 0) return t('مسودة بدون اسم', 'Unnamed Draft', lang);
+    return valid.map((m: any) => displayVal(m.type || m.typePending, lang)).filter(Boolean).join(lang === 'ar' ? '، ' : ', ');
+  };
+
   const daysLeft = (deletedAt: string) => {
     const elapsed = Math.floor((Date.now() - new Date(deletedAt).getTime()) / 86400000);
     return Math.max(0, RETENTION_DAYS - elapsed);
@@ -80,10 +98,32 @@ export default function Trash() {
     showToast(t('تم الحذف النهائي', 'Deleted permanently', lang));
   };
 
+  const handleRestoreDraft = (id: number) => {
+    restoreDraft(id);
+    setDraftItems(prev => prev.filter(d => d.id !== id));
+    showToast(t('تم استرجاع المسودة', 'Draft restored', lang));
+  };
+
+  const handlePermanentDeleteDraft = async (id: number) => {
+    if (!(await confirmDialog(
+      t('هذا الإجراء نهائي ولا يمكن التراجع عنه. هل تريد حذف المسودة نهائيًا؟', 'This is permanent and cannot be undone. Delete this draft forever?', lang),
+      { confirmText: t('حذف نهائي', 'Delete Forever', lang), danger: true }
+    ))) return;
+    permanentlyDeleteDraft(id);
+    setDraftItems(prev => prev.filter(d => d.id !== id));
+    showToast(t('تم الحذف النهائي', 'Deleted permanently', lang));
+  };
+
   const filtered = items.filter(r => {
     if (!search) return true;
     const q = search.toLowerCase();
     return getRequestName(r).toLowerCase().includes(q) || (r.location || '').toLowerCase().includes(q);
+  });
+
+  const filteredDrafts = draftItems.filter(d => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return getDraftName(d).toLowerCase().includes(q) || (d.location || '').toLowerCase().includes(q);
   });
 
   if (!user) return <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center"><div className="text-stone-400">Loading...</div></div>;
@@ -105,8 +145,8 @@ export default function Trash() {
       <div className="grid grid-cols-1 gap-3 px-7 py-5 max-w-xs">
         <div className="bg-white border border-[#E8DFD3] rounded-xl p-4">
           <div className="w-9 h-9 bg-stone-100 rounded-lg flex items-center justify-center text-base mb-3">🗑</div>
-          <div className="text-2xl font-bold text-stone-900">{items.length}</div>
-          <div className="text-[11px] text-stone-500 mt-1">{t('طلبات في السلة', 'Items in trash', lang)}</div>
+          <div className="text-2xl font-bold text-stone-900">{items.length + draftItems.length}</div>
+          <div className="text-[11px] text-stone-500 mt-1">{t('عنصر في السلة', 'Items in trash', lang)}</div>
         </div>
       </div>
 
@@ -126,14 +166,14 @@ export default function Trash() {
           </div>
 
           {/* empty state */}
-          {filtered.length === 0 && (
+          {filtered.length === 0 && filteredDrafts.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
               <div className="w-16 h-16 bg-stone-100 rounded-2xl flex items-center justify-center text-3xl mb-4">🗑</div>
               <h3 className="text-stone-700 font-bold text-base mb-1">
                 {search ? t('لا توجد نتائج', 'No results found', lang) : t('السلة فارغة', 'Trash is Empty', lang)}
               </h3>
               <p className="text-stone-400 text-sm mb-5">
-                {t('الطلبات المحذوفة هتظهر هنا', 'Deleted requests will appear here', lang)}
+                {t('الطلبات والمسودات المحذوفة هتظهر هنا', 'Deleted requests and drafts will appear here', lang)}
               </p>
               <Link href="/my-requests"
                 className="bg-[#C0603E] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#9C4C31] transition-colors">
@@ -183,6 +223,52 @@ export default function Trash() {
             </div>
           )}
         </div>
+
+        {/* ── DELETED DRAFTS ── */}
+        {filteredDrafts.length > 0 && (
+          <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden mt-4">
+            <div className="px-5 py-3.5 border-b border-[#F1EAE0]">
+              <span className="text-sm font-bold text-stone-900">{t('المسودات المحذوفة', 'Deleted Drafts', lang)}</span>
+            </div>
+            <div className="divide-y divide-[#FAF7F2]">
+              {filteredDrafts.map(draft => {
+                const left = daysLeft(draft.deletedAt);
+                return (
+                  <div key={draft.id} className="px-5 py-4 hover:bg-[#FFFDF9] transition-colors">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <div className="w-10 h-10 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-center text-lg shrink-0 mt-0.5">
+                          📝
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="text-[13px] font-bold text-stone-900 truncate">{getDraftName(draft)}</span>
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${left <= 3 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-stone-100 text-stone-600 border-stone-200'}`}>
+                              {t(`${left} يوم متبقي`, `${left}d left`, lang)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 flex-wrap text-[11px] text-stone-400">
+                            {draft.location && <span className="flex items-center gap-1">📍 {draft.location}</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button onClick={() => handleRestoreDraft(draft.id)}
+                          className="text-xs font-semibold px-4 py-2 bg-[#C0603E] text-white rounded-xl hover:bg-[#9C4C31] transition-colors">
+                          {t('استرجاع', 'Restore', lang)}
+                        </button>
+                        <button onClick={() => handlePermanentDeleteDraft(draft.id)}
+                          className="text-xs font-semibold px-3 py-2 bg-red-50 text-red-500 border border-red-100 rounded-xl hover:bg-red-100 transition-colors">
+                          {t('حذف نهائي', 'Delete Forever', lang)}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

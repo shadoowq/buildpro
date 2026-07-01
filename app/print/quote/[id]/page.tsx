@@ -19,26 +19,30 @@ export default function PrintQuote() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
+    try {
+      const savedLang = localStorage.getItem('language') as Lang || 'ar';
+      setLang(savedLang);
 
-    const cu = localStorage.getItem('currentUser');
-    const currentUser = cu ? JSON.parse(cu) : null;
+      const cu = localStorage.getItem('currentUser');
+      const currentUser = cu ? JSON.parse(cu) : null;
 
-    const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const found = allQuotes.find(q => q.id === id);
+      const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+      const found = allQuotes.find(q => q.id === id);
 
-    const allReqs: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
-    const foundReq = found ? allReqs.find(r => r.id === found.requestId) : undefined;
-    const owned = found && foundReq && currentUser && foundReq.contractorId === currentUser.email;
+      const allReqs: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
+      const foundReq = found ? allReqs.find(r => r.id === found.requestId) : undefined;
+      const owned = found && foundReq && currentUser && foundReq.contractorId === currentUser.email;
 
-    setQuote(owned ? found! : null);
+      setQuote(owned ? found! : null);
 
-    if (owned) {
-      setReq(foundReq || null);
-      if (currentUser.email === foundReq!.contractorId) setContractor(currentUser);
-      const supStored = localStorage.getItem(`user_${found!.supplierId}`);
-      setSupplier(supStored ? JSON.parse(supStored) : { name: found!.supplierName, company: found!.supplierCompany, email: found!.supplierId });
+      if (owned) {
+        setReq(foundReq || null);
+        if (currentUser.email === foundReq!.contractorId) setContractor(currentUser);
+        const supStored = localStorage.getItem(`user_${found!.supplierId}`);
+        setSupplier(supStored ? JSON.parse(supStored) : { name: found!.supplierName, company: found!.supplierCompany, email: found!.supplierId });
+      }
+    } catch {
+      setQuote(null);
     }
     setReady(true);
   }, [id]);
@@ -65,7 +69,8 @@ export default function PrintQuote() {
 
   const getMaterials = () => {
     if (!req) return [];
-    if (req.materials?.filter((m: any) => m.type?.trim()).length) return req.materials.filter((m: any) => m.type?.trim() || m.typePending?.trim());
+    const withType = req.materials?.filter((m: any) => m.type?.trim() || m.typePending?.trim());
+    if (withType?.length) return withType;
     const rows: any[] = [];
     const types = [{ key: 'ceramic', ar: 'سيراميك', en: 'Ceramic' }, { key: 'porcelain', ar: 'بورسلان', en: 'Porcelain' }, { key: 'marble', ar: 'رخام', en: 'Marble' }, { key: 'granite', ar: 'جرانيت', en: 'Granite' }, { key: 'terrazzo', ar: 'تيرازو', en: 'Terrazzo' }];
     types.forEach(t => { if ((req as any)[t.key] > 0) rows.push({ type: lang === 'ar' ? t.ar : t.en, quantity: (req as any)[t.key], unit: 'م²' }); });

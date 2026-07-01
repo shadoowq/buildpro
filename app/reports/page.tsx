@@ -31,7 +31,7 @@ function t(ar: string, en: string, lang: Lang) { return lang === 'ar' ? ar : en;
 function fmtN(n: number, lang: Lang = 'ar') { return n.toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US'); }
 function fmtDate(d: string, lang: Lang) { return new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
 
-const TH = 'border border-stone-200 bg-[#C0603E] px-3 py-2.5 text-right text-white font-semibold text-[11px] whitespace-nowrap';
+const TH = (lang: Lang) => `border border-stone-200 bg-[#C0603E] px-3 py-2.5 ${lang === 'ar' ? 'text-right' : 'text-left'} text-white font-semibold text-[11px] whitespace-nowrap`;
 const TD = 'border border-stone-200 px-3 py-2 text-[11px] text-stone-700';
 const TDE = 'border border-stone-200 px-3 py-2 text-[11px] text-stone-700 bg-[#FAF7F2]';
 
@@ -266,8 +266,8 @@ export default function ReportsPage() {
             {/* KPI cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { icon: '📋', bg: 'bg-blue-50',    val: requests.length,                                           label: t('إجمالي الطلبات','Total Requests',lang) },
-                { icon: '💼', bg: 'bg-teal-50',    val: quotes.length,                                            label: t('إجمالي العروض','Total Quotes',lang) },
+                { icon: '📋', bg: 'bg-[#F3EAE0]',  val: requests.length,                                           label: t('إجمالي الطلبات','Total Requests',lang) },
+                { icon: '💼', bg: 'bg-stone-100',  val: quotes.length,                                            label: t('إجمالي العروض','Total Quotes',lang) },
                 { icon: '💰', bg: 'bg-emerald-50', val: `${fmtN(totalAccepted, lang)} ${t('ر.س','SAR',lang)}`,          label: t('إجمالي المبالغ المقبولة','Total Accepted',lang) },
                 { icon: '💡', bg: 'bg-amber-50',   val: `${fmtN(totalSavings, lang)} ${t('ر.س','SAR',lang)}`,           label: t('إجمالي الوفر','Total Savings',lang) },
               ].map((s, i) => (
@@ -290,7 +290,7 @@ export default function ReportsPage() {
                     <tr>
                       {[t('المشروع','Project',lang), t('المدينة','City',lang), t('الموعد النهائي','Deadline',lang), t('الحالة','Status',lang),
                         t('عدد العروض','Quotes',lang), t('أقل سعر','Min Price',lang), t('العرض المقبول','Accepted',lang), t('الوفر','Savings',lang), t('تاريخ الإنشاء','Created',lang)
-                      ].map(h => <th key={h} className={TH}>{h}</th>)}
+                      ].map(h => <th key={h} className={TH(lang)}>{h}</th>)}
                     </tr>
                   </thead>
                   <tbody>
@@ -326,10 +326,10 @@ export default function ReportsPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { icon: '🏢', bg: 'bg-blue-50',    val: report2.length,                                                              label: t('موردون تعاملنا معهم','Suppliers',lang) },
+                { icon: '🏢', bg: 'bg-[#F3EAE0]',  val: report2.length,                                                              label: t('موردون تعاملنا معهم','Suppliers',lang) },
                 { icon: '✅', bg: 'bg-emerald-50', val: report2.reduce((s,r)=>s+r.accepted,0),                                       label: t('عروض مقبولة','Accepted Quotes',lang) },
                 { icon: '⭐', bg: 'bg-amber-50',   val: (() => { const rated = report2.filter(r => r.ratingCount > 0); return rated.length ? (rated.reduce((s,r)=>s+r.rating/r.ratingCount,0)/rated.length).toFixed(1) : '—'; })(), label: t('متوسط التقييم','Avg Rating',lang) },
-                { icon: '⚡', bg: 'bg-teal-50',    val: report2.length ? `${Math.round(report2.reduce((s,r)=>s+(r.total?r.totalDays/r.total:0),0)/report2.length)} ${t('يوم','days',lang)}` : '—', label: t('متوسط مدة التوريد','Avg Delivery',lang) },
+                { icon: '⚡', bg: 'bg-stone-100',  val: report2.length ? `${Math.round(report2.reduce((s,r)=>s+(r.total?r.totalDays/r.total:0),0)/report2.length)} ${t('يوم','days',lang)}` : '—', label: t('متوسط مدة التوريد','Avg Delivery',lang) },
               ].map((s, i) => (
                 <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4">
                   <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
@@ -348,7 +348,7 @@ export default function ReportsPage() {
                     <tr>
                       {['#', t('المورد','Supplier',lang), t('إجمالي العروض','Total Quotes',lang), t('مقبول','Accepted',lang), t('مرفوض','Rejected',lang),
                         t('نسبة القبول','Accept Rate',lang), t('متوسط السعر','Avg Price',lang), t('متوسط التوريد','Avg Delivery',lang), t('التقييم','Rating',lang)
-                      ].map(h => <th key={h} className={TH}>{h}</th>)}
+                      ].map(h => <th key={h} className={TH(lang)}>{h}</th>)}
                     </tr>
                   </thead>
                   <tbody>
@@ -395,6 +395,13 @@ export default function ReportsPage() {
         {/* ══════ REPORT 3: Quote Comparison ══════ */}
         {activeTab === 'compare' && (
           <div className="space-y-4">
+            {requests.length === 0 ? (
+              <div className="bg-white border border-[#E8DFD3] rounded-2xl py-16 text-center">
+                <p className="text-3xl mb-3">📭</p>
+                <p className="text-stone-400 text-sm">{t('لا توجد طلبات بعد لمقارنة عروضها','No requests yet to compare quotes for',lang)}</p>
+              </div>
+            ) : (
+            <>
             <div className="bg-white border border-[#E8DFD3] rounded-2xl p-4 flex items-center gap-3">
               <label className="text-sm font-bold text-stone-700 shrink-0">{t('اختر الطلب:','Select Request:',lang)}</label>
               <select value={compareReqId} onChange={e => setCompareReqId(Number(e.target.value))}
@@ -418,7 +425,7 @@ export default function ReportsPage() {
                   </div>
                   <div className="bg-white border border-[#E8DFD3] rounded-xl px-4 py-2.5 text-sm">
                     <span className="text-stone-500">{t('أسرع توريد:','Fastest:',lang)} </span>
-                    <span className="font-bold text-blue-600">{fastestQ ? `${fastestQ.deliveryDays} ${t('يوم','days',lang)}` : '—'}</span>
+                    <span className="font-bold text-[#C0603E]">{fastestQ ? `${fastestQ.deliveryDays} ${t('يوم','days',lang)}` : '—'}</span>
                     {fastestQ && <span className="text-stone-400 text-xs"> ({fastestQ.supplierCompany})</span>}
                   </div>
                   {compareQuotes.length > 1 && cheapestQ && (
@@ -438,7 +445,7 @@ export default function ReportsPage() {
                         <tr>
                           {['#', t('المورد','Supplier',lang), t('السعر الإجمالي','Total Price',lang), t('مدة التوريد','Delivery',lang),
                             t('الفرق عن الأرخص','Diff from Min',lang), t('الحالة','Status',lang), t('ملاحظات','Notes',lang)
-                          ].map(h => <th key={h} className={TH}>{h}</th>)}
+                          ].map(h => <th key={h} className={TH(lang)}>{h}</th>)}
                         </tr>
                       </thead>
                       <tbody>
@@ -455,7 +462,7 @@ export default function ReportsPage() {
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="font-semibold text-stone-900">{q.supplierCompany}</span>
                                   {isCheapest && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{t('الأرخص','Cheapest',lang)}</span>}
-                                  {isFastest  && <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">{t('الأسرع','Fastest',lang)}</span>}
+                                  {isFastest  && <span className="text-[9px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded-full font-bold">{t('الأسرع','Fastest',lang)}</span>}
                                 </div>
                               </td>
                               <td className={`${td} font-bold ${isCheapest?'text-emerald-700':'text-stone-900'}`}>{fmtN(Number(q.totalPrice), lang)} {t('ر.س','SAR',lang)}</td>
@@ -475,6 +482,8 @@ export default function ReportsPage() {
                 </div>
               </div>
             )}
+            </>
+            )}
           </div>
         )}
 
@@ -491,7 +500,7 @@ export default function ReportsPage() {
                     <tr>
                       {[t('الشهر','Month',lang), t('طلبات جديدة','New Requests',lang), t('عروض واردة','Quotes Received',lang),
                         t('عروض مقبولة','Accepted',lang), t('نسبة القبول','Accept Rate',lang), t('إجمالي المبالغ المقبولة','Total Accepted Value',lang)
-                      ].map(h => <th key={h} className={TH}>{h}</th>)}
+                      ].map(h => <th key={h} className={TH(lang)}>{h}</th>)}
                     </tr>
                   </thead>
                   <tbody>
@@ -537,7 +546,7 @@ export default function ReportsPage() {
                     <tr>
                       {['#', t('نوع المادة','Material Type',lang), t('عدد الطلبات','Requests',lang), t('إجمالي الكمية','Total Qty',lang),
                         t('عروض واردة','Quotes',lang), t('متوسط السعر المقبول','Avg Accepted Price',lang)
-                      ].map(h => <th key={h} className={TH}>{h}</th>)}
+                      ].map(h => <th key={h} className={TH(lang)}>{h}</th>)}
                     </tr>
                   </thead>
                   <tbody>
@@ -572,10 +581,10 @@ export default function ReportsPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
                 { icon: '📋', label: t('إجمالي الطلبات','Total Requests',lang),           val: requests.length,                         sub: `${exec.open} ${t('مفتوح','open',lang)} · ${exec.closed} ${t('مغلق','closed',lang)}`,       color: 'text-[#C0603E]'  },
-                { icon: '💼', label: t('إجمالي العروض الواردة','Total Quotes Received',lang), val: quotes.length,                          sub: `${exec.pendQ} ${t('انتظار','pending',lang)} · ${exec.accQ} ${t('مقبول','accepted',lang)}`, color: 'text-teal-600'    },
+                { icon: '💼', label: t('إجمالي العروض الواردة','Total Quotes Received',lang), val: quotes.length,                          sub: `${exec.pendQ} ${t('انتظار','pending',lang)} · ${exec.accQ} ${t('مقبول','accepted',lang)}`, color: 'text-[#8A7B6C]'   },
                 { icon: '💰', label: t('إجمالي المبالغ المقبولة','Total Accepted Value',lang), val: `${fmtN(exec.totalV, lang)} ${t('ر.س','SAR',lang)}`, sub: `${exec.accQ} ${t('عرض مقبول','accepted quotes',lang)}`,                             color: 'text-emerald-600' },
                 { icon: '⚡', label: t('متوسط وقت استلام العروض','Avg Quote Response',lang),  val: `${exec.avgDays.toFixed(1)} ${t('يوم','days',lang)}`, sub: t('من تاريخ الطلب','from request date',lang),                              color: 'text-amber-600'   },
-                { icon: '✅', label: t('نسبة القبول الكلية','Overall Accept Rate',lang),      val: quotes.length ? `${Math.round((exec.accQ/quotes.length)*100)}%` : '—', sub: `${exec.accQ} / ${quotes.length}`,                     color: 'text-blue-600'    },
+                { icon: '✅', label: t('نسبة القبول الكلية','Overall Accept Rate',lang),      val: quotes.length ? `${Math.round((exec.accQ/quotes.length)*100)}%` : '—', sub: `${exec.accQ} / ${quotes.length}`,                     color: 'text-[#C0603E]'   },
                 { icon: '⭐', label: t('متوسط تقييم الموردين','Avg Supplier Rating',lang),   val: ratings.length ? exec.avgRating.toFixed(1) : '—', sub: `${ratings.length} ${t('تقييم','ratings',lang)}`,                              color: 'text-amber-500'   },
               ].map((k, i) => (
                 <div key={i} className="bg-white border border-[#E8DFD3] rounded-2xl p-5">
@@ -637,9 +646,9 @@ export default function ReportsPage() {
                   {report2.length > 0 && <li>✓ {t('تعاملت مع','Worked with',lang)} <strong>{report2.length}</strong> {t('مورد مختلف','different suppliers',lang)}</li>}
                 </ul>
               </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5">
-                <div className="text-blue-800 font-bold text-sm mb-2">📈 {t('فرص للتحسين','Improvement Opportunities',lang)}</div>
-                <ul className="space-y-1.5 text-xs text-blue-700">
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+                <div className="text-amber-800 font-bold text-sm mb-2">📈 {t('فرص للتحسين','Improvement Opportunities',lang)}</div>
+                <ul className="space-y-1.5 text-xs text-amber-700">
                   {exec.pendQ > 0 && <li>• {exec.pendQ} {t('عرض لم يُتخذ قرار فيه بعد','quotes awaiting your decision',lang)}</li>}
                   {exec.open > 0 && exec.accQ === 0 && <li>• {t('لديك طلبات مفتوحة بدون موافقة على عروض','You have open requests with no accepted quotes',lang)}</li>}
                   {exec.avgDays > 7 && <li>• {t('متوسط وقت الرد من الموردين','Avg supplier response time',lang)} {exec.avgDays.toFixed(0)} {t('يوم — يمكن تحسينه بالتواصل المبكر','days — early outreach can help',lang)}</li>}

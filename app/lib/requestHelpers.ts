@@ -94,12 +94,22 @@ export function restoreRequest(requestId: number): { requests: RequestLike[]; de
   return { requests: restored, deleted: remainingDeleted };
 }
 
+function purgeRequestTraces(requestIds: number[]): void {
+  if (requestIds.length === 0) return;
+  const idSet = new Set(requestIds);
+  const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+  localStorage.setItem('quotes', JSON.stringify(allQuotes.filter(q => !idSet.has(q.requestId))));
+  const allLogs: ActivityLog[] = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+  localStorage.setItem('activityLogs', JSON.stringify(allLogs.filter(l => !idSet.has(l.requestId))));
+  const allRatings: any[] = JSON.parse(localStorage.getItem('ratings') || '[]');
+  localStorage.setItem('ratings', JSON.stringify(allRatings.filter(r => !idSet.has(r.requestId))));
+}
+
 export function permanentlyDeleteRequest(requestId: number): { deleted: RequestLike[] } {
   const deletedRequests: RequestLike[] = JSON.parse(localStorage.getItem('deletedRequests') || '[]');
   const remainingDeleted = deletedRequests.filter(r => r.id !== requestId);
   localStorage.setItem('deletedRequests', JSON.stringify(remainingDeleted));
-  const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
-  localStorage.setItem('quotes', JSON.stringify(allQuotes.filter(q => q.requestId !== requestId)));
+  purgeRequestTraces([requestId]);
   return { deleted: remainingDeleted };
 }
 
@@ -109,9 +119,45 @@ export function purgeExpiredTrash(days = 30): void {
   const kept = deletedRequests.filter(r => !r.deletedAt || new Date(r.deletedAt).getTime() > cutoff);
   if (kept.length !== deletedRequests.length) {
     const keptIds = new Set(kept.map(r => r.id));
-    const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
     const purgedIds = deletedRequests.filter(r => !keptIds.has(r.id)).map(r => r.id);
-    localStorage.setItem('quotes', JSON.stringify(allQuotes.filter(q => !purgedIds.includes(q.requestId))));
+    purgeRequestTraces(purgedIds);
     localStorage.setItem('deletedRequests', JSON.stringify(kept));
   }
+
+  const deletedDrafts: any[] = JSON.parse(localStorage.getItem('deletedDrafts') || '[]');
+  const keptDrafts = deletedDrafts.filter(d => !d.deletedAt || new Date(d.deletedAt).getTime() > cutoff);
+  if (keptDrafts.length !== deletedDrafts.length) {
+    localStorage.setItem('deletedDrafts', JSON.stringify(keptDrafts));
+  }
+}
+
+/* ── drafts trash (soft-delete) ── */
+
+export function softDeleteDraft(draftId: number): void {
+  softDeleteDrafts([draftId]);
+}
+
+export function softDeleteDrafts(draftIds: number[]): void {
+  const idSet = new Set(draftIds);
+  const allDrafts: any[] = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
+  const toTrash = allDrafts.filter(d => idSet.has(d.id)).map(d => ({ ...d, deletedAt: new Date().toISOString() }));
+  const remaining = allDrafts.filter(d => !idSet.has(d.id));
+  const deletedDrafts: any[] = JSON.parse(localStorage.getItem('deletedDrafts') || '[]');
+  localStorage.setItem('deletedDrafts', JSON.stringify([...deletedDrafts, ...toTrash]));
+  localStorage.setItem('requestDrafts', JSON.stringify(remaining));
+}
+
+export function restoreDraft(draftId: number): void {
+  const deletedDrafts: any[] = JSON.parse(localStorage.getItem('deletedDrafts') || '[]');
+  const found = deletedDrafts.find(d => d.id === draftId);
+  const remainingDeleted = deletedDrafts.filter(d => d.id !== draftId);
+  const allDrafts: any[] = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
+  const restored = found ? [...allDrafts, { ...found, deletedAt: undefined }] : allDrafts;
+  localStorage.setItem('requestDrafts', JSON.stringify(restored));
+  localStorage.setItem('deletedDrafts', JSON.stringify(remainingDeleted));
+}
+
+export function permanentlyDeleteDraft(draftId: number): void {
+  const deletedDrafts: any[] = JSON.parse(localStorage.getItem('deletedDrafts') || '[]');
+  localStorage.setItem('deletedDrafts', JSON.stringify(deletedDrafts.filter(d => d.id !== draftId)));
 }

@@ -5,7 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../../components/ContractorNav';
 import StatusBadge from '../../components/StatusBadge';
+import RatingModal from '../../components/RatingModal';
 import { formatDate, displayVal, arToEn, appendActivityLog, setQuoteStatus } from '../../lib/requestHelpers';
+import { useConfirm } from '../../components/ConfirmDialog';
 
 type Lang = 'ar' | 'en';
 type QuoteStatus = 'pending' | 'accepted' | 'rejected' | 'revision';
@@ -41,6 +43,11 @@ interface ActivityLog {
   id: number; requestId: number;
   action: string; actionEn: string;
   timestamp: string;
+}
+
+interface Rating {
+  id: number; requestId: number; supplierId: string;
+  supplierCompany: string; rating: number; comment: string; createdAt: string;
 }
 
 const T = {
@@ -104,6 +111,7 @@ export default function RequestDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = Number(params.id);
+  const confirmDialog = useConfirm();
 
   const [lang, setLang] = useState<Lang>('ar');
   const [userName, setUserName] = useState('');
@@ -116,6 +124,9 @@ export default function RequestDetailPage() {
   const [revisionNote, setRevisionNote] = useState('');
   const [revisionError, setRevisionError] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [ratings, setRatings] = useState<Rating[]>([]);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [ratingQuote, setRatingQuote] = useState<Quote | null>(null);
 
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
@@ -138,6 +149,8 @@ export default function RequestDetailPage() {
     const allLogs: ActivityLog[] = JSON.parse(localStorage.getItem('activityLogs') || '[]');
     setLogs(allLogs.filter(l => l.requestId === id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
 
+    setRatings(JSON.parse(localStorage.getItem('ratings') || '[]'));
+
     setLoading(false);
   }, [id, router]);
 
@@ -148,7 +161,14 @@ export default function RequestDetailPage() {
     setLogs(allLogs.filter((l: ActivityLog) => l.requestId === id).sort((a: ActivityLog, b: ActivityLog) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
   };
 
-  const handleQuoteAction = (quoteId: number, action: QuoteStatus | 'pending') => {
+  const handleQuoteAction = async (quoteId: number, action: QuoteStatus | 'pending') => {
+    if (action === 'accepted' || action === 'rejected') {
+      const msg = action === 'accepted'
+        ? (lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?')
+        : (lang === 'ar' ? 'هل أنت متأكد من رفض هذا العرض؟' : 'Reject this quote?');
+      const confirmText = action === 'accepted' ? (lang === 'ar' ? 'قبول' : 'Accept') : (lang === 'ar' ? 'رفض' : 'Reject');
+      if (!(await confirmDialog(msg, { confirmText, danger: action === 'rejected' }))) return;
+    }
     const { quotes: updated, quote: q } = setQuoteStatus(quoteId, action);
     setQuotes(updated.filter((x: Quote) => x.requestId === id));
     if (q) {
@@ -172,21 +192,43 @@ export default function RequestDetailPage() {
     if (!request) return;
     const newStatus = request.status === 'open' ? 'closed' : 'open';
     const all: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
-    const updated = all.map(r => r.id === id ? { ...r, status: newStatus as 'open' | 'closed' } : r);
+    const updated = all.map(r => r.id === id ? { ...r, status: newStatus as 'open' | 'closed', kanbanColumn: newStatus === 'closed' ? 'closed' : undefined } : r);
     localStorage.setItem('requests', JSON.stringify(updated));
     setRequest(prev => prev ? { ...prev, status: newStatus as 'open' | 'closed' } : prev);
     addLog(
       newStatus === 'closed' ? 'تم إغلاق الطلب' : 'تم فتح الطلب',
       newStatus === 'closed' ? 'Request closed' : 'Request reopened',
     );
+    if (newStatus === 'closed') {
+      const acceptedQuote = quotes.find(q => q.status === 'accepted');
+      const alreadyRated = ratings.find(r => r.requestId === id);
+      if (acceptedQuote && !alreadyRated) {
+        setRatingQuote(acceptedQuote);
+        setShowRatingModal(true);
+      }
+    }
+  };
+
+  const handleSubmitRating = (stars: number, comment: string) => {
+    if (!ratingQuote) return;
+    const allRatings = JSON.parse(localStorage.getItem('ratings') || '[]');
+    const newRating: Rating = { id: Date.now(), requestId: id, supplierId: ratingQuote.supplierId, supplierCompany: ratingQuote.supplierCompany, rating: stars, comment, createdAt: new Date().toISOString() };
+    allRatings.push(newRating);
+    localStorage.setItem('ratings', JSON.stringify(allRatings));
+    setRatings(allRatings);
+    addLog(`تم تقييم ${ratingQuote.supplierCompany} بـ ${stars} نجوم`, `Rated ${ratingQuote.supplierCompany} ${stars} stars`);
+    setShowRatingModal(false);
+    setRatingQuote(null);
   };
 
   const handleDuplicate = () => {
     if (!request) return;
     const all: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
-    const copy = { ...request, id: Date.now(), status: 'open' as const, createdAt: new Date().toISOString(), projectName: request.projectName ? `${request.projectName} (${lang === 'ar' ? 'نسخة' : 'copy'})` : undefined };
+    const newId = Date.now();
+    const copy = { ...request, id: newId, status: 'open' as const, kanbanColumn: undefined, createdAt: new Date().toISOString(), projectName: request.projectName ? `${request.projectName} (${lang === 'ar' ? 'نسخة' : 'copy'})` : undefined };
     all.push(copy);
     localStorage.setItem('requests', JSON.stringify(all));
+    appendActivityLog(newId, `تم إنشاء طلب بنسخ طلب #${request.id}`, `Duplicated from request #${request.id}`);
     router.push('/my-requests');
   };
 
@@ -201,7 +243,7 @@ export default function RequestDetailPage() {
     if (req.projectName?.trim()) return req.projectName.trim();
     if (req.materials?.length) {
       const types = [...new Set(req.materials.map((m: any) => m.type || m.typePending).filter(Boolean))];
-      if (types.length) return types.join(' — ');
+      if (types.length) return types.map(tp => displayVal(tp as string, lang)).join(' — ');
     }
     const parts: string[] = [];
     if (req.ceramic > 0)   parts.push(`${lang === 'ar' ? 'سيراميك' : 'Ceramic'} ${req.ceramic}m²`);
@@ -411,7 +453,7 @@ export default function RequestDetailPage() {
                         <p className="text-[11px] text-stone-400">{q.supplierName}</p>
                         <StatusBadge status={q.status} lang={lang} />
                         {q.id === cheapestId && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{t('cheapest', lang)}</span>}
-                        {q.id === fastestId  && <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">{t('fastest', lang)}</span>}
+                        {q.id === fastestId  && <span className="text-[9px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded-full font-bold">{t('fastest', lang)}</span>}
                       </div>
                       <div className="flex gap-4 mt-1">
                         <span className="text-xl font-bold text-stone-900">{Number(q.totalPrice).toLocaleString()} <span className="text-xs font-medium text-stone-500">{t('sar', lang)}</span></span>
@@ -506,6 +548,13 @@ export default function RequestDetailPage() {
           </div>
         )}
       </div>
+
+      {/* RATING MODAL */}
+      {showRatingModal && ratingQuote && (
+        <RatingModal lang={lang} supplierCompany={ratingQuote.supplierCompany}
+          onSubmit={handleSubmitRating}
+          onSkip={() => { setShowRatingModal(false); setRatingQuote(null); }} />
+      )}
 
       {/* LIGHTBOX */}
       {lightbox && (

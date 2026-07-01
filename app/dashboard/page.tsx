@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import ContractorNav from '../components/ContractorNav'
 import RequestDetailModal from '../components/RequestDetailModal'
-import { appendActivityLog, setQuoteStatus, softDeleteRequest } from '../lib/requestHelpers'
+import { appendActivityLog, setQuoteStatus, softDeleteRequest, displayVal } from '../lib/requestHelpers'
 import { buildNotifications, notifIconMap, timeAgo, NotifItem } from '../lib/notifications'
 import { useToast } from '../components/Toast'
 import { useConfirm } from '../components/ConfirmDialog'
@@ -135,7 +135,7 @@ function QuotesBadge({ count }: { count: number }) {
   return (
     <span className={`inline-flex items-center justify-center min-w-[26px] h-[22px] rounded-md text-xs font-bold px-1.5 ${
       count >= 3 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                 : 'bg-blue-50 text-blue-700 border border-blue-200'
+                 : 'bg-stone-100 text-stone-600 border border-stone-200'
     }`}>{count}</span>
   )
 }
@@ -173,6 +173,7 @@ export default function DashboardPage() {
   const [ratings, setRatings]         = useState<any[]>([])
   const [drafts, setDrafts]           = useState<any[]>([])
   const [allUsers, setAllUsers]       = useState<any[]>([])
+  const [seenIds, setSeenIds]         = useState<Set<string>>(new Set())
 
   const [selected, setSelected]   = useState<any>(null)
   const [lightbox, setLightbox]   = useState<string | null>(null)
@@ -191,7 +192,10 @@ export default function DashboardPage() {
       try {
         const u = JSON.parse(userData)
         if (u.name)  setUserName(u.name)
-        if (u.email) setUserEmail(u.email)
+        if (u.email) {
+          setUserEmail(u.email)
+          try { setSeenIds(new Set(JSON.parse(localStorage.getItem(`notifSeen_${u.email}`) || '[]'))) } catch {}
+        }
       } catch {}
     }
 
@@ -219,7 +223,7 @@ export default function DashboardPage() {
     if (r.projectName?.trim()) return r.projectName.trim()
     if (r.materials?.length > 0) {
       const types = [...new Set(r.materials.map((m: any) => m.type || m.typePending).filter(Boolean))] as string[]
-      if (types.length > 0) return types.join(' — ')
+      if (types.length > 0) return types.map(tp => displayVal(tp, lang)).join(' — ')
     }
     const parts: string[] = []
     if (r.ceramic   > 0) parts.push(`${lang === 'ar' ? 'سيراميك'  : 'Ceramic'}  ${r.ceramic}m²`)
@@ -232,7 +236,7 @@ export default function DashboardPage() {
 
   const getReqTags = (r: any): string[] => {
     if (r.materials?.length > 0)
-      return [...new Set(r.materials.map((m: any) => m.type || m.typePending).filter(Boolean))] as string[]
+      return [...new Set(r.materials.map((m: any) => m.type || m.typePending).filter(Boolean))].map(tp => displayVal(tp as string, lang))
     return ([
       r.ceramic   > 0 ? (lang === 'ar' ? 'سيراميك'  : 'Ceramic')   : null,
       r.porcelain > 0 ? (lang === 'ar' ? 'بورسلان'  : 'Porcelain') : null,
@@ -308,7 +312,7 @@ export default function DashboardPage() {
       .map((u: any) => {
         const suppRatings = ratings.filter((r: any) => r.supplierId === u.email)
         const avgRating   = suppRatings.length > 0
-          ? Math.round(suppRatings.reduce((s: number, r: any) => s + r.rating, 0) / suppRatings.length)
+          ? suppRatings.reduce((s: number, r: any) => s + r.rating, 0) / suppRatings.length
           : 0
         const qCount = allQuotes.filter((q: any) => q.supplierId === u.email).length
         const displayName = u.company || u.name || u.email
@@ -347,7 +351,14 @@ export default function DashboardPage() {
       : appendActivityLog(id, 'تم فتح الطلب', 'Request reopened'))
   }
 
-  const handleQuoteAction = (quoteId: number, action: 'accepted' | 'rejected' | 'pending') => {
+  const handleQuoteAction = async (quoteId: number, action: 'accepted' | 'rejected' | 'pending') => {
+    if (action === 'accepted' || action === 'rejected') {
+      const msg = action === 'accepted'
+        ? (lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?')
+        : (lang === 'ar' ? 'هل أنت متأكد من رفض هذا العرض؟' : 'Reject this quote?')
+      const confirmText = action === 'accepted' ? (lang === 'ar' ? 'قبول' : 'Accept') : (lang === 'ar' ? 'رفض' : 'Reject')
+      if (!(await confirmDialog(msg, { confirmText, danger: action === 'rejected' }))) return
+    }
     const { quotes: updated, quote } = setQuoteStatus(quoteId, action)
     setAllQuotes(updated)
     if (quote) {
@@ -381,8 +392,8 @@ export default function DashboardPage() {
             </p>
             <h1 className="text-white text-xl font-bold mb-1">{tStr('hello', lang)} {userName}</h1>
             <p className="text-white/50 text-xs">
-              {stats.totalQ > 0
-                ? `${stats.totalQ} ${tStr('heroSub', lang)}`
+              {unreadQuotes > 0
+                ? `${unreadQuotes} ${tStr('heroSub', lang)}`
                 : (lang === 'ar' ? 'ابدأ بإنشاء طلب تسعير جديد' : 'Start by creating a new pricing request')}
             </p>
           </div>
@@ -420,11 +431,11 @@ export default function DashboardPage() {
             badgeCls: 'bg-emerald-50 text-emerald-700',
           },
           {
-            icon: '📥', bg: 'bg-teal-50',
+            icon: '📥', bg: 'bg-[#F3EAE0]',
             val: stats.totalQ,
             label: tStr('incomingQ', lang),
             badge: unreadQuotes > 0 ? `${unreadQuotes} ${lang === 'ar' ? 'جديدة' : 'new'}` : null,
-            badgeCls: 'bg-blue-50 text-[#8A7B6C]',
+            badgeCls: 'bg-[#F3EAE0] text-[#8A7B6C]',
           },
           {
             icon: '💰', bg: 'bg-emerald-50',
@@ -485,7 +496,7 @@ export default function DashboardPage() {
             <thead>
               <tr className="bg-[#FFFDF9] border-b border-[#F1EAE0]">
                 {[tStr('reqId',lang), tStr('reqName',lang), tStr('status',lang), tStr('quotesCol',lang), tStr('deadline',lang), ''].map((h, i) => (
-                  <th key={i} className="text-[10px] font-semibold uppercase tracking-wider text-stone-400 px-4 py-2.5 text-right"
+                  <th key={i} className={`text-[10px] font-semibold uppercase tracking-wider text-stone-400 px-4 py-2.5 ${lang === 'ar' ? 'text-right' : 'text-left'}`}
                     style={i === 3 ? { textAlign: 'center' } : {}}>
                     {h}
                   </th>
@@ -524,7 +535,7 @@ export default function DashboardPage() {
                       <td className="px-4 py-3"><span className="text-xs text-stone-600">⏱ {req.deadline}</span></td>
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <button onClick={() => raw && setSelected(raw)}
-                          className="text-[11px] font-semibold text-[#C0603E] bg-blue-50 border border-blue-100 rounded-md px-2.5 py-1 hover:bg-blue-100 transition-colors">
+                          className="text-[11px] font-semibold text-[#C0603E] bg-[#F3EAE0] border border-[#E8DFD3] rounded-md px-2.5 py-1 hover:bg-[#EDE0D2] transition-colors">
                           {tStr('view', lang)}
                         </button>
                       </td>
@@ -576,7 +587,7 @@ export default function DashboardPage() {
                       <p className="text-[11px] text-stone-700 leading-relaxed">{lang === 'ar' ? n.textAr : n.textEn}</p>
                       <p className="text-[10px] text-stone-400 mt-0.5">{timeAgo(n.timestamp, lang)}</p>
                     </div>
-                    {n.unread && <span className="w-1.5 h-1.5 rounded-full bg-[#8A7B6C] shrink-0 mt-1.5" />}
+                    {n.unread && !seenIds.has(n.id) && <span className="w-1.5 h-1.5 rounded-full bg-[#8A7B6C] shrink-0 mt-1.5" />}
                   </Link>
                 )
               })
@@ -607,8 +618,13 @@ export default function DashboardPage() {
                     <div className="text-[10px] text-stone-500">{s.city || s.name}</div>
                   </div>
                   <div className="flex flex-col items-end gap-0.5">
-                    <div className="text-xs text-amber-400">
-                      {s.stars > 0 ? '★'.repeat(s.stars) + '☆'.repeat(5 - s.stars) : '—'}
+                    <div className="text-xs text-amber-400 flex items-center gap-1">
+                      {s.stars > 0 ? (
+                        <>
+                          <span>{'★'.repeat(Math.round(s.stars)) + '☆'.repeat(5 - Math.round(s.stars))}</span>
+                          <span className="text-[9px] text-stone-400">({s.stars.toFixed(1)})</span>
+                        </>
+                      ) : '—'}
                     </div>
                     <span className="text-[9px] text-stone-400">
                       {s.quoteCount} {lang === 'ar' ? 'عرض' : 'quotes'}
@@ -631,8 +647,8 @@ export default function DashboardPage() {
                 const totalClosed = Math.max(rows.filter(r => r.status === 'done').length, 1)
                 return [
                   { ar: 'طلبات مرسلة',  en: 'Sent Requests',  val: `${reqsThisMonth} / ${myRequests.length}`,   pct: Math.round(reqsThisMonth / totalReqs * 100),   color: 'bg-[#8A7B6C]'  },
-                  { ar: 'عروض مستلمة',  en: 'Received Quotes', val: `${quotesThisMonth} / ${myQuotes.length}`,   pct: Math.round(quotesThisMonth / totalQuotes * 100), color: 'bg-blue-500'   },
-                  { ar: 'صفقات مغلقة', en: 'Closed Deals',   val: `${closedThisMonth} / ${rows.length}`,        pct: Math.round(closedThisMonth / totalClosed * 100), color: 'bg-purple-500' },
+                  { ar: 'عروض مستلمة',  en: 'Received Quotes', val: `${quotesThisMonth} / ${myQuotes.length}`,   pct: Math.round(quotesThisMonth / totalQuotes * 100), color: 'bg-[#C0603E]'  },
+                  { ar: 'صفقات مغلقة', en: 'Closed Deals',   val: `${closedThisMonth} / ${rows.length}`,        pct: Math.round(closedThisMonth / totalClosed * 100), color: 'bg-amber-500'  },
                 ]
               })().map(p => (
                 <div key={p.ar}>

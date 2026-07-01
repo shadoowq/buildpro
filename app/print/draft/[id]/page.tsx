@@ -17,13 +17,19 @@ export default function PrintDraft() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
-    const userData = localStorage.getItem('currentUser');
-    if (userData) setUser(JSON.parse(userData));
-    const allDrafts: Draft[] = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
-    const found = allDrafts.find(d => d.id === id);
-    setDraft(found || null);
+    try {
+      const savedLang = localStorage.getItem('language') as Lang || 'ar';
+      setLang(savedLang);
+      const userData = localStorage.getItem('currentUser');
+      const currentUser = userData ? JSON.parse(userData) : null;
+      if (currentUser) setUser(currentUser);
+      const allDrafts: Draft[] = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
+      const found = allDrafts.find(d => d.id === id);
+      const owned = found && currentUser && found.contractorId === currentUser.email;
+      setDraft(owned ? found! : null);
+    } catch {
+      setDraft(null);
+    }
     setReady(true);
   }, [id]);
 
@@ -57,7 +63,7 @@ export default function PrintDraft() {
   };
 
   const S = {
-    th:  { background: '#57534E', color: '#fff', fontWeight: 700, padding: '7px 8px', textAlign: 'right' as const, border: '1px solid #44403C', whiteSpace: 'nowrap' as const, fontSize: 11 },
+    th:  { background: '#57534E', color: '#fff', fontWeight: 700, padding: '7px 8px', textAlign: (lang === 'ar' ? 'right' : 'left') as 'right' | 'left', border: '1px solid #44403C', whiteSpace: 'nowrap' as const, fontSize: 11 },
     tdE: { border: '1px solid #E8DFD3', padding: '6px 8px', color: '#44403C', fontSize: 11 },
     tdO: { border: '1px solid #E8DFD3', padding: '6px 8px', color: '#44403C', fontSize: 11, background: '#FAF7F2' },
   };

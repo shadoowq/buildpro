@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
 import RequestDetailModal from '../components/RequestDetailModal';
+import RatingModal from '../components/RatingModal';
 import { displayVal, appendActivityLog, setQuoteStatus, softDeleteRequest, softDeleteRequests } from '../lib/requestHelpers';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -251,8 +252,6 @@ export default function MyRequests() {
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingRequest, setRatingRequest] = useState<Request | null>(null);
   const [ratingQuote, setRatingQuote] = useState<Quote | null>(null);
-  const [ratingStars, setRatingStars] = useState(0);
-  const [ratingComment, setRatingComment] = useState('');
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
@@ -333,7 +332,7 @@ export default function MyRequests() {
   };
   const getRequestTags = (req: Request): string[] => {
     if (req.materials && req.materials.length > 0)
-      return [...new Set(req.materials.map((m: any) => m.type || m.typePending).filter(Boolean))] as string[];
+      return [...new Set(req.materials.map((m: any) => m.type || m.typePending).filter(Boolean))].map(tp => displayVal(tp as string, lang));
     return [
       req.ceramic > 0 ? (lang === 'ar' ? 'سيراميك' : 'Ceramic') : null,
       req.porcelain > 0 ? (lang === 'ar' ? 'بورسلان' : 'Porcelain') : null,
@@ -348,7 +347,7 @@ export default function MyRequests() {
     const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
     const req = allRequests.find((r: Request) => r.id === requestId);
     const newStatus = req?.status === 'open' ? 'closed' : 'open';
-    const updated = allRequests.map((r: Request) => r.id === requestId ? { ...r, status: newStatus } : r);
+    const updated = allRequests.map((r: Request) => r.id === requestId ? { ...r, status: newStatus, kanbanColumn: newStatus === 'closed' ? 'closed' : undefined } : r);
     localStorage.setItem('requests', JSON.stringify(updated));
     setRequests(updated.filter((r: Request) => r.contractorId === user.email));
     if (newStatus === 'closed') {
@@ -385,7 +384,14 @@ export default function MyRequests() {
     setSelectedRequest(null);
     showToast(lang === 'ar' ? 'تم نقل الطلب لسلة المهملات' : 'Moved to trash');
   };
-  const handleQuoteAction = (quoteId: number, action: 'accepted' | 'rejected' | 'pending') => {
+  const handleQuoteAction = async (quoteId: number, action: 'accepted' | 'rejected' | 'pending') => {
+    if (action === 'accepted' || action === 'rejected') {
+      const msg = action === 'accepted'
+        ? (lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?')
+        : (lang === 'ar' ? 'هل أنت متأكد من رفض هذا العرض؟' : 'Reject this quote?');
+      const confirmText = action === 'accepted' ? (lang === 'ar' ? 'قبول' : 'Accept') : (lang === 'ar' ? 'رفض' : 'Reject');
+      if (!(await confirmDialog(msg, { confirmText, danger: action === 'rejected' }))) return;
+    }
     const { quotes: updated, quote } = setQuoteStatus(quoteId, action);
     setQuotes(updated);
     if (quote) {
@@ -402,16 +408,15 @@ export default function MyRequests() {
     setRevisionQuoteId(null);
     setRevisionNote('');
   };
-  const handleSubmitRating = () => {
-    if (ratingStars === 0) { showToast(t('selectRating', lang), 'error'); return; }
+  const handleSubmitRating = (stars: number, comment: string) => {
     if (!ratingRequest || !ratingQuote) return;
     const allRatings = JSON.parse(localStorage.getItem('ratings') || '[]');
-    const newRating: Rating = { id: Date.now(), requestId: ratingRequest.id, supplierId: ratingQuote.supplierId, supplierCompany: ratingQuote.supplierCompany, rating: ratingStars, comment: ratingComment, createdAt: new Date().toISOString() };
+    const newRating: Rating = { id: Date.now(), requestId: ratingRequest.id, supplierId: ratingQuote.supplierId, supplierCompany: ratingQuote.supplierCompany, rating: stars, comment, createdAt: new Date().toISOString() };
     allRatings.push(newRating);
     localStorage.setItem('ratings', JSON.stringify(allRatings));
     setRatings(allRatings);
-    addActivityLog(ratingRequest.id, `تم تقييم ${ratingQuote.supplierCompany} بـ ${ratingStars} نجوم`, `Rated ${ratingQuote.supplierCompany} ${ratingStars} stars`);
-    setShowRatingModal(false); setRatingStars(0); setRatingComment(''); setRatingRequest(null); setRatingQuote(null);
+    addActivityLog(ratingRequest.id, `تم تقييم ${ratingQuote.supplierCompany} بـ ${stars} نجوم`, `Rated ${ratingQuote.supplierCompany} ${stars} stars`);
+    setShowRatingModal(false); setRatingRequest(null); setRatingQuote(null);
     showToast(lang === 'ar' ? 'تم إرسال التقييم بنجاح!' : 'Rating submitted successfully!');
   };
 
@@ -444,9 +449,10 @@ export default function MyRequests() {
   };
   const handleBulkSetStatus = (status: 'open' | 'closed') => {
     const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
-    const updated = allRequests.map((r: Request) => selectedIds.has(r.id) ? { ...r, status } : r);
+    const updated = allRequests.map((r: Request) => selectedIds.has(r.id) ? { ...r, status, kanbanColumn: status === 'closed' ? 'closed' : undefined } : r);
     localStorage.setItem('requests', JSON.stringify(updated));
     setRequests(updated.filter((r: Request) => r.contractorId === user.email));
+    selectedIds.forEach(id => addActivityLog(id, status === 'closed' ? 'تم إغلاق الطلب' : 'تم فتح الطلب', status === 'closed' ? 'Request closed' : 'Request reopened'));
     setSelectedIds(new Set());
   };
 
@@ -466,6 +472,7 @@ export default function MyRequests() {
     );
     localStorage.setItem('requests', JSON.stringify(updated));
     setRequests(updated.filter((r: Request) => r.contractorId === user.email));
+    addActivityLog(draggingId, `تم نقل الطلب إلى ${T[col === 'active' ? 'kanbanActive' : col === 'awaiting' ? 'kanbanPend' : 'kanbanClosed'].ar}`, `Moved request to ${T[col === 'active' ? 'kanbanActive' : col === 'awaiting' ? 'kanbanPend' : 'kanbanClosed'].en}`);
     setDraggingId(null);
     setDragOverCol(null);
   };
@@ -479,6 +486,7 @@ export default function MyRequests() {
     );
     localStorage.setItem('requests', JSON.stringify(updated));
     setRequests(updated.filter((r: Request) => r.contractorId === user.email));
+    addActivityLog(reqId, `تم نقل الطلب إلى ${T[col === 'active' ? 'kanbanActive' : col === 'awaiting' ? 'kanbanPend' : 'kanbanClosed'].ar}`, `Moved request to ${T[col === 'active' ? 'kanbanActive' : col === 'awaiting' ? 'kanbanPend' : 'kanbanClosed'].en}`);
     setMoveMenuId(null);
   };
 
@@ -558,9 +566,9 @@ export default function MyRequests() {
       {/* ── STATS ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {[
-          { icon: '📋', bg: 'bg-blue-50',    val: stats.total,  label: t('totalReqs', lang),  badge: null },
+          { icon: '📋', bg: 'bg-amber-50',   val: stats.total,  label: t('totalReqs', lang),  badge: null },
           { icon: '🔥', bg: 'bg-emerald-50', val: stats.active, label: t('activeReqs', lang), badge: stats.active > 0 ? t('thisMonth', lang) : null },
-          { icon: '📥', bg: 'bg-teal-50',    val: stats.quotes, label: t('incomingQ', lang),  badge: newQuotesCount > 0 ? `${newQuotesCount} ${t('unread', lang)}` : null },
+          { icon: '📥', bg: 'bg-[#F3EAE0]',  val: stats.quotes, label: t('incomingQ', lang),  badge: newQuotesCount > 0 ? `${newQuotesCount} ${t('unread', lang)}` : null },
           { icon: '🔒', bg: 'bg-stone-50',   val: stats.closed, label: t('closedReqs', lang), badge: null },
         ].map((s, i) => (
           <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4 relative">
@@ -774,7 +782,7 @@ export default function MyRequests() {
                         </td>
                         <td className={tdCls}><StatusPill status={req.status} hasQuotes={rq.length > 0} lang={lang} /></td>
                         <td className={`${tdCls} text-center`}>
-                          <span className={`inline-flex items-center justify-center min-w-[26px] h-[22px] rounded-md text-xs font-bold px-1.5 relative ${rq.length > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
+                          <span className={`inline-flex items-center justify-center min-w-[26px] h-[22px] rounded-md text-xs font-bold px-1.5 relative ${rq.length > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-stone-100 text-stone-600 border border-stone-200'}`}>
                             {rq.length}
                             {nq > 0 && <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-red-500 rounded-full text-white text-[9px] flex items-center justify-center font-bold">{nq}</span>}
                           </span>
@@ -784,11 +792,11 @@ export default function MyRequests() {
                         <td className={tdCls} onClick={e => e.stopPropagation()}>
                           <div className="flex flex-col gap-1">
                             <button onClick={() => openRequest(req)}
-                              className="w-full text-[11px] font-semibold text-[#C0603E] bg-blue-50 border border-blue-100 rounded-md px-2 py-1 hover:bg-blue-100 transition-colors">
+                              className="w-full text-[11px] font-semibold text-[#C0603E] bg-[#F3EAE0] border border-[#E8DFD3] rounded-md px-2 py-1 hover:bg-[#EDE0D2] transition-colors">
                               {t('view', lang)}
                             </button>
                             <button onClick={() => router.push(`/create-request?edit=${req.id}`)}
-                              className="w-full text-[11px] font-semibold text-teal-700 bg-teal-50 border border-teal-100 rounded-md px-2 py-1 hover:bg-teal-100 transition-colors">
+                              className="w-full text-[11px] font-semibold text-[#8A7B6C] bg-stone-100 border border-stone-200 rounded-md px-2 py-1 hover:bg-stone-200 transition-colors">
                               {t('edit', lang)}
                             </button>
                             <button onClick={() => toggleRequestStatus(req.id)}
@@ -895,11 +903,11 @@ export default function MyRequests() {
                       {/* actions row 1: عرض | تعديل */}
                       <div className="flex gap-1.5 mt-3" onClick={e => e.stopPropagation()}>
                         <button onClick={e => { e.stopPropagation(); openRequest(req); }}
-                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-blue-50 text-[#C0603E] border border-blue-100 hover:bg-blue-100 transition-colors">
+                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#F3EAE0] text-[#C0603E] border border-[#E8DFD3] hover:bg-[#EDE0D2] transition-colors">
                           {t('view', lang)}
                         </button>
                         <button onClick={e => { e.stopPropagation(); router.push(`/create-request?edit=${req.id}`); }}
-                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 transition-colors">
+                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-stone-100 text-[#8A7B6C] border border-stone-200 hover:bg-stone-200 transition-colors">
                           {t('edit', lang)}
                         </button>
                       </div>
@@ -1059,31 +1067,9 @@ export default function MyRequests() {
 
       {/* Rating Modal */}
       {showRatingModal && ratingQuote && (
-        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-7 max-w-sm w-full" dir={dir}>
-            <h2 className="text-lg font-bold text-stone-900 text-center mb-1">{t('rateSupplier', lang)}</h2>
-            <p className="text-stone-500 text-sm text-center mb-5">{t('rateExp', lang)} <strong>{ratingQuote.supplierCompany}</strong>؟</p>
-            <div className="flex justify-center gap-2 mb-2">
-              {[1, 2, 3, 4, 5].map(star => (
-                <span key={star} onClick={() => setRatingStars(star)}
-                  className={`text-4xl cursor-pointer transition-colors ${star <= ratingStars ? 'text-amber-400' : 'text-stone-200'}`}>★</span>
-              ))}
-            </div>
-            <p className="text-center text-xs text-stone-400 mb-5">
-              {ratingStars === 1 ? t('poor', lang) : ratingStars === 2 ? t('fair', lang) : ratingStars === 3 ? t('good', lang) : ratingStars === 4 ? t('vgood', lang) : ratingStars === 5 ? t('excellent', lang) : ''}
-            </p>
-            <label className="block text-sm font-semibold text-stone-700 mb-2">{t('rateComments', lang)}</label>
-            <textarea value={ratingComment} onChange={e => setRatingComment(e.target.value)}
-              placeholder={t('rateWrite', lang)} rows={3}
-              className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-700 bg-white outline-none focus:border-[#8A7B6C] resize-none mb-4" />
-            <div className="flex gap-3">
-              <button onClick={handleSubmitRating}
-                className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-sm transition-colors">{t('submitRating', lang)}</button>
-              <button onClick={() => { setShowRatingModal(false); setRatingStars(0); setRatingComment(''); }}
-                className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-600 font-bold py-2.5 rounded-xl text-sm transition-colors">{t('skip', lang)}</button>
-            </div>
-          </div>
-        </div>
+        <RatingModal lang={lang} supplierCompany={ratingQuote.supplierCompany}
+          onSubmit={handleSubmitRating}
+          onSkip={() => { setShowRatingModal(false); setRatingRequest(null); setRatingQuote(null); }} />
       )}
 
       {/* Lightbox */}
@@ -1127,8 +1113,8 @@ export default function MyRequests() {
                           {quote.totalPrice === lowestP && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">{t('cheapest', lang)}</span>}
                         </td>
                         <td className="px-4 py-3">
-                          <p className={`font-bold text-sm ${quote.deliveryDays === fastestD ? 'text-blue-600' : 'text-stone-900'}`}>{quote.deliveryDays} {t('days', lang)}</p>
-                          {quote.deliveryDays === fastestD && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">{t('fastest', lang)}</span>}
+                          <p className={`font-bold text-sm ${quote.deliveryDays === fastestD ? 'text-[#C0603E]' : 'text-stone-900'}`}>{quote.deliveryDays} {t('days', lang)}</p>
+                          {quote.deliveryDays === fastestD && <span className="text-[10px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded-full">{t('fastest', lang)}</span>}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`text-[11px] font-semibold px-2 py-1 rounded-full ${quote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : quote.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-stone-100 text-stone-600'}`}>
@@ -1158,7 +1144,7 @@ export default function MyRequests() {
             </div>
             <div className="mt-4 bg-[#FAF7F2] rounded-xl px-4 py-3 flex gap-6 flex-wrap">
               <span className="text-emerald-600 text-sm font-semibold">✅ {t('lowestP',lang)} {getLowestPrice(getRequestQuotes(compareRequest.id))?.toLocaleString()} {t('sar',lang)}</span>
-              <span className="text-blue-600 text-sm font-semibold">⚡ {t('fastestD',lang)} {getFastestDelivery(getRequestQuotes(compareRequest.id))} {t('days',lang)}</span>
+              <span className="text-[#C0603E] text-sm font-semibold">⚡ {t('fastestD',lang)} {getFastestDelivery(getRequestQuotes(compareRequest.id))} {t('days',lang)}</span>
               <span className="text-stone-500 text-sm">📊 {t('totalQ',lang)} {getRequestQuotes(compareRequest.id).length}</span>
             </div>
           </div>
@@ -1263,11 +1249,11 @@ function KanbanColumn({ col, title, color, icon, requests, lang, dragOverCol, dr
             {/* action buttons */}
             <div className="flex gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
               <button onClick={e => { e.stopPropagation(); onOpen(req); }}
-                className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-[#C0603E] border border-blue-100 transition-colors hover:bg-blue-100">
+                className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F3EAE0] text-[#C0603E] border border-[#E8DFD3] transition-colors hover:bg-[#EDE0D2]">
                 {lang === 'ar' ? 'عرض' : 'View'}
               </button>
               <button onClick={e => { e.stopPropagation(); onEdit(req.id); }}
-                className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-teal-50 text-teal-700 border border-teal-100 transition-colors hover:bg-teal-100">
+                className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-stone-100 text-[#8A7B6C] border border-stone-200 transition-colors hover:bg-stone-200">
                 {lang === 'ar' ? 'تعديل' : 'Edit'}
               </button>
               <button onClick={e => { e.stopPropagation(); onToggle(req.id); }}
