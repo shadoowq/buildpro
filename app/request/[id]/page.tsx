@@ -6,6 +6,7 @@ import Link from 'next/link';
 import ContractorNav from '../../components/ContractorNav';
 import StatusBadge from '../../components/StatusBadge';
 import RatingModal from '../../components/RatingModal';
+import HelpTooltip from '../../components/HelpTooltip';
 import { formatDate, displayVal, arToEn, appendActivityLog, setQuoteStatus } from '../../lib/requestHelpers';
 import { useConfirm } from '../../components/ConfirmDialog';
 
@@ -308,10 +309,15 @@ export default function RequestDetailPage() {
               className="text-xs font-semibold px-3 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg transition-colors flex items-center gap-1.5">
               🖨 {t('print', lang)}
             </a>
-            <button onClick={handleCopyLink}
-              className={`text-xs font-semibold px-3 py-2 rounded-lg border transition-colors flex items-center gap-1.5 ${linkCopied ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white/10 hover:bg-white/20 text-white border-white/20'}`}>
-              🔗 {linkCopied ? t('linkCopied', lang) : t('shareLink', lang)}
-            </button>
+            <span className="inline-flex items-center gap-1">
+              <button onClick={handleCopyLink}
+                className={`text-xs font-semibold px-3 py-2 rounded-lg border transition-colors flex items-center gap-1.5 ${linkCopied ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white/10 hover:bg-white/20 text-white border-white/20'}`}>
+                🔗 {linkCopied ? t('linkCopied', lang) : t('shareLink', lang)}
+              </button>
+              <HelpTooltip lang={lang}
+                textAr="الرابط ده هيشتغل بس وانت داخل بنفس حسابك — مش قابل للمشاركة مع مورد أو حساب تاني."
+                textEn="This link only works while you're signed into your own account — it can't be shared with a supplier or another account." />
+            </span>
             <button onClick={handleDuplicate}
               className="text-xs font-semibold px-3 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg transition-colors flex items-center gap-1.5">
               ⊕ {t('duplicate', lang)}

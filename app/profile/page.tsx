@@ -30,6 +30,7 @@ const T = {
   passNoMatch:   { ar: 'كلمة المرور غير متطابقة', en: 'Passwords do not match'  },
   passWrong:     { ar: 'كلمة المرور الحالية خاطئة', en: 'Current password is wrong' },
   passShort:     { ar: 'كلمة المرور قصيرة جداً (6 أحرف على الأقل)', en: 'Password too short (min 6 chars)' },
+  passHint:      { ar: '6 أحرف على الأقل', en: 'At least 6 characters' },
   account:       { ar: 'معلومات الحساب',         en: 'Account Details'          },
   role:          { ar: 'نوع الحساب',             en: 'Account Type'             },
   contractor:    { ar: 'مقاول',                  en: 'Contractor'               },
@@ -270,7 +271,7 @@ export default function ProfilePage() {
                 placeholder="••••••••" className={inputCls} />
             </Field>
             <div className="grid grid-cols-2 gap-4">
-              <Field label={t('newPass', lang)}>
+              <Field label={t('newPass', lang)} note={t('passHint', lang)}>
                 <input type="password" value={newPass} onChange={e => setNewPass(e.target.value)}
                   placeholder="••••••••" className={inputCls} />
               </Field>
