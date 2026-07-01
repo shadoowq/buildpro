@@ -6,6 +6,7 @@ import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
 import { displayVal, arToEn, softDeleteDraft, softDeleteDrafts, purgeExpiredTrash, getSupplierData } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
+import { useEscapeKey } from '../components/useEscapeKey';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
 
@@ -45,6 +46,7 @@ export default function Drafts() {
   const [userName, setUserName] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [previewDraft, setPreviewDraft] = useState<Draft | null>(null);
+  useEscapeKey(() => { if (previewDraft) setPreviewDraft(null); });
   const router = useRouter();
 
   useEffect(() => {
@@ -317,7 +319,7 @@ export default function Drafts() {
       {/* ── PREVIEW MODAL ── */}
       {previewDraft && (
         <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4" onClick={() => setPreviewDraft(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" dir={dir} onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" dir={dir} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between p-5 border-b border-stone-100">
               <div>
                 <h2 className="text-base font-bold text-stone-900">{getDraftName(previewDraft)}</h2>
@@ -325,7 +327,7 @@ export default function Drafts() {
                   {t('حُفظت:', 'Saved:', lang)} {formatDate(previewDraft.savedAt)} {formatTime(previewDraft.savedAt)}
                 </p>
               </div>
-              <button onClick={() => setPreviewDraft(null)}
+              <button onClick={() => setPreviewDraft(null)} aria-label={t('إغلاق', 'Close', lang)}
                 className="w-8 h-8 rounded-lg bg-stone-100 text-stone-500 flex items-center justify-center font-bold hover:bg-stone-200">✕</button>
             </div>
 
@@ -359,6 +361,20 @@ export default function Drafts() {
                 <div>
                   <h3 className="text-sm font-bold text-stone-900 mb-2">{t('الوصف', 'Description', lang)}</h3>
                   <div className="bg-stone-50 rounded-xl p-3 text-sm text-stone-600">{previewDraft.description}</div>
+                </div>
+              )}
+
+              {/* attached files */}
+              {(previewDraft.attachedFiles?.length ?? 0) > 0 && (
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900 mb-2">{t('المرفقات', 'Attached Files', lang)} ({previewDraft.attachedFiles!.length})</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {previewDraft.attachedFiles!.map((f, i) => (
+                      <span key={i} className="bg-stone-50 border border-stone-200 text-stone-600 text-xs font-medium px-2.5 py-1.5 rounded-lg flex items-center gap-1.5">
+                        📎 {f.name}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
 

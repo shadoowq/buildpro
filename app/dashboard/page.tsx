@@ -10,6 +10,7 @@ import { appendActivityLog, setQuoteStatus, softDeleteRequest, displayVal, getUn
 import HelpTooltip from '../components/HelpTooltip'
 import { useToast } from '../components/Toast'
 import { useConfirm } from '../components/ConfirmDialog'
+import { useEscapeKey } from '../components/useEscapeKey'
 
 type Lang = 'ar' | 'en'
 
@@ -136,23 +137,6 @@ function QuotesBadge({ count }: { count: number }) {
   )
 }
 
-function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
-  return (
-    <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1">
-      {(['ar', 'en'] as Lang[]).map(l => (
-        <button key={l} onClick={() => setLang(l)}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-            lang === l ? 'bg-white text-[#C0603E] shadow-sm' : 'text-stone-400 hover:text-stone-600'
-          }`}>
-          <img src={l === 'ar' ? 'https://flagcdn.com/w20/sa.png' : 'https://flagcdn.com/w20/us.png'}
-            width="20" height="14" alt={l} className="rounded-sm" />
-          {l.toUpperCase()}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 export default function DashboardPage() {
   const router = useRouter()
   const showToast = useToast()
@@ -175,6 +159,7 @@ export default function DashboardPage() {
 
   const [selected, setSelected]   = useState<any>(null)
   const [lightbox, setLightbox]   = useState<string | null>(null)
+  useEscapeKey(() => { if (lightbox) setLightbox(null) })
   const [revisionQuoteId, setRevisionQuoteId] = useState<number | null>(null)
   const [revisionNote, setRevisionNote]       = useState('')
 
@@ -731,9 +716,9 @@ export default function DashboardPage() {
 
       {/* LIGHTBOX */}
       {lightbox && (
-        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center cursor-zoom-out" onClick={() => setLightbox(null)}>
+        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center cursor-zoom-out" role="dialog" aria-modal="true" onClick={() => setLightbox(null)}>
           <img src={lightbox} alt="" className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg" />
-          <button onClick={() => setLightbox(null)} className="absolute top-5 start-5 bg-red-500 text-white px-4 py-2 rounded-lg font-bold">✕</button>
+          <button onClick={() => setLightbox(null)} aria-label={lang === 'ar' ? 'إغلاق' : 'Close'} className="absolute top-5 start-5 bg-red-500 text-white px-4 py-2 rounded-lg font-bold">✕</button>
         </div>
       )}
 

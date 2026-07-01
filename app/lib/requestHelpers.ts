@@ -63,7 +63,8 @@ export function displayVal(val: string | undefined, lang: Lang): string {
 
 export function appendActivityLog(requestId: number, actionAr: string, actionEn: string): ActivityLog[] {
   const allLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-  const newLog: ActivityLog = { id: Date.now(), requestId, action: actionAr, actionEn, timestamp: new Date().toISOString() };
+  const id = Date.now() * 1000 + Math.floor(Math.random() * 1000);
+  const newLog: ActivityLog = { id, requestId, action: actionAr, actionEn, timestamp: new Date().toISOString() };
   allLogs.push(newLog);
   localStorage.setItem('activityLogs', JSON.stringify(allLogs));
   return allLogs;

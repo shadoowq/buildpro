@@ -60,14 +60,19 @@ export default function ReportsPage() {
     if (user.userType !== 'contractor') { router.push('/dashboard'); return; }
     setUserName(user.name || '');
     setUserEmail(user.email || '');
-    const allReqs: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
+    let allReqs: Request[] = [];
+    try { allReqs = JSON.parse(localStorage.getItem('requests') || '[]'); } catch {}
     const myReqs = allReqs.filter(r => r.contractorId === user.email);
     setRequests(myReqs);
     const reqIds = myReqs.map(r => r.id);
-    const allQ: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
-    setQuotes(allQ.filter(q => reqIds.includes(q.requestId)));
-    const allR: Rating[] = JSON.parse(localStorage.getItem('ratings') || '[]');
-    setRatings(allR.filter(r => reqIds.includes(r.requestId)));
+    try {
+      const allQ: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+      setQuotes(allQ.filter(q => reqIds.includes(q.requestId)));
+    } catch {}
+    try {
+      const allR: Rating[] = JSON.parse(localStorage.getItem('ratings') || '[]');
+      setRatings(allR.filter(r => reqIds.includes(r.requestId)));
+    } catch {}
     if (myReqs.length > 0) setCompareReqId(myReqs[0].id);
   }, [router]);
 

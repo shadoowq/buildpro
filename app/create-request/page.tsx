@@ -88,13 +88,15 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     if (parsedUser.userType === 'supplier') { router.push('/supplier-requests'); return; }
     setUser(parsedUser);
 
-    const allSuppliers = Object.keys(localStorage)
-      .filter(key => key.startsWith('user_'))
-      .map(key => JSON.parse(localStorage.getItem(key) || '{}'))
-      .filter(u => u.userType === 'supplier');
-    const usersArr = JSON.parse(localStorage.getItem('users') || '[]').filter((u: any) => u.userType === 'supplier');
-    const combined = [...allSuppliers, ...usersArr].filter((v, i, a) => a.findIndex(t => t.email === v.email) === i);
-    setSuppliers(combined);
+    try {
+      const allSuppliers = Object.keys(localStorage)
+        .filter(key => key.startsWith('user_'))
+        .map(key => { try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; } })
+        .filter(u => u.userType === 'supplier');
+      const usersArr = (JSON.parse(localStorage.getItem('users') || '[]') as any[]).filter((u: any) => u.userType === 'supplier');
+      const combined = [...allSuppliers, ...usersArr].filter((v, i, a) => a.findIndex(t => t.email === v.email) === i);
+      setSuppliers(combined);
+    } catch {}
 
     try { setSupplierRatings(JSON.parse(localStorage.getItem('ratings') || '[]')); } catch {}
     try { setSupplierQuotes(JSON.parse(localStorage.getItem('quotes') || '[]')); } catch {}
@@ -108,7 +110,8 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
 
     if (editId) {
       skipSaveRef.current = true;
-      const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+      let allRequests: any[] = [];
+      try { allRequests = JSON.parse(localStorage.getItem('requests') || '[]'); } catch {}
       const req = allRequests.find((r: any) => r.id === parseInt(editId));
       if (req) {
         setEditMode(true);
@@ -128,8 +131,10 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
         if (req.selectedSuppliers) { setSelectedSuppliers(req.selectedSuppliers); setOriginalSuppliers(req.selectedSuppliers); }
         if (req.attachedFiles) setAttachedFiles(req.attachedFiles);
 
-        const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-        setExistingQuotesCount(allQuotes.filter((q: any) => q.requestId === req.id).length);
+        try {
+          const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+          setExistingQuotesCount(allQuotes.filter((q: any) => q.requestId === req.id).length);
+        } catch {}
       }
     } else if (draftId) {
       skipSaveRef.current = true;
@@ -139,32 +144,36 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       setPageTitle(savedLang === 'en' ? 'Edit Draft' : 'تعديل المسودة');
       const draft = localStorage.getItem(STORAGE_KEY);
       if (draft) {
-        const parsed = JSON.parse(draft);
-        if (parsed.projectName) setProjectName(parsed.projectName);
-        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
-        if (parsed.location) setLocation(parsed.location);
-        if (parsed.deadline) setDeadline(parsed.deadline);
-        if (parsed.description) setDescription(parsed.description);
-        if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
-        if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
+        try {
+          const parsed = JSON.parse(draft);
+          if (parsed.projectName) setProjectName(parsed.projectName);
+          if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
+          if (parsed.location) setLocation(parsed.location);
+          if (parsed.deadline) setDeadline(parsed.deadline);
+          if (parsed.description) setDescription(parsed.description);
+          if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
+          if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
+        } catch {}
       }
       localStorage.removeItem('loadingFromDraft');
     } else {
       const draft = localStorage.getItem(STORAGE_KEY);
       if (draft) {
-        const parsed = JSON.parse(draft);
-        if (parsed.projectName) setProjectName(parsed.projectName);
-        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
-        if (parsed.location) setLocation(parsed.location);
-        if (parsed.deadline) setDeadline(parsed.deadline);
-        if (parsed.description) setDescription(parsed.description);
-        if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
-        if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
-        if (parsed.hadAttachments) {
-          showToast(savedLang === 'en'
-            ? 'Restored your unfinished request — note: attached photos/files were not auto-saved and need to be re-added'
-            : 'تم استرجاع طلبك غير المكتمل — ملاحظة: الصور والملفات المرفقة لم تُحفظ تلقائيًا ويجب إعادة إضافتها');
-        }
+        try {
+          const parsed = JSON.parse(draft);
+          if (parsed.projectName) setProjectName(parsed.projectName);
+          if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
+          if (parsed.location) setLocation(parsed.location);
+          if (parsed.deadline) setDeadline(parsed.deadline);
+          if (parsed.description) setDescription(parsed.description);
+          if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
+          if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
+          if (parsed.hadAttachments) {
+            showToast(savedLang === 'en'
+              ? 'Restored your unfinished request — note: attached photos/files were not auto-saved and need to be re-added'
+              : 'تم استرجاع طلبك غير المكتمل — ملاحظة: الصور والملفات المرفقة لم تُحفظ تلقائيًا ويجب إعادة إضافتها');
+          }
+        } catch {}
       }
     }
 

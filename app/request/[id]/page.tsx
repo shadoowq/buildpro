@@ -8,6 +8,7 @@ import StatusBadge from '../../components/StatusBadge';
 import RatingModal from '../../components/RatingModal';
 import HelpTooltip from '../../components/HelpTooltip';
 import QuoteCompareTable from '../../components/QuoteCompareTable';
+import { useEscapeKey } from '../../components/useEscapeKey';
 import { formatDate, displayVal, arToEn, appendActivityLog, setQuoteStatus, softDeleteRequest, getDeadlineUrgency } from '../../lib/requestHelpers';
 import { getCityName } from '../../lib/translations';
 import { useConfirm } from '../../components/ConfirmDialog';
@@ -139,6 +140,8 @@ export default function RequestDetailPage() {
   const [showCompare, setShowCompare] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
 
+  useEscapeKey(() => { if (lightbox) setLightbox(null); });
+
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
@@ -149,18 +152,23 @@ export default function RequestDetailPage() {
     const user = JSON.parse(userData);
     if (user.name) setUserName(user.name);
 
-    const allReqs: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
+    let allReqs: Request[] = [];
+    try { allReqs = JSON.parse(localStorage.getItem('requests') || '[]'); } catch {}
     const found = allReqs.find(r => r.id === id);
     if (found && found.contractorId !== user.email) { router.push('/my-requests'); return; }
     setRequest(found || null);
 
-    const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
-    setQuotes(allQuotes.filter(q => q.requestId === id));
+    try {
+      const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+      setQuotes(allQuotes.filter(q => q.requestId === id));
+    } catch {}
 
-    const allLogs: ActivityLog[] = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-    setLogs(allLogs.filter(l => l.requestId === id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    try {
+      const allLogs: ActivityLog[] = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+      setLogs(allLogs.filter(l => l.requestId === id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    } catch {}
 
-    setRatings(JSON.parse(localStorage.getItem('ratings') || '[]'));
+    try { setRatings(JSON.parse(localStorage.getItem('ratings') || '[]')); } catch {}
 
     setLoading(false);
   }, [id, router]);
@@ -621,9 +629,9 @@ export default function RequestDetailPage() {
 
       {/* LIGHTBOX */}
       {lightbox && (
-        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center cursor-zoom-out print:hidden" onClick={() => setLightbox(null)}>
+        <div className="fixed inset-0 bg-black/90 z-[9999] flex items-center justify-center cursor-zoom-out print:hidden" role="dialog" aria-modal="true" onClick={() => setLightbox(null)}>
           <img src={lightbox} alt="" className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg" />
-          <button onClick={() => setLightbox(null)} className="absolute top-5 start-5 bg-red-500 text-white px-4 py-2 rounded-lg font-bold">✕</button>
+          <button onClick={() => setLightbox(null)} aria-label={lang === 'ar' ? 'إغلاق' : 'Close'} className="absolute top-5 start-5 bg-red-500 text-white px-4 py-2 rounded-lg font-bold">✕</button>
         </div>
       )}
 

@@ -12,6 +12,7 @@ import { displayVal, appendActivityLog, setQuoteStatus, softDeleteRequest, softD
 import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
+import { useEscapeKey } from '../components/useEscapeKey';
 
 function ReqIdParamReader({ onFound }: { onFound: (id: number) => void }) {
   const searchParams = useSearchParams();
@@ -217,20 +218,6 @@ function StatusPill({ status, lang }: { status: 'active' | 'pending' | 'closed';
   );
 }
 
-function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
-  return (
-    <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1">
-      {(['ar', 'en'] as Lang[]).map(l => (
-        <button key={l} onClick={() => setLang(l)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[#C0603E] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
-          <img src={l === 'ar' ? 'https://flagcdn.com/w20/sa.png' : 'https://flagcdn.com/w20/us.png'} width="20" height="14" alt={l} className="rounded-sm" />
-          {l.toUpperCase()}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 export default function MyRequests() {
   const showToast = useToast();
   const confirmDialog = useConfirm();
@@ -253,6 +240,11 @@ export default function MyRequests() {
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
+
+  useEscapeKey(() => {
+    if (lightboxImg) setLightboxImg(null);
+    else if (compareRequest) setCompareRequest(null);
+  });
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [draggingId, setDraggingId] = useState<number | null>(null);
   const [dragOverCol, setDragOverCol] = useState<KanbanCol | null>(null);
@@ -273,12 +265,11 @@ export default function MyRequests() {
     setUser(parsedUser);
     if (parsedUser.name) setUserName(parsedUser.name);
 
-    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
-    setRequests(allRequests.filter((req: Request) => req.contractorId === parsedUser.email));
-    setQuotes(JSON.parse(localStorage.getItem('quotes') || '[]'));
-    setSeenQuotes(JSON.parse(localStorage.getItem(`seenQuotes_${parsedUser.email}`) || '[]'));
-    setActivityLogs(JSON.parse(localStorage.getItem('activityLogs') || '[]'));
-    setRatings(JSON.parse(localStorage.getItem('ratings') || '[]'));
+    try { const allRequests = JSON.parse(localStorage.getItem('requests') || '[]'); setRequests(allRequests.filter((req: Request) => req.contractorId === parsedUser.email)); } catch {}
+    try { setQuotes(JSON.parse(localStorage.getItem('quotes') || '[]')); } catch {}
+    try { setSeenQuotes(JSON.parse(localStorage.getItem(`seenQuotes_${parsedUser.email}`) || '[]')); } catch {}
+    try { setActivityLogs(JSON.parse(localStorage.getItem('activityLogs') || '[]')); } catch {}
+    try { setRatings(JSON.parse(localStorage.getItem('ratings') || '[]')); } catch {}
 
     const savedLang = localStorage.getItem('language') as Lang || 'ar';
     setLang(savedLang);
@@ -742,7 +733,8 @@ export default function MyRequests() {
             filteredRequests.length === 0 ? (
               <EmptyState lang={lang} />
             ) : (
-              <table className="w-full" style={{ tableLayout: 'fixed' }}>
+              <div className="overflow-x-auto">
+              <table className="w-full" style={{ tableLayout: 'fixed', minWidth: '760px' }}>
                 <colgroup>
                   <col style={{ width: '36px' }} />
                   <col style={{ width: '80px' }} />
@@ -751,7 +743,7 @@ export default function MyRequests() {
                   <col style={{ width: '56px' }} />
                   <col style={{ width: '96px' }} />
                   <col style={{ width: '96px' }} />
-                  <col style={{ width: '120px' }} />
+                  <col style={{ width: '175px' }} />
                 </colgroup>
                 <thead>
                   <tr>
@@ -855,6 +847,7 @@ export default function MyRequests() {
                   })}
                 </tbody>
               </table>
+              </div>
             )
           )}
 
@@ -1092,9 +1085,9 @@ export default function MyRequests() {
 
       {/* Lightbox */}
       {lightboxImg && (
-        <div className="fixed inset-0 bg-black/92 z-[9999] flex items-center justify-center cursor-zoom-out" onClick={() => setLightboxImg(null)}>
+        <div className="fixed inset-0 bg-black/92 z-[9999] flex items-center justify-center cursor-zoom-out" role="dialog" aria-modal="true" onClick={() => setLightboxImg(null)}>
           <img src={lightboxImg} alt="" className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg" />
-          <button onClick={() => setLightboxImg(null)}
+          <button onClick={() => setLightboxImg(null)} aria-label={lang === 'ar' ? 'إغلاق' : 'Close'}
             className="absolute top-5 right-5 bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-sm">✕</button>
         </div>
       )}
@@ -1102,10 +1095,10 @@ export default function MyRequests() {
       {/* Compare Modal */}
       {compareRequest && (
         <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4" onClick={() => setCompareRequest(null)}>
-          <div className="bg-white rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto" dir={dir} onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto" dir={dir} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-stone-900">{t('compareTitle', lang)} — <span className="text-[#8A7B6C]">#{compareRequest.id}</span></h2>
-              <button onClick={() => setCompareRequest(null)} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center font-bold hover:bg-red-100 text-lg">✕</button>
+              <button onClick={() => setCompareRequest(null)} aria-label={lang === 'ar' ? 'إغلاق' : 'Close'} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center font-bold hover:bg-red-100 text-lg">✕</button>
             </div>
             <QuoteCompareTable quotes={getRequestQuotes(compareRequest.id)} lang={lang} variant="actions"
               onAccept={id => { handleQuoteAction(id, 'accepted'); setCompareRequest(null); }}
