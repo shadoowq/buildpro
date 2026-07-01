@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar';
 import { appendActivityLog, arToEn } from '../lib/requestHelpers';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
+import HelpTooltip from '../components/HelpTooltip';
 
 interface MaterialRow {
   id: number;
@@ -549,22 +550,62 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
         </div>
 
         <div style={{ marginBottom: '30px' }}>
-          <h3 style={{ color: '#1C1917', marginBottom: '15px' }}>{tx.materials}</h3>
+          <h3 style={{ color: '#1C1917', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {tx.materials}
+            <HelpTooltip lang={language}
+              textAr="أضف كل مادة كبند مستقل. لو بند فيه أكتر من خيار مقبول (مثلاً لونين)، اختار الأول واضغط +أو عشان تضيف خيار تاني لنفس البند."
+              textEn='Add each material as its own row. If a field has more than one acceptable option (e.g. two colors), pick one and press "+OR" to add another option to the same item.' />
+          </h3>
           <div style={{ overflowX: 'auto', border: '1px solid #E8DFD3', borderRadius: '8px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
                 <tr>
                   <th style={thStyle}>{tx.material}</th>
-                  <th style={thStyle}>{tx.usage}</th>
+                  <th style={thStyle}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {tx.usage}
+                      <HelpTooltip lang={language}
+                        textAr="استخدام المادة في المشروع (أرضيات، جدران، درج...)"
+                        textEn="Where this material will be used in the project (flooring, walls, stairs...)" />
+                    </span>
+                  </th>
                   <th style={thStyle}>{tx.size}</th>
-                  <th style={thStyle}>{tx.thickness}</th>
-                  <th style={thStyle}>{tx.finish}</th>
+                  <th style={thStyle}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {tx.thickness}
+                      <HelpTooltip lang={language}
+                        textAr="سمك البلاطة أو المادة بالمليمتر"
+                        textEn="The tile/material thickness in millimeters" />
+                    </span>
+                  </th>
+                  <th style={thStyle}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {tx.finish}
+                      <HelpTooltip lang={language}
+                        textAr="طريقة تشطيب سطح المادة (بوليش، مات، ساتان...)"
+                        textEn="The surface finish of the material (polished, matte, satin...)" />
+                    </span>
+                  </th>
                   <th style={thStyle}>{tx.color}</th>
                   <th style={{ ...thStyle, minWidth: '80px' }}>{tx.qty}</th>
                   <th style={{ ...thStyle, minWidth: '80px' }}>{tx.unit}</th>
-                  <th style={{ ...thStyle, minWidth: '150px' }}>{tx.targetPrice}</th>
+                  <th style={{ ...thStyle, minWidth: '150px' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {tx.targetPrice}
+                      <HelpTooltip lang={language}
+                        textAr="السعر اللي حابب توصله لكل وحدة (اختياري) — بيساعد الموردين يعرفوا ميزانيتك."
+                        textEn="The price per unit you're aiming for (optional) — helps suppliers understand your budget." />
+                    </span>
+                  </th>
                   <th style={{ ...thStyle, minWidth: '130px' }}>{tx.deliveryDate}</th>
-                  <th style={thStyle}>{tx.origin}</th>
+                  <th style={thStyle}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      {tx.origin}
+                      <HelpTooltip lang={language}
+                        textAr="بلد المنشأ أو نوع الصناعة المفضلة للمادة (محلي، إيطالي، تركي...)"
+                        textEn="Preferred country of manufacture for the material (local, Italian, Turkish...)" />
+                    </span>
+                  </th>
                   <th style={{ ...thStyle, minWidth: '150px' }}>{tx.rowNote}</th>
                   <th style={{ ...thStyle, minWidth: '110px' }}>{tx.image}</th>
                   <th style={{ ...thStyle, minWidth: '40px' }}>✕</th>
@@ -657,7 +698,12 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
             </select>
           </div>
           <div>
-            <label style={labelStyle}>{tx.deadline}</label>
+            <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '5px' }}>
+              {tx.deadline}
+              <HelpTooltip lang={language}
+                textAr="آخر تاريخ يقدر فيه الموردين يرسلوا عروض أسعار على هذا الطلب."
+                textEn="The last date suppliers can submit price quotes for this request." />
+            </label>
             <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} style={fieldStyle} />
           </div>
         </div>
@@ -691,7 +737,12 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
 
         <div style={{ marginBottom: '25px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <label style={{ fontWeight: 'bold', color: '#1C1917', fontSize: '16px' }}>{tx.suppliers}</label>
+            <label style={{ fontWeight: 'bold', color: '#1C1917', fontSize: '16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              {tx.suppliers}
+              <HelpTooltip lang={language}
+                textAr="الطلب هيتبعت بس للموردين اللي تحددهم هنا. تقدر تختار مورد واحد أو أكتر."
+                textEn="Your request will only be sent to the suppliers you select here. You can choose one or more." />
+            </label>
             {suppliers.length > 0 && (
               <button type="button" onClick={handleSelectAll}
                 style={{ padding: '6px 12px', backgroundColor: '#8A7B6C', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>
