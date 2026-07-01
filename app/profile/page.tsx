@@ -36,7 +36,7 @@ const T = {
   contractor:    { ar: 'مقاول',                  en: 'Contractor'               },
   supplier:      { ar: 'مورد',                   en: 'Supplier'                 },
   memberSince:   { ar: 'عضو منذ',               en: 'Member since'             },
-  danger:        { ar: 'منطقة الخطر',            en: 'Danger Zone'              },
+  danger:        { ar: 'الجلسة',                  en: 'Session'                  },
   logout:        { ar: 'تسجيل الخروج من الجهاز الحالي', en: 'Sign out of current device' },
   logoutBtn:     { ar: 'تسجيل خروج',             en: 'Sign Out'                 },
   namePlaceholder:   { ar: 'مثال: محمد العتيبي',  en: 'Ex: Mohammed Al-Otaibi'  },
@@ -308,22 +308,19 @@ export default function ProfilePage() {
           </div>
         </SectionCard>
 
-        {/* DANGER ZONE */}
-        <div className="bg-white border border-red-200 rounded-2xl overflow-hidden">
-          <div className="px-6 py-4 border-b border-red-100 bg-red-50">
-            <h2 className="text-sm font-bold text-red-700">{t('danger', lang)}</h2>
-          </div>
-          <div className="p-6 flex items-center justify-between">
+        {/* SESSION */}
+        <SectionCard title={t('danger', lang)}>
+          <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-stone-800">{t('logout', lang)}</p>
               <p className="text-xs text-stone-400 mt-0.5">{user.email}</p>
             </div>
             <button onClick={handleLogout}
-              className="text-sm font-bold px-5 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors">
+              className="text-sm font-bold px-5 py-2 bg-stone-100 text-stone-700 border border-stone-200 rounded-xl hover:bg-stone-200 transition-colors">
               {t('logoutBtn', lang)}
             </button>
           </div>
-        </div>
+        </SectionCard>
 
       </div>
     </div>

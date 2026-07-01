@@ -1,6 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { displayVal, formatDate, getSupplierData, arToEn, Lang, Quote, ActivityLog, RequestLike } from '../lib/requestHelpers';
+import { getCityName } from '../lib/translations';
+import { useEscapeKey } from './useEscapeKey';
 
 interface RequestDetailModalProps {
   req: RequestLike; lang: Lang; dir: 'rtl' | 'ltr';
@@ -8,7 +11,7 @@ interface RequestDetailModalProps {
   revisionQuoteId: number | null; revisionNote: string;
   setRevisionQuoteId: (id: number | null) => void;
   setRevisionNote: (note: string) => void;
-  onClose: () => void; onToggle: () => void; onDelete: () => void; onEdit: () => void;
+  onClose: () => void; onToggle: () => void; onDelete: () => void; onEdit: () => void; onDuplicate: () => void;
   onQuoteAction: (quoteId: number, action: 'accepted' | 'rejected' | 'pending') => void;
   onRevisionSubmit: (quoteId: number) => void;
   setLightboxImg: (img: string | null) => void;
@@ -16,26 +19,48 @@ interface RequestDetailModalProps {
 
 export default function RequestDetailModal({
   req, lang, dir, quotes, logs, revisionQuoteId, revisionNote, setRevisionQuoteId, setRevisionNote,
-  onClose, onToggle, onDelete, onEdit, onQuoteAction, onRevisionSubmit, setLightboxImg,
+  onClose, onToggle, onDelete, onEdit, onDuplicate, onQuoteAction, onRevisionSubmit, setLightboxImg,
 }: RequestDetailModalProps) {
   const tr = (ar: string, en: string) => lang === 'ar' ? ar : en;
+  const [linkCopied, setLinkCopied] = useState(false);
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(`${window.location.origin}/request/${req.id}`).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    });
+  };
   const thStyle: React.CSSProperties = { padding: '8px 10px', backgroundColor: '#C0603E', color: 'white', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', textAlign: 'center', border: '1px solid #9C4C31' };
   const tdStyle: React.CSSProperties = { padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' };
+  useEscapeKey(onClose);
   return (
     <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[95vh] overflow-y-auto" dir={dir} onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[95vh] overflow-y-auto" dir={dir} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
         {/* header */}
-        <div className="flex items-center justify-between p-5 border-b border-stone-100">
+        <div className="flex items-center justify-between p-5 border-b border-stone-100 flex-wrap gap-3">
           <div className="flex items-center gap-3 flex-wrap">
             <h2 className="text-lg font-bold text-stone-900">{tr('تفاصيل الطلب', 'Request Details')}</h2>
             <span className="text-[#8A7B6C] font-bold text-sm">#{req.id}</span>
             <span className={`text-xs font-semibold px-3 py-1 rounded-full ${req.status === 'open' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-stone-100 text-stone-600'}`}>
               {req.status === 'open' ? tr('مفتوح', 'Open') : tr('مغلق', 'Closed')}
             </span>
-            {req.location && <span className="text-stone-400 text-sm">📍 {req.location}</span>}
+            {req.location && <span className="text-stone-400 text-sm">📍 {getCityName(req.location, lang)}</span>}
             {req.deadline && <span className="text-stone-400 text-sm">⏱ {req.deadline}</span>}
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center font-bold hover:bg-red-100 text-lg">✕</button>
+          <div className="flex items-center gap-2">
+            <a href={`/print/request/${req.id}`} target="_blank"
+              className="text-xs font-semibold px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors flex items-center gap-1.5">
+              🖨 {tr('طباعة', 'Print')}
+            </a>
+            <button onClick={handleCopyLink}
+              className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${linkCopied ? 'bg-emerald-500 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+              🔗 {linkCopied ? tr('تم النسخ ✓', 'Copied ✓') : tr('نسخ الرابط', 'Copy Link')}
+            </button>
+            <button onClick={onDuplicate}
+              className="text-xs font-semibold px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors flex items-center gap-1.5">
+              ⊕ {tr('نسخ الطلب', 'Duplicate')}
+            </button>
+            <button onClick={onClose} aria-label={tr('إغلاق', 'Close')} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center font-bold hover:bg-red-100 text-lg">✕</button>
+          </div>
         </div>
 
         <div className="p-5 space-y-5">

@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import ContractorNav from '../components/ContractorNav';
 import HelpTooltip from '../components/HelpTooltip';
+import QuoteCompareTable from '../components/QuoteCompareTable';
+import { displayVal } from '../lib/requestHelpers';
 
 type Lang = 'ar' | 'en';
 
@@ -145,14 +147,15 @@ export default function ReportsPage() {
   }, [requests, quotes]);
 
   /* ── REPORT 5: Materials ── */
+  /* canonical (untranslated) type names — always Arabic, translated only at render time via displayVal */
   const getReqTypes = (req: Request): string[] => {
     if (req.materials?.length) return req.materials.map((m: any) => m.type || m.typePending).filter(Boolean);
     const types: string[] = [];
-    if (req.ceramic > 0)   types.push(t('سيراميك','Ceramic', lang));
-    if (req.porcelain > 0) types.push(t('بورسلان','Porcelain', lang));
-    if (req.marble > 0)    types.push(t('رخام','Marble', lang));
-    if (req.granite > 0)   types.push(t('جرانيت','Granite', lang));
-    if (req.terrazzo > 0)  types.push(t('تيرازو','Terrazzo', lang));
+    if (req.ceramic > 0)   types.push('سيراميك');
+    if (req.porcelain > 0) types.push('بورسلان');
+    if (req.marble > 0)    types.push('رخام');
+    if (req.granite > 0)   types.push('جرانيت');
+    if (req.terrazzo > 0)  types.push('تيرازو');
     return types;
   };
 
@@ -171,11 +174,11 @@ export default function ReportsPage() {
           if (type?.trim()) add(type, parseFloat(m.quantity) || 0, m.unit || 'م²');
         });
       } else {
-        if (req.ceramic > 0)   add(t('سيراميك','Ceramic', lang), req.ceramic, 'م²');
-        if (req.porcelain > 0) add(t('بورسلان','Porcelain', lang), req.porcelain, 'م²');
-        if (req.marble > 0)    add(t('رخام','Marble', lang), req.marble, 'م²');
-        if (req.granite > 0)   add(t('جرانيت','Granite', lang), req.granite, 'م²');
-        if (req.terrazzo > 0)  add(t('تيرازو','Terrazzo', lang), req.terrazzo, 'م²');
+        if (req.ceramic > 0)   add('سيراميك', req.ceramic, 'م²');
+        if (req.porcelain > 0) add('بورسلان', req.porcelain, 'م²');
+        if (req.marble > 0)    add('رخام', req.marble, 'م²');
+        if (req.granite > 0)   add('جرانيت', req.granite, 'م²');
+        if (req.terrazzo > 0)  add('تيرازو', req.terrazzo, 'م²');
       }
     });
     quotes.forEach(q => {
@@ -211,12 +214,6 @@ export default function ReportsPage() {
   }, [requests, quotes, ratings, report2]);
 
   const formatMonth = (m: string) => new Date(m + '-01').toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long' });
-
-  const statusBadge = (s: Quote['status']) => {
-    const map = { pending: 'bg-orange-50 text-orange-700', accepted: 'bg-emerald-50 text-emerald-700', rejected: 'bg-red-50 text-red-600', revision: 'bg-amber-50 text-amber-700' };
-    const label = { pending: t('انتظار','Pending',lang), accepted: t('مقبول','Accepted',lang), rejected: t('مرفوض','Rejected',lang), revision: t('تعديل','Revision',lang) };
-    return <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${map[s]}`}>{label[s]}</span>;
-  };
 
   const stars = (n: number) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
 
@@ -440,46 +437,7 @@ export default function ReportsPage() {
                 </div>
                 {/* table */}
                 <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-xs">
-                      <thead>
-                        <tr>
-                          {['#', t('المورد','Supplier',lang), t('السعر الإجمالي','Total Price',lang), t('مدة التوريد','Delivery',lang),
-                            t('الفرق عن الأرخص','Diff from Min',lang), t('الحالة','Status',lang), t('ملاحظات','Notes',lang)
-                          ].map(h => <th key={h} className={TH(lang)}>{h}</th>)}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {compareQuotes.map((q, i) => {
-                          const isCheapest = q.id === cheapestQ?.id;
-                          const isFastest  = q.id === fastestQ?.id;
-                          const diff = cheapestQ ? Number(q.totalPrice) - Number(cheapestQ.totalPrice) : 0;
-                          const diffPct = cheapestQ && Number(cheapestQ.totalPrice) > 0 ? Math.round((diff / Number(cheapestQ.totalPrice)) * 100) : 0;
-                          const td = i%2===0?TD:TDE;
-                          return (
-                            <tr key={q.id} className={isCheapest ? 'bg-emerald-50/50' : ''}>
-                              <td className={`${td} text-center font-bold text-[#C0603E]`}>{i+1}</td>
-                              <td className={td}>
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-semibold text-stone-900">{q.supplierCompany}</span>
-                                  {isCheapest && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{t('الأرخص','Cheapest',lang)}</span>}
-                                  {isFastest  && <span className="text-[9px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded-full font-bold">{t('الأسرع','Fastest',lang)}</span>}
-                                </div>
-                              </td>
-                              <td className={`${td} font-bold ${isCheapest?'text-emerald-700':'text-stone-900'}`}>{fmtN(Number(q.totalPrice), lang)} {t('ر.س','SAR',lang)}</td>
-                              <td className={`${td} text-center`}>{q.deliveryDays} {t('يوم','days',lang)}</td>
-                              <td className={td}>
-                                {diff === 0 ? <span className="text-emerald-600 font-bold">—</span> :
-                                  <span className="text-red-600 font-bold">+{fmtN(diff, lang)} ({diffPct}%)</span>}
-                              </td>
-                              <td className={td}>{statusBadge(q.status)}</td>
-                              <td className={`${td} max-w-[140px] truncate`}>{q.description || '—'}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                  <QuoteCompareTable quotes={compareQuotes} lang={lang} variant="readonly" />
                 </div>
               </div>
             )}
@@ -560,7 +518,7 @@ export default function ReportsPage() {
                       return (
                         <tr key={m.type}>
                           <td className={`${td} text-center font-bold text-[#C0603E]`}>{i+1}</td>
-                          <td className={`${td} font-bold text-stone-900`}>{m.type}</td>
+                          <td className={`${td} font-bold text-stone-900`}>{displayVal(m.type, lang)}</td>
                           <td className={`${td} text-center font-bold`}>{m.reqCount}</td>
                           <td className={`${td} font-bold`}>{m.totalQty.toLocaleString()} {m.unit}</td>
                           <td className={`${td} text-center`}>{m.quoteCount || '—'}</td>
@@ -578,12 +536,9 @@ export default function ReportsPage() {
         {/* ══════ REPORT 6: Executive Summary ══════ */}
         {activeTab === 'executive' && (
           <div className="space-y-5">
-            {/* big KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            {/* big KPIs — only metrics not already shown in Project Summary */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { icon: '📋', label: t('إجمالي الطلبات','Total Requests',lang),           val: requests.length,                         sub: `${exec.open} ${t('مفتوح','open',lang)} · ${exec.closed} ${t('مغلق','closed',lang)}`,       color: 'text-[#C0603E]'  },
-                { icon: '💼', label: t('إجمالي العروض الواردة','Total Quotes Received',lang), val: quotes.length,                          sub: `${exec.pendQ} ${t('انتظار','pending',lang)} · ${exec.accQ} ${t('مقبول','accepted',lang)}`, color: 'text-[#8A7B6C]'   },
-                { icon: '💰', label: t('إجمالي المبالغ المقبولة','Total Accepted Value',lang), val: `${fmtN(exec.totalV, lang)} ${t('ر.س','SAR',lang)}`, sub: `${exec.accQ} ${t('عرض مقبول','accepted quotes',lang)}`,                             color: 'text-emerald-600' },
                 { icon: '⚡', label: t('متوسط وقت استلام العروض','Avg Quote Response',lang),  val: `${exec.avgDays.toFixed(1)} ${t('يوم','days',lang)}`, sub: t('من تاريخ الطلب','from request date',lang),                              color: 'text-amber-600'   },
                 { icon: '✅', label: t('نسبة القبول الكلية','Overall Accept Rate',lang),      val: quotes.length ? `${Math.round((exec.accQ/quotes.length)*100)}%` : '—', sub: `${exec.accQ} / ${quotes.length}`,                     color: 'text-[#C0603E]'   },
                 { icon: '⭐', label: t('متوسط تقييم الموردين','Avg Supplier Rating',lang),   val: ratings.length ? exec.avgRating.toFixed(1) : '—', sub: `${ratings.length} ${t('تقييم','ratings',lang)}`,                              color: 'text-amber-500'   },
@@ -595,10 +550,10 @@ export default function ReportsPage() {
                       <div className={`text-2xl font-black ${k.color}`}>{k.val}</div>
                       <div className="text-xs font-semibold text-stone-700 mt-0.5 flex items-center gap-1">
                         {k.label}
-                        {i === 3 && <HelpTooltip lang={lang}
+                        {i === 0 && <HelpTooltip lang={lang}
                           textAr="متوسط عدد الأيام بين تاريخ إنشاء الطلب وتاريخ استلام كل عرض سعر عليه، محسوب على كل العروض."
                           textEn="Average number of days between a request's creation date and when each quote on it was submitted, across all quotes." />}
-                        {i === 4 && <HelpTooltip lang={lang}
+                        {i === 1 && <HelpTooltip lang={lang}
                           textAr="نسبة العروض التي قبلتها من إجمالي جميع العروض التي استلمتها (بصرف النظر عن الطلب)."
                           textEn="Percentage of all quotes you've received (across every request) that you ended up accepting." />}
                       </div>

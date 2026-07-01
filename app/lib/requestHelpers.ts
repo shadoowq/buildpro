@@ -42,6 +42,19 @@ export function formatDate(ts: string, lang: Lang): string {
   return new Date(ts).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US');
 }
 
+export type DeadlineUrgency = 'overdue' | 'soon' | null;
+
+/** Only meaningful while a request still needs a decision — pass hasAcceptedQuote=true (or status closed) to suppress it. */
+export function getDeadlineUrgency(deadline: string | undefined, hasAcceptedQuote: boolean): DeadlineUrgency {
+  if (!deadline || hasAcceptedQuote) return null;
+  const d = new Date(deadline);
+  if (isNaN(d.getTime())) return null;
+  const diffHours = (d.getTime() - Date.now()) / 3600000;
+  if (diffHours < 0) return 'overdue';
+  if (diffHours <= 48) return 'soon';
+  return null;
+}
+
 export function displayVal(val: string | undefined, lang: Lang): string {
   if (!val) return '—';
   if (lang === 'en') return val.split(' أو ').map(p => arToEn[p.trim()] || p.trim()).join(' / ');
@@ -160,4 +173,18 @@ export function restoreDraft(draftId: number): void {
 export function permanentlyDeleteDraft(draftId: number): void {
   const deletedDrafts: any[] = JSON.parse(localStorage.getItem('deletedDrafts') || '[]');
   localStorage.setItem('deletedDrafts', JSON.stringify(deletedDrafts.filter(d => d.id !== draftId)));
+}
+
+/* ── in-progress autosave (unsaved, unfinished create-request form) ── */
+
+export function getUnfinishedAutosave(): { projectName?: string; materials?: any[]; savedAt?: string; hadAttachments?: boolean } | null {
+  const raw = localStorage.getItem('createRequestDraft');
+  if (!raw) return null;
+  let parsed: any;
+  try { parsed = JSON.parse(raw); } catch { return null; }
+  const hasContent =
+    parsed.projectName?.trim() ||
+    parsed.materials?.some((m: any) => m.type?.trim() || m.typePending?.trim()) ||
+    parsed.description?.trim();
+  return hasContent ? parsed : null;
 }

@@ -7,8 +7,11 @@ import ContractorNav from '../../components/ContractorNav';
 import StatusBadge from '../../components/StatusBadge';
 import RatingModal from '../../components/RatingModal';
 import HelpTooltip from '../../components/HelpTooltip';
-import { formatDate, displayVal, arToEn, appendActivityLog, setQuoteStatus } from '../../lib/requestHelpers';
+import QuoteCompareTable from '../../components/QuoteCompareTable';
+import { formatDate, displayVal, arToEn, appendActivityLog, setQuoteStatus, softDeleteRequest, getDeadlineUrgency } from '../../lib/requestHelpers';
+import { getCityName } from '../../lib/translations';
 import { useConfirm } from '../../components/ConfirmDialog';
+import { useToast } from '../../components/Toast';
 
 type Lang = 'ar' | 'en';
 type QuoteStatus = 'pending' | 'accepted' | 'rejected' | 'revision';
@@ -79,6 +82,8 @@ const T = {
   openReq:      { ar: 'فتح الطلب',      en: 'Open Request'       },
   editReq:      { ar: 'تعديل الطلب',    en: 'Edit Request'       },
   duplicate:    { ar: 'نسخ الطلب',      en: 'Duplicate Request'  },
+  deleteReq:    { ar: 'حذف الطلب',      en: 'Delete Request'     },
+  confirmDelete:{ ar: 'هل أنت متأكد من حذف هذا الطلب؟', en: 'Are you sure you want to delete this request?' },
   print:        { ar: 'طباعة',          en: 'Print'              },
   shareLink:    { ar: 'نسخ الرابط',     en: 'Copy Link'          },
   linkCopied:   { ar: 'تم النسخ ✓',     en: 'Copied ✓'           },
@@ -104,6 +109,8 @@ const T = {
   deliveryDate: { ar: 'تاريخ التوريد',  en: 'Delivery Date'      },
   note:         { ar: 'ملاحظات',        en: 'Notes'              },
   images:       { ar: 'الصور',          en: 'Images'             },
+  compareBtn:   { ar: 'مقارنة العروض',   en: 'Compare Quotes'     },
+  cardsBtn:     { ar: 'عرض تفصيلي',      en: 'Detailed View'      },
 };
 
 function t(key: keyof typeof T, lang: Lang): string { return (T[key] as any)[lang]; }
@@ -113,6 +120,7 @@ export default function RequestDetailPage() {
   const params = useParams();
   const id = Number(params.id);
   const confirmDialog = useConfirm();
+  const showToast = useToast();
 
   const [lang, setLang] = useState<Lang>('ar');
   const [userName, setUserName] = useState('');
@@ -128,6 +136,8 @@ export default function RequestDetailPage() {
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [ratingQuote, setRatingQuote] = useState<Quote | null>(null);
+  const [showCompare, setShowCompare] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
@@ -233,6 +243,14 @@ export default function RequestDetailPage() {
     router.push('/my-requests');
   };
 
+  const handleDelete = async () => {
+    if (!request) return;
+    if (!(await confirmDialog(t('confirmDelete', lang), { confirmText: t('deleteReq', lang), danger: true }))) return;
+    softDeleteRequest(request.id);
+    showToast(lang === 'ar' ? 'تم نقل الطلب لسلة المهملات' : 'Moved to trash');
+    router.push('/my-requests');
+  };
+
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href).then(() => {
       setLinkCopied(true);
@@ -298,30 +316,20 @@ export default function RequestDetailPage() {
               </span>
             </div>
             <div className="flex gap-3 mt-2 text-white/50 text-xs flex-wrap">
-              {request.location && <span>📍 {request.location}</span>}
-              {request.deadline && <span>⏱ {request.deadline}</span>}
+              {request.location && <span>📍 {getCityName(request.location, lang)}</span>}
+              {request.deadline && (() => {
+                const urgency = getDeadlineUrgency(request.deadline, quotes.some(q => q.status === 'accepted'));
+                return (
+                  <span className={`font-semibold ${urgency === 'overdue' ? 'text-red-300' : urgency === 'soon' ? 'text-amber-300' : ''}`}>
+                    {urgency === 'overdue' ? '🔴' : urgency === 'soon' ? '🟠' : '⏱'} {request.deadline}
+                  </span>
+                );
+              })()}
               <span>📅 {formatDate(request.createdAt, lang)}</span>
             </div>
           </div>
           {/* action buttons */}
-          <div className="flex gap-2 flex-wrap">
-            <a href={`/print/request/${request.id}`} target="_blank"
-              className="text-xs font-semibold px-3 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg transition-colors flex items-center gap-1.5">
-              🖨 {t('print', lang)}
-            </a>
-            <span className="inline-flex items-center gap-1">
-              <button onClick={handleCopyLink}
-                className={`text-xs font-semibold px-3 py-2 rounded-lg border transition-colors flex items-center gap-1.5 ${linkCopied ? 'bg-emerald-500 text-white border-emerald-500' : 'bg-white/10 hover:bg-white/20 text-white border-white/20'}`}>
-                🔗 {linkCopied ? t('linkCopied', lang) : t('shareLink', lang)}
-              </button>
-              <HelpTooltip lang={lang}
-                textAr="يعمل هذا الرابط فقط أثناء تسجيل دخولك بحسابك الخاص — ولا يمكن مشاركته مع مورد أو حساب آخر."
-                textEn="This link only works while you're signed into your own account — it can't be shared with a supplier or another account." />
-            </span>
-            <button onClick={handleDuplicate}
-              className="text-xs font-semibold px-3 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg transition-colors flex items-center gap-1.5">
-              ⊕ {t('duplicate', lang)}
-            </button>
+          <div className="flex gap-2 flex-wrap items-center">
             <button onClick={handleToggleStatus}
               className={`text-xs font-semibold px-3 py-2 rounded-lg border transition-colors ${request.status === 'open' ? 'bg-amber-400 hover:bg-amber-500 text-white border-amber-400' : 'bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-500'}`}>
               {request.status === 'open' ? t('closeReq', lang) : t('openReq', lang)}
@@ -330,6 +338,36 @@ export default function RequestDetailPage() {
               className="text-xs font-semibold px-3 py-2 bg-[#8A7B6C] hover:bg-[#6F6255] text-white rounded-lg transition-colors flex items-center gap-1.5">
               ✏ {t('editReq', lang)}
             </Link>
+            <div className="relative">
+              <button onClick={() => setShowMoreMenu(v => !v)}
+                className="text-xs font-semibold px-3 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-lg transition-colors">
+                ⋯
+              </button>
+              {showMoreMenu && (
+                <div className="absolute z-20 top-full mt-1 end-0 w-52 bg-white border border-[#E8DFD3] rounded-xl shadow-lg overflow-hidden" dir={dir}>
+                  <a href={`/print/request/${request.id}`} target="_blank" onClick={() => setShowMoreMenu(false)}
+                    className={`block w-full px-3 py-2 text-xs font-semibold transition-colors hover:bg-stone-100 text-stone-700 ${dir === 'rtl' ? 'text-right' : 'text-left'}`}>
+                    🖨 {t('print', lang)}
+                  </a>
+                  <button onClick={() => { handleCopyLink(); setShowMoreMenu(false); }}
+                    className={`w-full px-3 py-2 text-xs font-semibold transition-colors hover:bg-stone-100 text-stone-700 ${dir === 'rtl' ? 'text-right' : 'text-left'}`}>
+                    🔗 {linkCopied ? t('linkCopied', lang) : t('shareLink', lang)}
+                  </button>
+                  <button onClick={() => { handleDuplicate(); setShowMoreMenu(false); }}
+                    className={`w-full px-3 py-2 text-xs font-semibold transition-colors hover:bg-violet-50 text-violet-700 ${dir === 'rtl' ? 'text-right' : 'text-left'}`}>
+                    ⊕ {t('duplicate', lang)}
+                  </button>
+                  <div className="border-t border-stone-100" />
+                  <button onClick={() => { setShowMoreMenu(false); handleDelete(); }}
+                    className={`w-full px-3 py-2 text-xs font-semibold transition-colors hover:bg-red-50 text-red-600 ${dir === 'rtl' ? 'text-right' : 'text-left'}`}>
+                    🗑 {t('deleteReq', lang)}
+                  </button>
+                </div>
+              )}
+            </div>
+            <HelpTooltip lang={lang}
+              textAr="نسخ الرابط يعمل فقط أثناء تسجيل دخولك بحسابك الخاص — ولا يمكن مشاركته مع مورد أو حساب آخر."
+              textEn="Copy Link only works while you're signed into your own account — it can't be shared with a supplier or another account." />
           </div>
         </div>
       </div>
@@ -343,7 +381,7 @@ export default function RequestDetailPage() {
           </div>
           <div className="text-right text-sm text-stone-600">
             <p className="font-bold">{getReqName(request)}</p>
-            <p>{request.location} · {request.deadline}</p>
+            <p>{getCityName(request.location, lang)} · {request.deadline}</p>
             <p>{new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</p>
           </div>
         </div>
@@ -431,18 +469,37 @@ export default function RequestDetailPage() {
               <span className="text-base">💼</span>
               <h2 className="text-sm font-bold text-stone-900">{t('quotesSection', lang)} ({quotes.length})</h2>
             </div>
-            {quotes.length > 0 && (
-              <div className="flex gap-3 text-[11px] text-stone-400">
-                {cheapestId && <span>🟢 {t('cheapest', lang)}: {Number(quotes.find(q => q.id === cheapestId)?.totalPrice || 0).toLocaleString()} {t('sar', lang)}</span>}
-                {fastestId  && <span>⚡ {t('fastest', lang)}: {quotes.find(q => q.id === fastestId)?.deliveryDays} {t('days', lang)}</span>}
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              {quotes.length > 0 && (
+                <div className="flex gap-3 text-[11px] text-stone-400 print:hidden">
+                  {cheapestId && <span>🟢 {t('cheapest', lang)}: {Number(quotes.find(q => q.id === cheapestId)?.totalPrice || 0).toLocaleString()} {t('sar', lang)}</span>}
+                  {fastestId  && <span>⚡ {t('fastest', lang)}: {quotes.find(q => q.id === fastestId)?.deliveryDays} {t('days', lang)}</span>}
+                </div>
+              )}
+              {quotes.length > 1 && (
+                <button onClick={() => setShowCompare(v => !v)}
+                  className="text-[11px] font-semibold px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors print:hidden">
+                  {showCompare ? t('cardsBtn', lang) : t('compareBtn', lang)}
+                </button>
+              )}
+            </div>
           </div>
 
           {quotes.length === 0 ? (
             <div className="py-10 text-center">
               <p className="text-2xl mb-2">📭</p>
               <p className="text-sm text-stone-400">{t('noQuotes', lang)}</p>
+            </div>
+          ) : showCompare ? (
+            <div className="p-5">
+              <QuoteCompareTable quotes={quotes} lang={lang} variant="actions"
+                onAccept={id => handleQuoteAction(id, 'accepted')}
+                onReject={id => handleQuoteAction(id, 'rejected')}
+                onUndo={id => handleQuoteAction(id, 'pending')}
+                printHrefBase="/print/quote/"
+                revisionQuoteId={revisionQuoteId} revisionNote={revisionNote}
+                setRevisionQuoteId={setRevisionQuoteId} setRevisionNote={setRevisionNote}
+                onRevisionSubmit={handleRevisionSubmit} />
             </div>
           ) : (
             <div className="divide-y divide-[#FAF7F2]">

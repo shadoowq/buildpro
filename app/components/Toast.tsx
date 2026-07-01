@@ -25,7 +25,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={showToast}>
       {children}
-      <div style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 10000, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', pointerEvents: 'none' }}>
+      <div role="status" aria-live="polite" style={{ position: 'fixed', top: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 10000, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center', pointerEvents: 'none' }}>
         {toasts.map(t => (
           <div key={t.id} dir={t.dir} className="font-cairo"
             style={{
@@ -36,7 +36,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               pointerEvents: 'auto',
             }}>
             <span>{t.message}</span>
-            <button onClick={() => dismiss(t.id)}
+            <button onClick={() => dismiss(t.id)} aria-label={t.dir === 'rtl' ? 'إغلاق' : 'Close'}
               style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: '#fff', borderRadius: 6, width: 20, height: 20, cursor: 'pointer', fontSize: 12, lineHeight: '20px', flexShrink: 0 }}>
               ✕
             </button>

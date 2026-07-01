@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import ContractorNav from '../components/ContractorNav'
 import RequestDetailModal from '../components/RequestDetailModal'
-import { appendActivityLog, setQuoteStatus, softDeleteRequest, displayVal } from '../lib/requestHelpers'
-import { buildNotifications, notifIconMap, timeAgo, NotifItem } from '../lib/notifications'
+import RatingModal from '../components/RatingModal'
+import { appendActivityLog, setQuoteStatus, softDeleteRequest, displayVal, getUnfinishedAutosave, getDeadlineUrgency } from '../lib/requestHelpers'
 import HelpTooltip from '../components/HelpTooltip'
 import { useToast } from '../components/Toast'
 import { useConfirm } from '../components/ConfirmDialog'
@@ -62,10 +62,6 @@ const T = {
   noRequests:   { ar: 'لا توجد طلبات — اضغط على طلب جديد للبداية', en: 'No requests — click New Request to start' },
   view:         { ar: 'عرض',               en: 'View'                },
   edit:         { ar: 'تعديل',             en: 'Edit'                },
-  ctaTitle:     { ar: 'طلب تسعير جديد',    en: 'New Pricing Request'  },
-  ctaSub:       { ar: 'أرسله لأكثر من 300 مورد دفعة واحدة', en: 'Send to 300+ suppliers at once' },
-  startNow:     { ar: 'ابدأ الآن',          en: 'Start Now'           },
-  latestUpdates:{ ar: 'آخر التحديثات',      en: 'Latest Updates'      },
   viewAll:      { ar: 'عرض الكل',          en: 'View All'            },
   topSuppliers: { ar: 'أكثر الموردين تفاعلاً', en: 'Top Suppliers'    },
   noSuppliers:  { ar: 'لا يوجد موردون بعد', en: 'No suppliers yet'    },
@@ -103,7 +99,6 @@ const T = {
   pending:      { ar: 'انتظار',            en: 'Pending'             },
   deliveryDays: { ar: 'مدة التوريد:',       en: 'Delivery:'           },
   days:         { ar: 'يوم',               en: 'days'                },
-  noNotifs:     { ar: 'لا توجد تحديثات بعد', en: 'No updates yet'    },
   newQuoteFrom: { ar: (c: string, id: number) => `${c} أرسل عرض سعر على طلب #${id}`, en: (c: string, id: number) => `${c} sent a quote on request #${id}` },
   quoteAccepted:{ ar: (c: string) => `تم قبول عرض ${c}`, en: (c: string) => `Quote from ${c} was accepted` },
   quoteRejected:{ ar: (c: string) => `تم رفض عرض ${c}`, en: (c: string) => `Quote from ${c} was rejected` },
@@ -174,7 +169,9 @@ export default function DashboardPage() {
   const [ratings, setRatings]         = useState<any[]>([])
   const [drafts, setDrafts]           = useState<any[]>([])
   const [allUsers, setAllUsers]       = useState<any[]>([])
-  const [seenIds, setSeenIds]         = useState<Set<string>>(new Set())
+  const [unfinishedDraft, setUnfinishedDraft] = useState<{ projectName?: string; materials?: any[]; savedAt?: string; hadAttachments?: boolean } | null>(null)
+  const [showRatingModal, setShowRatingModal] = useState(false)
+  const [ratingQuote, setRatingQuote] = useState<any>(null)
 
   const [selected, setSelected]   = useState<any>(null)
   const [lightbox, setLightbox]   = useState<string | null>(null)
@@ -193,10 +190,7 @@ export default function DashboardPage() {
       try {
         const u = JSON.parse(userData)
         if (u.name)  setUserName(u.name)
-        if (u.email) {
-          setUserEmail(u.email)
-          try { setSeenIds(new Set(JSON.parse(localStorage.getItem(`notifSeen_${u.email}`) || '[]'))) } catch {}
-        }
+        if (u.email) setUserEmail(u.email)
       } catch {}
     }
 
@@ -206,9 +200,25 @@ export default function DashboardPage() {
     try { setRatings(    JSON.parse(localStorage.getItem('ratings')   || '[]')) } catch {}
     try { setDrafts(     JSON.parse(localStorage.getItem('requestDrafts') || '[]')) } catch {}
     try { setAllUsers(   JSON.parse(localStorage.getItem('users')     || '[]')) } catch {}
+
+    const autosave = getUnfinishedAutosave()
+    const dismissedAt = localStorage.getItem('dismissedAutosaveDraftAt')
+    if (autosave && autosave.savedAt !== dismissedAt) setUnfinishedDraft(autosave)
   }, [])
 
   const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l) }
+
+  const dismissUnfinishedDraft = () => {
+    if (unfinishedDraft?.savedAt) localStorage.setItem('dismissedAutosaveDraftAt', unfinishedDraft.savedAt)
+    setUnfinishedDraft(null)
+  }
+
+  const unfinishedDraftName = (() => {
+    if (!unfinishedDraft) return ''
+    if (unfinishedDraft.projectName?.trim()) return unfinishedDraft.projectName.trim()
+    const types = [...new Set((unfinishedDraft.materials || []).map((m: any) => m.type || m.typePending).filter(Boolean))] as string[]
+    return types.map(tp => displayVal(tp, lang)).join(lang === 'ar' ? '، ' : ', ')
+  })()
 
   /* ── my requests only ── */
   const myRequests = rawRequests.filter(r => r.contractorId === userEmail)
@@ -247,19 +257,24 @@ export default function DashboardPage() {
     ].filter(Boolean) as string[])
   }
 
+  /* single source of truth so Dashboard status always agrees with the Kanban column on My Requests */
+  const getKanbanCol = (r: any): 'active' | 'awaiting' | 'closed' => {
+    if (r.kanbanColumn) return r.kanbanColumn
+    if (r.status === 'closed') return 'closed'
+    if (getReqQuotes(r.id).length > 0) return 'active'
+    return 'awaiting'
+  }
+
   /* ── map to table rows ── */
   const rows: ReqRow[] = myRequests.map(r => {
-    const rq = getReqQuotes(r.id)
-    const status: ReqRow['status'] =
-      r.status === 'closed' ? 'done'
-      : rq.length > 0 ? 'active'
-      : 'pending'
+    const col = getKanbanCol(r)
+    const status: ReqRow['status'] = col === 'closed' ? 'done' : col === 'awaiting' ? 'pending' : 'active'
     return {
       id:          String(r.id),
       name:        getReqName(r),
       tags:        getReqTags(r),
       status,
-      quotesCount: rq.length,
+      quotesCount: getReqQuotes(r.id).length,
       deadline:    r.deadline || '—',
     }
   })
@@ -289,9 +304,6 @@ export default function DashboardPage() {
     lowestQ:    lowestQuote,
     draftCount: myDrafts.length,
   }
-
-  /* ── real notifications ── */
-  const notifs: NotifItem[] = buildNotifications(allQuotes, activityLogs, myRequests.map(r => r.id), { limit: 5 })
 
   /* ── real suppliers ── */
   const supplierUsers: Supplier[] = (() => {
@@ -341,15 +353,50 @@ export default function DashboardPage() {
     showToast(lang === 'ar' ? 'تم نقل الطلب لسلة المهملات' : 'Moved to trash')
   }
 
+  const handleDuplicate = (req: any) => {
+    const newReq = {
+      ...req,
+      id: Date.now(),
+      status: 'open',
+      kanbanColumn: undefined,
+      createdAt: new Date().toISOString(),
+      projectName: req.projectName ? `${req.projectName} (${lang === 'ar' ? 'نسخة' : 'copy'})` : undefined,
+    }
+    const updated = [...rawRequests, newReq]
+    localStorage.setItem('requests', JSON.stringify(updated))
+    setRawRequests(updated)
+    setActivityLogs(appendActivityLog(newReq.id, `تم إنشاء طلب بنسخ طلب #${req.id}`, `Duplicated from request #${req.id}`))
+    setSelected(null)
+  }
+
   const handleToggleStatus = (id: number, currentStatus: string) => {
     const newStatus = currentStatus === 'open' ? 'closed' : 'open'
-    const updated   = rawRequests.map(r => r.id === id ? { ...r, status: newStatus } : r)
+    const updated   = rawRequests.map(r => r.id === id ? { ...r, status: newStatus, kanbanColumn: newStatus === 'closed' ? 'closed' : undefined } : r)
     localStorage.setItem('requests', JSON.stringify(updated))
     setRawRequests(updated)
     setSelected((prev: any) => prev ? { ...prev, status: newStatus } : prev)
-    setActivityLogs(newStatus === 'closed'
-      ? appendActivityLog(id, 'تم إغلاق الطلب', 'Request closed')
-      : appendActivityLog(id, 'تم فتح الطلب', 'Request reopened'))
+    if (newStatus === 'closed') {
+      setActivityLogs(appendActivityLog(id, 'تم إغلاق الطلب', 'Request closed'))
+      const acceptedQuote = allQuotes.find((q: any) => q.requestId === id && q.status === 'accepted')
+      const alreadyRated = ratings.find((r: any) => r.requestId === id)
+      if (acceptedQuote && !alreadyRated) {
+        setRatingQuote(acceptedQuote)
+        setShowRatingModal(true)
+      }
+    } else {
+      setActivityLogs(appendActivityLog(id, 'تم فتح الطلب', 'Request reopened'))
+    }
+  }
+
+  const handleSubmitRating = (stars: number, comment: string) => {
+    if (!ratingQuote) return
+    const newRating = { id: Date.now(), requestId: ratingQuote.requestId, supplierId: ratingQuote.supplierId, supplierCompany: ratingQuote.supplierCompany, rating: stars, comment, createdAt: new Date().toISOString() }
+    const updatedRatings = [...ratings, newRating]
+    localStorage.setItem('ratings', JSON.stringify(updatedRatings))
+    setRatings(updatedRatings)
+    setActivityLogs(appendActivityLog(ratingQuote.requestId, `تم تقييم ${ratingQuote.supplierCompany} بـ ${stars} نجوم`, `Rated ${ratingQuote.supplierCompany} ${stars} stars`))
+    setShowRatingModal(false)
+    setRatingQuote(null)
   }
 
   const handleQuoteAction = async (quoteId: number, action: 'accepted' | 'rejected' | 'pending') => {
@@ -420,6 +467,31 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* ── UNFINISHED DRAFT BANNER ── */}
+      {unfinishedDraft && (
+        <div className="mx-4 md:mx-7 mt-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+          <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600 shrink-0">✏️</div>
+          <div className="flex-1 min-w-0">
+            <p className="text-amber-800 font-semibold text-sm truncate">
+              {lang === 'ar'
+                ? `لديك طلب لم يكتمل${unfinishedDraftName ? `: ${unfinishedDraftName}` : ''}`
+                : `You have an unfinished request${unfinishedDraftName ? `: ${unfinishedDraftName}` : ''}`}
+            </p>
+            {unfinishedDraft.hadAttachments && (
+              <p className="text-amber-600 text-[11px] mt-0.5">
+                {lang === 'ar' ? '⚠ الصور والملفات المرفقة لم تُحفظ ويجب إعادة إضافتها' : '⚠ Attached photos/files were not saved and need to be re-added'}
+              </p>
+            )}
+          </div>
+          <Link href="/create-request"
+            className="text-xs font-semibold px-3 py-1.5 bg-[#C0603E] text-white rounded-lg hover:bg-[#9C4C31] transition-colors shrink-0">
+            {lang === 'ar' ? 'استكمال' : 'Continue'}
+          </Link>
+          <button onClick={dismissUnfinishedDraft}
+            className="text-amber-400 hover:text-amber-600 text-sm shrink-0 px-1">✕</button>
+        </div>
+      )}
 
       {/* STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
@@ -517,6 +589,8 @@ export default function DashboardPage() {
               ) : (
                 filtered.map(req => {
                   const raw = rawRequests.find(r => String(r.id) === req.id)
+                  const hasAccepted = raw ? getReqQuotes(raw.id).some((q: any) => q.status === 'accepted') : false
+                  const urgency = raw ? getDeadlineUrgency(raw.deadline, hasAccepted) : null
                   return (
                     <tr key={req.id} className="border-b border-[#FAF7F2] hover:bg-[#FFFDF9] transition-colors cursor-pointer"
                       onClick={() => raw && setSelected(raw)}>
@@ -533,7 +607,11 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-4 py-3"><StatusPill status={req.status} lang={lang} /></td>
                       <td className="px-4 py-3 text-center"><QuotesBadge count={req.quotesCount} /></td>
-                      <td className="px-4 py-3"><span className="text-xs text-stone-600">⏱ {req.deadline}</span></td>
+                      <td className="px-4 py-3">
+                        <span className={`text-xs font-semibold ${urgency === 'overdue' ? 'text-red-600' : urgency === 'soon' ? 'text-amber-600' : 'text-stone-600 font-normal'}`}>
+                          {urgency === 'overdue' ? '🔴' : urgency === 'soon' ? '🟠' : '⏱'} {req.deadline}
+                        </span>
+                      </td>
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <button onClick={() => raw && setSelected(raw)}
                           className="text-[11px] font-semibold text-[#C0603E] bg-[#F3EAE0] border border-[#E8DFD3] rounded-md px-2.5 py-1 hover:bg-[#EDE0D2] transition-colors">
@@ -550,50 +628,6 @@ export default function DashboardPage() {
 
         {/* ── SIDEBAR ── */}
         <div className="flex flex-col gap-3.5">
-
-          {/* CTA */}
-          <div className="bg-[#C0603E] rounded-xl p-4">
-            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-xl mb-3">📄</div>
-            <div className="text-white text-sm font-bold mb-1">{tStr('ctaTitle', lang)}</div>
-            <div className="text-white/50 text-xs">{tStr('ctaSub', lang)}</div>
-            <Link href="/create-request"
-              className="mt-3 block bg-[#8A7B6C] hover:bg-[#6F6255] text-white text-xs font-semibold text-center px-3 py-2 rounded-lg transition-colors">
-              {tStr('startNow', lang)}
-            </Link>
-          </div>
-
-          {/* Real Notifications */}
-          <div className="bg-white border border-[#E8DFD3] rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-3.5 py-3 border-b border-[#F1EAE0]">
-              <span className="text-xs font-bold text-stone-900">{tStr('latestUpdates', lang)}</span>
-              <Link href="/notifications" className="text-[10px] text-[#8A7B6C] font-semibold hover:underline">
-                {tStr('viewAll', lang)}
-              </Link>
-            </div>
-            {notifs.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center px-4">
-                <span className="text-2xl mb-2">🔔</span>
-                <p className="text-[11px] text-stone-400">{tStr('noNotifs', lang)}</p>
-              </div>
-            ) : (
-              notifs.map(n => {
-                const icon = notifIconMap[n.type]
-                return (
-                  <Link key={n.id} href={`/my-requests?reqId=${n.requestId}`}
-                    className="flex gap-2.5 px-3.5 py-2.5 border-b border-[#FAF7F2] hover:bg-[#FFFDF9] cursor-pointer last:border-0">
-                    <div className={`w-8 h-8 rounded-lg ${icon.bg} flex items-center justify-center text-sm ${icon.color} shrink-0 mt-0.5`}>
-                      {icon.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[11px] text-stone-700 leading-relaxed">{lang === 'ar' ? n.textAr : n.textEn}</p>
-                      <p className="text-[10px] text-stone-400 mt-0.5">{timeAgo(n.timestamp, lang)}</p>
-                    </div>
-                    {n.unread && !seenIds.has(n.id) && <span className="w-1.5 h-1.5 rounded-full bg-[#8A7B6C] shrink-0 mt-1.5" />}
-                  </Link>
-                )
-              })
-            )}
-          </div>
 
           {/* Real Suppliers */}
           <div className="bg-white border border-[#E8DFD3] rounded-xl overflow-hidden">
@@ -682,9 +716,17 @@ export default function DashboardPage() {
           onToggle={() => handleToggleStatus(selected.id, selected.status)}
           onDelete={() => handleDelete(selected.id)}
           onEdit={() => router.push(`/create-request?edit=${selected.id}`)}
+          onDuplicate={() => handleDuplicate(selected)}
           onQuoteAction={handleQuoteAction} onRevisionSubmit={handleRevisionSubmit}
           setLightboxImg={setLightbox}
         />
+      )}
+
+      {/* RATING MODAL */}
+      {showRatingModal && ratingQuote && (
+        <RatingModal lang={lang} supplierCompany={ratingQuote.supplierCompany}
+          onSubmit={handleSubmitRating}
+          onSkip={() => { setShowRatingModal(false); setRatingQuote(null) }} />
       )}
 
       {/* LIGHTBOX */}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useEscapeKey } from './useEscapeKey';
 
 type Lang = 'ar' | 'en';
 
@@ -28,10 +29,11 @@ export default function RatingModal({ lang, supplierCompany, onSubmit, onSkip }:
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState('');
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
+  useEscapeKey(onSkip);
 
   return (
     <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-7 max-w-sm w-full" dir={dir}>
+      <div className="bg-white rounded-2xl p-7 max-w-sm w-full" dir={dir} role="dialog" aria-modal="true">
         <h2 className="text-lg font-bold text-stone-900 text-center mb-1">{rt('rateSupplier', lang)}</h2>
         <p className="text-stone-500 text-sm text-center mb-5">{rt('rateExp', lang)} <strong>{supplierCompany}</strong>؟</p>
         <div className="flex justify-center gap-2 mb-2">

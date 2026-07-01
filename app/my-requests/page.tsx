@@ -7,7 +7,9 @@ import ContractorNav from '../components/ContractorNav';
 import RequestDetailModal from '../components/RequestDetailModal';
 import RatingModal from '../components/RatingModal';
 import HelpTooltip from '../components/HelpTooltip';
-import { displayVal, appendActivityLog, setQuoteStatus, softDeleteRequest, softDeleteRequests } from '../lib/requestHelpers';
+import QuoteCompareTable from '../components/QuoteCompareTable';
+import { displayVal, appendActivityLog, setQuoteStatus, softDeleteRequest, softDeleteRequests, getDeadlineUrgency } from '../lib/requestHelpers';
+import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
 
@@ -78,7 +80,6 @@ const T = {
   kanbanClosed: { ar: 'مغلقة',             en: 'Closed'             },
   compare:      { ar: 'مقارنة',            en: 'Compare'            },
   thisMonth:    { ar: '+3 هذا الشهر',      en: '+3 this month'      },
-  unread:       { ar: 'غير مقروءة',        en: 'unread'             },
   activeReqs:   { ar: 'طلبات نشطة',        en: 'Active Requests'    },
   incomingQ:    { ar: 'عروض واردة',        en: 'Incoming Quotes'    },
   closedReqs:   { ar: 'طلبات مغلقة',       en: 'Closed Requests'    },
@@ -202,20 +203,16 @@ function t(key: keyof typeof T, lang: Lang, arg?: number): string {
   return val;
 }
 
-function StatusPill({ status, hasQuotes, lang }: { status: string; hasQuotes: boolean; lang: Lang }) {
-  if (status === 'closed') return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 border border-stone-200">
-      <span className="w-1.5 h-1.5 rounded-full bg-stone-400" />{t('closed', lang)}
-    </span>
-  );
-  if (hasQuotes) return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />{t('active', lang)}
-    </span>
-  );
+function StatusPill({ status, lang }: { status: 'active' | 'pending' | 'closed'; lang: Lang }) {
+  const map = {
+    closed:  { cls: 'bg-stone-100 text-stone-600 border-stone-200',     dot: 'bg-stone-400',   label: 'closed'  as const },
+    active:  { cls: 'bg-emerald-50 text-emerald-800 border-emerald-200', dot: 'bg-emerald-500', label: 'active'  as const },
+    pending: { cls: 'bg-orange-50 text-orange-800 border-orange-200',   dot: 'bg-orange-400',  label: 'pending' as const },
+  };
+  const m = map[status];
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-800 border border-orange-200">
-      <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />{t('pending', lang)}
+    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${m.cls}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${m.dot}`} />{t(m.label, lang)}
     </span>
   );
 }
@@ -285,11 +282,9 @@ export default function MyRequests() {
 
     const savedLang = localStorage.getItem('language') as Lang || 'ar';
     setLang(savedLang);
-    const interval = setInterval(() => {
-      const nl = localStorage.getItem('language') as Lang || 'ar';
-      setLang(prev => prev !== nl ? nl : prev);
-    }, 100);
-    return () => clearInterval(interval);
+    const onStorage = (e: StorageEvent) => { if (e.key === 'language' && e.newValue) setLang(e.newValue as Lang); };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, [router]);
 
   const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
@@ -464,6 +459,11 @@ export default function MyRequests() {
     if (getRequestQuotes(req.id).length > 0) return 'active';
     return 'awaiting';
   };
+  /* single source of truth so Table/Cards badges always agree with the Kanban column */
+  const getEffectiveStatus = (req: Request): 'active' | 'pending' | 'closed' => {
+    const col = getKanbanCol(req);
+    return col === 'awaiting' ? 'pending' : col;
+  };
   const handleKanbanDrop = (col: KanbanCol) => {
     if (!draggingId) return;
     const newStatus = col === 'closed' ? 'closed' : 'open';
@@ -569,7 +569,7 @@ export default function MyRequests() {
         {[
           { icon: '📋', bg: 'bg-amber-50',   val: stats.total,  label: t('totalReqs', lang),  badge: null },
           { icon: '🔥', bg: 'bg-emerald-50', val: stats.active, label: t('activeReqs', lang), badge: stats.active > 0 ? t('thisMonth', lang) : null },
-          { icon: '📥', bg: 'bg-[#F3EAE0]',  val: stats.quotes, label: t('incomingQ', lang),  badge: newQuotesCount > 0 ? `${newQuotesCount} ${t('unread', lang)}` : null },
+          { icon: '📥', bg: 'bg-[#F3EAE0]',  val: stats.quotes, label: t('incomingQ', lang),  badge: null },
           { icon: '🔒', bg: 'bg-stone-50',   val: stats.closed, label: t('closedReqs', lang), badge: null },
         ].map((s, i) => (
           <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4 relative">
@@ -665,7 +665,7 @@ export default function MyRequests() {
               <select value={cityFilter} onChange={e => setCityFilter(e.target.value)}
                 className="text-xs font-semibold border border-[#E8DFD3] rounded-lg px-3 py-1.5 bg-white text-stone-700 outline-none cursor-pointer">
                 <option value="">{t('allCities', lang)}</option>
-                {availableCities.map(c => <option key={c} value={c}>{c}</option>)}
+                {availableCities.map(c => <option key={c} value={c}>{getCityName(c, lang)}</option>)}
               </select>
               {/* quotes */}
               <div className="flex items-center gap-1 bg-white border border-[#E8DFD3] rounded-lg p-0.5">
@@ -721,7 +721,6 @@ export default function MyRequests() {
                   {([
                     { col: 'active'   as KanbanCol, labelAr: 'نشطة',          labelEn: 'Active',   cls: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' },
                     { col: 'awaiting' as KanbanCol, labelAr: 'بانتظار عروض', labelEn: 'Awaiting', cls: 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100' },
-                    { col: 'closed'   as KanbanCol, labelAr: 'مغلقة',         labelEn: 'Closed',   cls: 'bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200' },
                   ]).map(m => (
                     <button key={m.col}
                       onClick={() => { [...selectedIds].forEach(id => handleMoveRequest(id, m.col)); setSelectedIds(new Set()); }}
@@ -767,6 +766,7 @@ export default function MyRequests() {
                     const rq = getRequestQuotes(req.id);
                     const nq = getRequestNewQuotes(req.id);
                     const isSelected = selectedIds.has(req.id);
+                    const urgency = getDeadlineUrgency(req.deadline, rq.some(q => q.status === 'accepted'));
                     return (
                       <tr key={req.id}
                         className={`transition-colors cursor-pointer ${isSelected ? 'bg-[#F3EAE0]' : 'hover:bg-[#FFFDF9]'}`}
@@ -786,61 +786,68 @@ export default function MyRequests() {
                             ))}
                           </div>
                         </td>
-                        <td className={tdCls}><StatusPill status={req.status} hasQuotes={rq.length > 0} lang={lang} /></td>
+                        <td className={tdCls}><StatusPill status={getEffectiveStatus(req)} lang={lang} /></td>
                         <td className={`${tdCls} text-center`}>
                           <span className={`inline-flex items-center justify-center min-w-[26px] h-[22px] rounded-md text-xs font-bold px-1.5 relative ${rq.length > 0 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-stone-100 text-stone-600 border border-stone-200'}`}>
                             {rq.length}
                             {nq > 0 && <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-red-500 rounded-full text-white text-[9px] flex items-center justify-center font-bold">{nq}</span>}
                           </span>
                         </td>
-                        <td className={tdCls}><span className="text-xs text-stone-500">📍 {req.location || '—'}</span></td>
-                        <td className={tdCls}><span className="text-xs text-stone-600">⏱ {req.deadline || '—'}</span></td>
+                        <td className={tdCls}><span className="text-xs text-stone-500">📍 {req.location ? getCityName(req.location, lang) : '—'}</span></td>
+                        <td className={tdCls}>
+                          <span className={`text-xs font-semibold ${urgency === 'overdue' ? 'text-red-600' : urgency === 'soon' ? 'text-amber-600' : 'text-stone-600 font-normal'}`}>
+                            {urgency === 'overdue' ? '🔴' : urgency === 'soon' ? '🟠' : '⏱'} {req.deadline || '—'}
+                          </span>
+                        </td>
                         <td className={tdCls} onClick={e => e.stopPropagation()}>
-                          <div className="flex flex-col gap-1">
+                          <div className="flex gap-1">
                             <button onClick={() => openRequest(req)}
-                              className="w-full text-[11px] font-semibold text-[#C0603E] bg-[#F3EAE0] border border-[#E8DFD3] rounded-md px-2 py-1 hover:bg-[#EDE0D2] transition-colors">
+                              className="flex-1 text-[11px] font-semibold text-[#C0603E] bg-[#F3EAE0] border border-[#E8DFD3] rounded-md px-2 py-1 hover:bg-[#EDE0D2] transition-colors">
                               {t('view', lang)}
                             </button>
                             <button onClick={() => router.push(`/create-request?edit=${req.id}`)}
-                              className="w-full text-[11px] font-semibold text-[#8A7B6C] bg-stone-100 border border-stone-200 rounded-md px-2 py-1 hover:bg-stone-200 transition-colors">
+                              className="flex-1 text-[11px] font-semibold text-[#8A7B6C] bg-stone-100 border border-stone-200 rounded-md px-2 py-1 hover:bg-stone-200 transition-colors">
                               {t('edit', lang)}
-                            </button>
-                            <button onClick={() => toggleRequestStatus(req.id)}
-                              className={`w-full text-[11px] font-semibold rounded-md px-2 py-1 transition-colors ${req.status === 'open' ? 'bg-amber-50 border border-amber-100 text-amber-700 hover:bg-amber-100' : 'bg-emerald-50 border border-emerald-100 text-emerald-700 hover:bg-emerald-100'}`}>
-                              {req.status === 'open' ? (lang === 'ar' ? 'إغلاق' : 'Close') : (lang === 'ar' ? 'فتح' : 'Open')}
                             </button>
                             <div className="relative">
                               <button onClick={() => setMoveMenuId(moveMenuId === req.id ? null : req.id)}
-                                className="w-full text-[11px] font-semibold text-violet-700 bg-violet-50 border border-violet-100 rounded-md px-2 py-1 hover:bg-violet-100 transition-colors">
-                                {t('moveTo', lang)} ↕
+                                className="text-[11px] font-semibold text-stone-500 bg-stone-50 border border-stone-200 rounded-md px-2 py-1 hover:bg-stone-100 transition-colors">
+                                ⋯
                               </button>
                               {moveMenuId === req.id && (
-                                <div className="absolute z-20 top-full mt-1 left-0 right-0 bg-white border border-[#E8DFD3] rounded-xl shadow-lg overflow-hidden">
+                                <div className="absolute z-20 top-full mt-1 left-0 w-40 bg-white border border-[#E8DFD3] rounded-xl shadow-lg overflow-hidden" dir={dir}>
+                                  <button onClick={() => { toggleRequestStatus(req.id); setMoveMenuId(null); }}
+                                    className={`w-full text-right px-3 py-1.5 text-[11px] font-semibold transition-colors ${req.status === 'open' ? 'hover:bg-amber-50 text-amber-700' : 'hover:bg-emerald-50 text-emerald-700'}`}>
+                                    {req.status === 'open' ? (lang === 'ar' ? 'إغلاق' : 'Close') : (lang === 'ar' ? 'فتح' : 'Open')}
+                                  </button>
+                                  <div className="border-t border-stone-100" />
+                                  <div className="px-3 py-1 text-[10px] text-stone-400 font-semibold">{t('moveTo', lang)}</div>
                                   {([
                                     { col: 'active'   as KanbanCol, ar: 'نشطة',         en: 'Active',   cls: 'hover:bg-emerald-50 text-emerald-700' },
                                     { col: 'awaiting' as KanbanCol, ar: 'بانتظار عروض', en: 'Awaiting', cls: 'hover:bg-orange-50 text-orange-700'  },
-                                    { col: 'closed'   as KanbanCol, ar: 'مغلقة',        en: 'Closed',   cls: 'hover:bg-stone-100 text-stone-600'   },
                                   ]).map(m => (
-                                    <button key={m.col} onClick={() => handleMoveRequest(req.id, m.col)}
+                                    <button key={m.col} onClick={() => { handleMoveRequest(req.id, m.col); setMoveMenuId(null); }}
                                       className={`w-full text-right px-3 py-1.5 text-[11px] font-semibold transition-colors ${m.cls}`}>
                                       {lang === 'ar' ? m.ar : m.en}
                                     </button>
                                   ))}
+                                  <div className="border-t border-stone-100" />
+                                  <button onClick={() => { handleDuplicateRequest(req); setMoveMenuId(null); }}
+                                    className="w-full text-right px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-violet-50 text-violet-700">
+                                    {lang === 'ar' ? 'نسخ الطلب' : 'Duplicate'}
+                                  </button>
+                                  <a href={`/print/request/${req.id}`} target="_blank"
+                                    className="block w-full text-right px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-stone-100 text-stone-600">
+                                    🖨 {lang === 'ar' ? 'طباعة' : 'Print'}
+                                  </a>
+                                  <div className="border-t border-stone-100" />
+                                  <button onClick={() => { setMoveMenuId(null); handleDeleteRequest(req.id); }}
+                                    className="w-full text-right px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-red-50 text-red-600">
+                                    {t('delete', lang)}
+                                  </button>
                                 </div>
                               )}
                             </div>
-                            <button onClick={() => handleDuplicateRequest(req)}
-                              className="w-full text-[11px] font-semibold text-violet-700 bg-violet-50 border border-violet-100 rounded-md px-2 py-1 hover:bg-violet-100 transition-colors">
-                              {lang === 'ar' ? 'نسخ' : 'Copy'}
-                            </button>
-                            <a href={`/print/request/${req.id}`} target="_blank"
-                              className="w-full text-[11px] font-semibold text-stone-600 bg-stone-50 border border-stone-200 rounded-md px-2 py-1 hover:bg-stone-100 transition-colors text-center block">
-                              🖨 {lang === 'ar' ? 'طباعة' : 'Print'}
-                            </a>
-                            <button onClick={() => handleDeleteRequest(req.id)}
-                              className="w-full text-[11px] font-semibold text-red-600 bg-red-50 border border-red-100 rounded-md px-2 py-1 hover:bg-red-100 transition-colors">
-                              {t('delete', lang)}
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -860,6 +867,7 @@ export default function MyRequests() {
                   const nq = getRequestNewQuotes(req.id);
                   const rating = getRequestRating(req.id);
                   const isClosed = req.status === 'closed';
+                  const urgency = getDeadlineUrgency(req.deadline, rq.some(q => q.status === 'accepted'));
                   return (
                     <div key={req.id}
                       className={`border rounded-2xl p-4 cursor-pointer transition-all hover:shadow-md group relative ${selectedIds.has(req.id) ? 'border-[#8A7B6C] bg-[#F0FAFC]' : isClosed ? 'border-stone-200 bg-stone-50' : nq > 0 ? 'border-emerald-300 bg-white shadow-sm' : 'border-[#E8DFD3] bg-white'}`}
@@ -880,7 +888,7 @@ export default function MyRequests() {
                           <span className="text-[10px] text-[#8A7B6C] font-semibold font-mono">#{req.id}</span>
                           <p className="text-[13px] font-bold text-stone-900 mt-0.5 leading-tight line-clamp-2">{getRequestName(req)}</p>
                         </div>
-                        <StatusPill status={req.status} hasQuotes={rq.length > 0} lang={lang} />
+                        <StatusPill status={getEffectiveStatus(req)} lang={lang} />
                       </div>
                       {/* tags */}
                       <div className="flex flex-wrap gap-1 mb-3">
@@ -890,8 +898,12 @@ export default function MyRequests() {
                       </div>
                       {/* info row */}
                       <div className="flex items-center gap-3 text-xs text-stone-500 mb-3">
-                        {req.location && <span>📍 {req.location}</span>}
-                        {req.deadline && <span>⏱ {req.deadline}</span>}
+                        {req.location && <span>📍 {getCityName(req.location, lang)}</span>}
+                        {req.deadline && (
+                          <span className={`font-semibold ${urgency === 'overdue' ? 'text-red-600' : urgency === 'soon' ? 'text-amber-600' : ''}`}>
+                            {urgency === 'overdue' ? '🔴' : urgency === 'soon' ? '🟠' : '⏱'} {req.deadline}
+                          </span>
+                        )}
                       </div>
                       {/* quotes bar */}
                       <div className={`rounded-lg px-3 py-2 flex items-center justify-between ${rq.length > 0 ? 'bg-emerald-50 border border-emerald-100' : 'bg-stone-50 border border-stone-100'}`}>
@@ -1095,59 +1107,14 @@ export default function MyRequests() {
               <h2 className="text-lg font-bold text-stone-900">{t('compareTitle', lang)} — <span className="text-[#8A7B6C]">#{compareRequest.id}</span></h2>
               <button onClick={() => setCompareRequest(null)} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center font-bold hover:bg-red-100 text-lg">✕</button>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-[#C0603E] text-white">
-                    {[t('supplier',lang), t('price',lang), t('delivery',lang), t('status',lang), t('notesL',lang), t('action',lang)].map(h => (
-                      <th key={h} className="px-4 py-3 text-right font-semibold text-xs whitespace-nowrap">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {getRequestQuotes(compareRequest.id).map((quote, i) => {
-                    const lowestP = getLowestPrice(getRequestQuotes(compareRequest.id));
-                    const fastestD = getFastestDelivery(getRequestQuotes(compareRequest.id));
-                    return (
-                      <tr key={quote.id} className={`border-b border-stone-100 ${i % 2 === 0 ? 'bg-white' : 'bg-[#FAF7F2]'} ${quote.status === 'accepted' ? '!bg-emerald-50' : ''}`}>
-                        <td className="px-4 py-3">
-                          <p className="font-bold text-stone-900 text-sm">{quote.supplierCompany}</p>
-                          <p className="text-stone-400 text-xs">{quote.supplierName}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className={`font-bold text-sm ${quote.totalPrice === lowestP ? 'text-emerald-600' : 'text-stone-900'}`}>{quote.totalPrice?.toLocaleString()} {t('sar', lang)}</p>
-                          {quote.totalPrice === lowestP && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">{t('cheapest', lang)}</span>}
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className={`font-bold text-sm ${quote.deliveryDays === fastestD ? 'text-[#C0603E]' : 'text-stone-900'}`}>{quote.deliveryDays} {t('days', lang)}</p>
-                          {quote.deliveryDays === fastestD && <span className="text-[10px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded-full">{t('fastest', lang)}</span>}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`text-[11px] font-semibold px-2 py-1 rounded-full ${quote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : quote.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-stone-100 text-stone-600'}`}>
-                            {quote.status === 'accepted' ? t('accepted',lang) : quote.status === 'rejected' ? t('rejected',lang) : t('pendingQ',lang)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-stone-500 max-w-[120px]">{quote.description || '—'}</td>
-                        <td className="px-4 py-3">
-                          {quote.status === 'pending' && (
-                            <div className="flex flex-col gap-1">
-                              <button onClick={() => { handleQuoteAction(quote.id, 'accepted'); setCompareRequest(null); }}
-                                className="text-[11px] font-bold bg-emerald-500 text-white px-3 py-1 rounded-lg hover:bg-emerald-600">{t('accept',lang)}</button>
-                              <button onClick={() => handleQuoteAction(quote.id, 'rejected')}
-                                className="text-[11px] font-bold bg-red-500 text-white px-3 py-1 rounded-lg hover:bg-red-600">{t('reject',lang)}</button>
-                            </div>
-                          )}
-                          {quote.status === 'accepted' && (
-                            <button onClick={() => handleQuoteAction(quote.id, 'pending')}
-                              className="text-[11px] font-bold bg-stone-200 text-stone-600 px-3 py-1 rounded-lg hover:bg-stone-300">{t('undo',lang)}</button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <QuoteCompareTable quotes={getRequestQuotes(compareRequest.id)} lang={lang} variant="actions"
+              onAccept={id => { handleQuoteAction(id, 'accepted'); setCompareRequest(null); }}
+              onReject={id => handleQuoteAction(id, 'rejected')}
+              onUndo={id => handleQuoteAction(id, 'pending')}
+              printHrefBase="/print/quote/"
+              revisionQuoteId={revisionQuoteId} revisionNote={revisionNote}
+              setRevisionQuoteId={setRevisionQuoteId} setRevisionNote={setRevisionNote}
+              onRevisionSubmit={handleRevisionSubmit} />
             <div className="mt-4 bg-[#FAF7F2] rounded-xl px-4 py-3 flex gap-6 flex-wrap">
               <span className="text-emerald-600 text-sm font-semibold">✅ {t('lowestP',lang)} {getLowestPrice(getRequestQuotes(compareRequest.id))?.toLocaleString()} {t('sar',lang)}</span>
               <span className="text-[#C0603E] text-sm font-semibold">⚡ {t('fastestD',lang)} {getFastestDelivery(getRequestQuotes(compareRequest.id))} {t('days',lang)}</span>
@@ -1169,6 +1136,7 @@ export default function MyRequests() {
           onToggle={() => { toggleRequestStatus(selectedRequest.id); setSelectedRequest(null); }}
           onDelete={() => handleDeleteRequest(selectedRequest.id)}
           onEdit={() => router.push(`/create-request?edit=${selectedRequest.id}`)}
+          onDuplicate={() => { handleDuplicateRequest(selectedRequest); setSelectedRequest(null); }}
           onQuoteAction={handleQuoteAction} onRevisionSubmit={handleRevisionSubmit}
           setLightboxImg={setLightboxImg}
         />
@@ -1232,6 +1200,7 @@ function KanbanColumn({ col, title, color, icon, requests, lang, dragOverCol, dr
         const nq = getRequestNewQuotes(req.id);
         const isClosed = req.status === 'closed';
         const isDragging = draggingId === req.id;
+        const urgency = getDeadlineUrgency(req.deadline, rq.some((q: any) => q.status === 'accepted'));
         return (
           <div key={req.id}
             draggable
@@ -1254,7 +1223,12 @@ function KanbanColumn({ col, title, color, icon, requests, lang, dragOverCol, dr
                 <span key={i} className="text-[9px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded">{tg}</span>
               ))}
             </div>
-            {req.location && <p className="text-[10px] text-stone-400 mb-1">📍 {req.location}</p>}
+            {req.location && <p className="text-[10px] text-stone-400 mb-1">📍 {getCityName(req.location, lang)}</p>}
+            {req.deadline && (
+              <p className={`text-[10px] mb-1 font-semibold ${urgency === 'overdue' ? 'text-red-600' : urgency === 'soon' ? 'text-amber-600' : 'text-stone-400 font-normal'}`}>
+                {urgency === 'overdue' ? '🔴' : urgency === 'soon' ? '🟠' : '⏱'} {req.deadline}
+              </p>
+            )}
             <div className="flex items-center justify-between mb-1.5">
               <span className={`text-[10px] font-semibold ${rq.length > 0 ? 'text-emerald-600' : 'text-stone-400'}`}>{rq.length} {lang === 'ar' ? 'عروض' : 'quotes'}</span>
             </div>

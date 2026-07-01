@@ -21,6 +21,13 @@ export const notifIconMap: Record<NotifType, { bg: string; icon: string; color: 
   rated:    { bg: 'bg-amber-50',   icon: '⭐', color: 'text-amber-500'   },
 };
 
+export function notifHref(n: Pick<NotifItem, 'type' | 'requestId'>): string {
+  const quoteTypes: NotifType[] = ['quote', 'accepted', 'rejected', 'revision'];
+  return quoteTypes.includes(n.type)
+    ? `/my-quotes?reqId=${n.requestId}`
+    : `/my-requests?reqId=${n.requestId}`;
+}
+
 export function timeAgo(ts: string, lang: Lang): string {
   const diff  = Date.now() - new Date(ts).getTime();
   const mins  = Math.floor(diff / 60000);

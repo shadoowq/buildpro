@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState } from 'react';
+import { useEscapeKey } from './useEscapeKey';
 
 type Dir = 'rtl' | 'ltr';
 
@@ -38,12 +39,14 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     setQueue(prev => prev.slice(1));
   };
 
+  useEscapeKey(() => { if (state) handle(false); });
+
   return (
     <ConfirmContext.Provider value={confirmDialog}>
       {children}
       {state && (
         <div className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center p-4" onClick={() => handle(false)}>
-          <div dir={state.dir} className="bg-white rounded-2xl p-6 max-w-sm w-full font-cairo" onClick={e => e.stopPropagation()}>
+          <div dir={state.dir} role="dialog" aria-modal="true" className="bg-white rounded-2xl p-6 max-w-sm w-full font-cairo" onClick={e => e.stopPropagation()}>
             <p className="text-sm text-stone-700 mb-5 text-center leading-relaxed">{state.message}</p>
             <div className="flex gap-3">
               <button onClick={() => handle(false)}

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
-import { buildNotifications, notifIconMap, timeAgo, NotifItem } from '../lib/notifications';
+import { buildNotifications, notifIconMap, timeAgo, notifHref, NotifItem } from '../lib/notifications';
 
 type Lang = 'ar' | 'en';
 
@@ -14,7 +14,15 @@ const T = {
   markAllRead:  { ar: 'تحديد الكل كمقروء',  en: 'Mark all as read'      },
   noNotifs:     { ar: 'لا توجد إشعارات بعد', en: 'No notifications yet' },
   noNotifsSub:  { ar: 'ستظهر هنا أي تحديثات على طلباتك', en: 'Updates on your requests will show up here' },
+  noFilterResults: { ar: 'لا توجد إشعارات في هذا التصنيف', en: 'No notifications in this category' },
+  filterAll:      { ar: 'الكل',        en: 'All'      },
+  filterUnread:   { ar: 'غير مقروء',   en: 'Unread'   },
+  filterQuotes:   { ar: 'العروض',      en: 'Quotes'   },
+  filterRequests: { ar: 'الطلبات',     en: 'Requests' },
 };
+
+type FilterTab = 'all' | 'unread' | 'quotes' | 'requests';
+const quoteNotifTypes: NotifItem['type'][] = ['quote', 'accepted', 'rejected', 'revision'];
 
 function t(key: keyof typeof T, lang: Lang): string {
   return T[key][lang];
@@ -29,6 +37,7 @@ export default function NotificationsPage() {
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState<FilterTab>('all');
 
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
@@ -57,6 +66,17 @@ export default function NotificationsPage() {
 
   const notifs: NotifItem[] = buildNotifications(quotes, activityLogs, requests.map(r => r.id), { includeLogs: true });
 
+  const filteredNotifs = notifs.filter(n => {
+    if (filter === 'unread') return n.unread && !seenIds.has(n.id);
+    if (filter === 'quotes') return quoteNotifTypes.includes(n.type);
+    if (filter === 'requests') return !quoteNotifTypes.includes(n.type);
+    return true;
+  });
+
+  const unreadCount = notifs.filter(n => n.unread && !seenIds.has(n.id)).length;
+  const quotesCount = notifs.filter(n => quoteNotifTypes.includes(n.type)).length;
+  const requestsCount = notifs.length - quotesCount;
+
   const markAllRead = () => {
     const updated = new Set([...seenIds, ...notifs.map(n => n.id)]);
     setSeenIds(updated);
@@ -74,7 +94,7 @@ export default function NotificationsPage() {
     <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
       <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/notifications" />
 
-      <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-6">
+      <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-0">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-white text-xl font-bold mb-1">{t('title', lang)}</h1>
@@ -87,22 +107,38 @@ export default function NotificationsPage() {
             </button>
           )}
         </div>
+        {/* filter tabs */}
+        <div className="flex gap-0 mt-4 border-t border-white/10">
+          {([
+            ['all', t('filterAll', lang), notifs.length],
+            ['unread', t('filterUnread', lang), unreadCount],
+            ['quotes', t('filterQuotes', lang), quotesCount],
+            ['requests', t('filterRequests', lang), requestsCount],
+          ] as [FilterTab, string, number][]).map(([val, label, count]) => (
+            <button key={val} onClick={() => setFilter(val)}
+              className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${
+                filter === val ? 'text-white border-[#8A7B6C]' : 'text-white/40 border-transparent hover:text-white/70'
+              }`}>
+              {label} ({count})
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="px-4 md:px-7 py-6 max-w-2xl mx-auto">
         <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
-          {notifs.length === 0 ? (
+          {filteredNotifs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-4">
               <span className="text-3xl mb-3">🔔</span>
-              <p className="text-sm font-bold text-stone-700">{t('noNotifs', lang)}</p>
-              <p className="text-xs text-stone-400 mt-1">{t('noNotifsSub', lang)}</p>
+              <p className="text-sm font-bold text-stone-700">{notifs.length === 0 ? t('noNotifs', lang) : t('noFilterResults', lang)}</p>
+              {notifs.length === 0 && <p className="text-xs text-stone-400 mt-1">{t('noNotifsSub', lang)}</p>}
             </div>
           ) : (
-            notifs.map(n => {
+            filteredNotifs.map(n => {
               const icon = notifIconMap[n.type];
-              const isNew = !seenIds.has(n.id);
+              const isNew = n.unread && !seenIds.has(n.id);
               return (
-                <Link key={n.id} href={`/my-requests?reqId=${n.requestId}`} onClick={() => markRead(n.id)}
+                <Link key={n.id} href={notifHref(n)} onClick={() => markRead(n.id)}
                   className={`flex gap-3 px-5 py-4 border-b border-[#FAF7F2] last:border-0 hover:bg-[#FFFDF9] transition-colors ${isNew ? 'bg-[#F3EAE0]/40' : ''}`}>
                   <div className={`w-9 h-9 rounded-lg ${icon.bg} flex items-center justify-center text-base ${icon.color} shrink-0`}>
                     {icon.icon}

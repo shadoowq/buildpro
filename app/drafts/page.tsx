@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
-import { displayVal, arToEn, softDeleteDraft, softDeleteDrafts, purgeExpiredTrash } from '../lib/requestHelpers';
+import { displayVal, arToEn, softDeleteDraft, softDeleteDrafts, purgeExpiredTrash, getSupplierData } from '../lib/requestHelpers';
+import { getCityName } from '../lib/translations';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
 
@@ -43,6 +44,7 @@ export default function Drafts() {
   const [search, setSearch] = useState('');
   const [userName, setUserName] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [previewDraft, setPreviewDraft] = useState<Draft | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -239,7 +241,7 @@ export default function Drafts() {
                           {/* meta row */}
                           <div className="flex items-center gap-3 flex-wrap text-[11px] text-stone-400">
                             {draft.location && (
-                              <span className="flex items-center gap-1">📍 {draft.location}</span>
+                              <span className="flex items-center gap-1">📍 {getCityName(draft.location, lang)}</span>
                             )}
                             {draft.deadline && (
                               <span className="flex items-center gap-1">⏱ {draft.deadline}</span>
@@ -268,6 +270,10 @@ export default function Drafts() {
 
                       {/* right: actions */}
                       <div className="flex items-center gap-2 shrink-0">
+                        <button onClick={() => setPreviewDraft(draft)}
+                          className="text-xs font-semibold px-3 py-2 bg-stone-50 text-stone-600 border border-stone-200 rounded-xl hover:bg-stone-100 transition-colors">
+                          👁 {t('معاينة', 'Preview', lang)}
+                        </button>
                         <button onClick={() => handleContinue(draft)}
                           className="text-xs font-semibold px-4 py-2 bg-[#C0603E] text-white rounded-xl hover:bg-[#9C4C31] transition-colors">
                           {t('استكمال', 'Continue', lang)}
@@ -307,6 +313,85 @@ export default function Drafts() {
           )}
         </div>
       </div>
+
+      {/* ── PREVIEW MODAL ── */}
+      {previewDraft && (
+        <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4" onClick={() => setPreviewDraft(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" dir={dir} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-stone-100">
+              <div>
+                <h2 className="text-base font-bold text-stone-900">{getDraftName(previewDraft)}</h2>
+                <p className="text-[11px] text-stone-400 mt-0.5">
+                  {t('حُفظت:', 'Saved:', lang)} {formatDate(previewDraft.savedAt)} {formatTime(previewDraft.savedAt)}
+                </p>
+              </div>
+              <button onClick={() => setPreviewDraft(null)}
+                className="w-8 h-8 rounded-lg bg-stone-100 text-stone-500 flex items-center justify-center font-bold hover:bg-stone-200">✕</button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* meta */}
+              <div className="flex flex-wrap gap-2 text-xs">
+                {previewDraft.location && <span className="bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-stone-600">📍 {getCityName(previewDraft.location, lang)}</span>}
+                {previewDraft.deadline && <span className="bg-stone-50 border border-stone-200 rounded-lg px-3 py-1.5 text-stone-600">⏱ {previewDraft.deadline}</span>}
+              </div>
+
+              {/* materials */}
+              <div>
+                <h3 className="text-sm font-bold text-stone-900 mb-2">{t('المواد المطلوبة', 'Required Materials', lang)}</h3>
+                {getMaterialCount(previewDraft) > 0 ? (
+                  <div className="space-y-2">
+                    {previewDraft.materials.filter(m => m.type?.trim() || m.typePending?.trim()).map((m, i) => (
+                      <div key={i} className="bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-xs text-stone-700 flex flex-wrap gap-x-3 gap-y-1">
+                        <span className="font-bold">{displayVal(m.type || m.typePending, lang)}</span>
+                        {m.usage && <span className="text-stone-500">{displayVal(m.usage, lang)}</span>}
+                        {m.quantity && <span className="text-stone-500">{m.quantity} {lang === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}</span>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-stone-50 rounded-xl p-4 text-sm text-stone-400 text-center">{t('لا توجد مواد بعد', 'No materials yet', lang)}</div>
+                )}
+              </div>
+
+              {/* description */}
+              {previewDraft.description && (
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900 mb-2">{t('الوصف', 'Description', lang)}</h3>
+                  <div className="bg-stone-50 rounded-xl p-3 text-sm text-stone-600">{previewDraft.description}</div>
+                </div>
+              )}
+
+              {/* suppliers */}
+              {previewDraft.selectedSuppliers?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900 mb-2">{t('الموردون المختارون', 'Selected Suppliers', lang)} ({previewDraft.selectedSuppliers.length})</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {previewDraft.selectedSuppliers.map(email => {
+                      const s = getSupplierData(email);
+                      return (
+                        <span key={email} className="bg-[#F3EAE0] text-[#C0603E] text-xs font-medium px-2.5 py-1 rounded-lg">
+                          {s?.company || email}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 p-5 border-t border-stone-100">
+              <button onClick={() => setPreviewDraft(null)} className="flex-1 bg-stone-100 text-stone-600 font-semibold py-2.5 rounded-xl text-sm hover:bg-stone-200">
+                {t('إغلاق', 'Close', lang)}
+              </button>
+              <button onClick={() => { const d = previewDraft; setPreviewDraft(null); handleContinue(d); }}
+                className="flex-1 bg-[#C0603E] text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-[#9C4C31]">
+                {t('استكمال', 'Continue', lang)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

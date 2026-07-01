@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { saudiCities, getCityName } from '@/app/lib/translations';
-import Navbar from '../components/Navbar';
+import ContractorNav from '../components/ContractorNav';
 import { appendActivityLog, arToEn } from '../lib/requestHelpers';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -58,6 +58,8 @@ export default function CreateRequest() {
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
   const [user, setUser] = useState<any>(null);
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [supplierRatings, setSupplierRatings] = useState<any[]>([]);
+  const [supplierQuotes, setSupplierQuotes] = useState<any[]>([]);
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
   const [projectName, setProjectName] = useState('');
   const [materials, setMaterials] = useState<MaterialRow[]>([defaultRow()]);
@@ -73,6 +75,7 @@ export default function CreateRequest() {
   const [pageTitle, setPageTitle] = useState('إنشاء طلب جديد');
 const [isDraftEdit, setIsDraftEdit] = useState(false);
   const [existingQuotesCount, setExistingQuotesCount] = useState(0);
+  const [originalSuppliers, setOriginalSuppliers] = useState<string[] | null>(null);
   const [draftIdToRemove, setDraftIdToRemove] = useState<number | null>(null);
   const skipSaveRef = useRef(false);
   const router = useRouter();
@@ -92,6 +95,9 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     const usersArr = JSON.parse(localStorage.getItem('users') || '[]').filter((u: any) => u.userType === 'supplier');
     const combined = [...allSuppliers, ...usersArr].filter((v, i, a) => a.findIndex(t => t.email === v.email) === i);
     setSuppliers(combined);
+
+    try { setSupplierRatings(JSON.parse(localStorage.getItem('ratings') || '[]')); } catch {}
+    try { setSupplierQuotes(JSON.parse(localStorage.getItem('quotes') || '[]')); } catch {}
 
     const savedLang = localStorage.getItem('language') as 'ar' | 'en' || 'ar';
     setLanguage(savedLang);
@@ -119,7 +125,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
         if (req.location) setLocation(req.location);
         if (req.deadline) setDeadline(req.deadline);
         if (req.description) setDescription(req.description);
-        if (req.selectedSuppliers) setSelectedSuppliers(req.selectedSuppliers);
+        if (req.selectedSuppliers) { setSelectedSuppliers(req.selectedSuppliers); setOriginalSuppliers(req.selectedSuppliers); }
         if (req.attachedFiles) setAttachedFiles(req.attachedFiles);
 
         const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
@@ -135,7 +141,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       if (draft) {
         const parsed = JSON.parse(draft);
         if (parsed.projectName) setProjectName(parsed.projectName);
-        if (parsed.materials) setMaterials(parsed.materials);
+        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
         if (parsed.location) setLocation(parsed.location);
         if (parsed.deadline) setDeadline(parsed.deadline);
         if (parsed.description) setDescription(parsed.description);
@@ -148,32 +154,45 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       if (draft) {
         const parsed = JSON.parse(draft);
         if (parsed.projectName) setProjectName(parsed.projectName);
-        if (parsed.materials) setMaterials(parsed.materials);
+        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
         if (parsed.location) setLocation(parsed.location);
         if (parsed.deadline) setDeadline(parsed.deadline);
         if (parsed.description) setDescription(parsed.description);
         if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
         if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
+        if (parsed.hadAttachments) {
+          showToast(savedLang === 'en'
+            ? 'Restored your unfinished request — note: attached photos/files were not auto-saved and need to be re-added'
+            : 'تم استرجاع طلبك غير المكتمل — ملاحظة: الصور والملفات المرفقة لم تُحفظ تلقائيًا ويجب إعادة إضافتها');
+        }
       }
     }
 
-    const interval = setInterval(() => {
-      const newLang = localStorage.getItem('language') as 'ar' | 'en' || 'ar';
-      setLanguage(prev => prev !== newLang ? newLang : prev);
-    }, 100);
-
-    return () => clearInterval(interval);
+    const onStorage = (e: StorageEvent) => { if (e.key === 'language' && e.newValue) setLanguage(e.newValue as 'ar' | 'en'); };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, [router]);
+
+  const handleLangChange = (l: 'ar' | 'en') => { setLanguage(l); localStorage.setItem('language', l); };
 
   useEffect(() => {
     if (skipSaveRef.current) return;
     try {
       const lightMaterials = materials.map(m => ({ ...m, images: [] }));
+      const hadAttachments = materials.some(m => m.images && m.images.length > 0) || attachedFiles.length > 0;
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        projectName, materials: lightMaterials, location, deadline, description, selectedSuppliers, attachedFiles: []
+        projectName, materials: lightMaterials, location, deadline, description, selectedSuppliers, attachedFiles: [],
+        savedAt: new Date().toISOString(), hadAttachments,
       }));
     } catch (e) { /* ignore */ }
   }, [projectName, materials, location, deadline, description, selectedSuppliers, attachedFiles]);
+
+  const getSupplierStats = (email: string) => {
+    const rs = supplierRatings.filter((r: any) => r.supplierId === email);
+    const avgRating = rs.length > 0 ? rs.reduce((s: number, r: any) => s + r.rating, 0) / rs.length : 0;
+    const quoteCount = supplierQuotes.filter((q: any) => q.supplierId === email).length;
+    return { avgRating, quoteCount };
+  };
 
   const display = (value: string): string => {
     if (!value) return value;
@@ -396,9 +415,8 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
   };
 
   const handleSaveDraft = () => {
-    const currentDraftId = localStorage.getItem('currentDraftId');
     const draftData = {
-      id: currentDraftId ? parseInt(currentDraftId) : Date.now(),
+      id: draftIdToRemove ?? Date.now(),
       contractorId: user?.email,
       projectName, materials, location, deadline, description,
       selectedSuppliers, attachedFiles,
@@ -525,7 +543,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
 
   return (
     <div className="bp-page" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
-      <Navbar />
+      <ContractorNav lang={language} setLang={handleLangChange} userName={user?.name || ''} active="/create-request" />
       <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
         <h1 style={{ color: '#1C1917', marginBottom: '10px' }}>{pageTitle}</h1>
         <p style={{ color: '#78716C', fontSize: '13px', marginBottom: '20px' }}>{tx.hint}</p>
@@ -593,8 +611,8 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       {tx.targetPrice}
                       <HelpTooltip lang={language}
-                        textAr="السعر الذي ترغب في الوصول إليه لكل وحدة (اختياري) — يساعد الموردين على معرفة ميزانيتك."
-                        textEn="The price per unit you're aiming for (optional) — helps suppliers understand your budget." />
+                        textAr="السعر الذي ترغب في الوصول إليه لكل وحدة بالريال السعودي (اختياري) — يساعد الموردين على معرفة ميزانيتك. جميع العروض الواردة تكون بالريال السعودي أيضًا."
+                        textEn="The price per unit you're aiming for in Saudi Riyal (optional) — helps suppliers understand your budget. All incoming quotes are also in Saudi Riyal." />
                     </span>
                   </th>
                   <th style={{ ...thStyle, minWidth: '130px' }}>{tx.deliveryDate}</th>
@@ -633,14 +651,9 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                         <input type="number" value={row.targetPrice} onChange={e => updateRow(row.id, 'targetPrice', e.target.value)}
                           placeholder={tx.optional} min="0"
                           style={{ flex: 1, padding: '5px 6px', border: 'none', fontSize: '13px', color: '#333', backgroundColor: '#fff', outline: 'none', minWidth: '60px' }} />
-                        <select value={row.currency} onChange={e => updateRow(row.id, 'currency', e.target.value)}
-                          style={{ padding: '5px 3px', border: 'none', borderLeft: '1px solid #eee', fontSize: '11px', color: '#333', backgroundColor: '#FAF7F2', cursor: 'pointer', outline: 'none' }}>
-                          <option value="ر.س">{language === 'ar' ? 'ر.س' : 'SAR'}</option>
-                          <option value="$">$</option>
-                          <option value="€">€</option>
-                          <option value="د.إ">{language === 'ar' ? 'د.إ' : 'AED'}</option>
-                          <option value="£">£</option>
-                        </select>
+                        <span style={{ padding: '5px 8px', borderLeft: '1px solid #eee', fontSize: '11px', color: '#666', backgroundColor: '#FAF7F2', whiteSpace: 'nowrap' }}>
+                          {language === 'ar' ? 'ر.س' : 'SAR'}
+                        </span>
                       </div>
                     </td>
                     <td style={{ ...tdStyle, minWidth: '130px' }}>
@@ -754,39 +767,60 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
             <div style={{ padding: '20px', backgroundColor: '#FAF7F2', borderRadius: '4px', color: '#666', textAlign: 'center' }}>{tx.noSuppliers}</div>
           ) : (
             <div style={{ border: '1px solid #E8DFD3', borderRadius: '4px', maxHeight: '250px', overflowY: 'auto', backgroundColor: '#fff' }}>
-              {suppliers.map((supplier, index) => (
-                <div key={supplier.email} onClick={() => handleSupplierToggle(supplier.email)}
-                  style={{ display: 'flex', alignItems: 'center', padding: '12px 15px', borderBottom: index < suppliers.length - 1 ? '1px solid #F1EAE0' : 'none', cursor: 'pointer', backgroundColor: selectedSuppliers.includes(supplier.email) ? '#F3EAE0' : '#fff', gap: '12px' }}>
-                  <input type="checkbox" checked={selectedSuppliers.includes(supplier.email)} onChange={() => handleSupplierToggle(supplier.email)}
-                    style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
-                  <div>
-                    <p style={{ margin: 0, fontWeight: 'bold', color: '#333', fontSize: '15px' }}>{supplier.company}</p>
-                    <p style={{ margin: 0, color: '#666', fontSize: '13px' }}>{supplier.name} - {supplier.phone}</p>
+              {suppliers.map((supplier, index) => {
+                const { avgRating, quoteCount } = getSupplierStats(supplier.email);
+                return (
+                  <div key={supplier.email} onClick={() => handleSupplierToggle(supplier.email)}
+                    style={{ display: 'flex', alignItems: 'center', padding: '12px 15px', borderBottom: index < suppliers.length - 1 ? '1px solid #F1EAE0' : 'none', cursor: 'pointer', backgroundColor: selectedSuppliers.includes(supplier.email) ? '#F3EAE0' : '#fff', gap: '12px' }}>
+                    <input type="checkbox" checked={selectedSuppliers.includes(supplier.email)} onChange={() => handleSupplierToggle(supplier.email)}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: 0, fontWeight: 'bold', color: '#333', fontSize: '15px' }}>{supplier.company}</p>
+                      <p style={{ margin: 0, color: '#666', fontSize: '13px' }}>{supplier.name} - {supplier.phone}</p>
+                    </div>
+                    <div style={{ textAlign: language === 'ar' ? 'left' : 'right', flexShrink: 0 }}>
+                      {avgRating > 0 ? (
+                        <p style={{ margin: 0, color: '#D97706', fontSize: '13px', fontWeight: 'bold' }}>★ {avgRating.toFixed(1)}</p>
+                      ) : (
+                        <p style={{ margin: 0, color: '#aaa', fontSize: '11px' }}>{language === 'ar' ? 'لا يوجد تقييم' : 'No rating'}</p>
+                      )}
+                      <p style={{ margin: 0, color: '#999', fontSize: '11px' }}>
+                        {quoteCount} {language === 'ar' ? 'عرض سابق' : 'past quote(s)'}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
           <p style={{ color: selectedSuppliers.length > 0 ? '#C0603E' : '#aaa', fontSize: '13px', marginTop: '8px', fontWeight: selectedSuppliers.length > 0 ? 'bold' : 'normal' }}>
             {language === 'ar' ? `تم اختيار ${selectedSuppliers.length} مورد` : `${selectedSuppliers.length} supplier(s) selected`}
           </p>
+          {editMode && !isDraftEdit && existingQuotesCount > 0 && originalSuppliers !== null &&
+            (selectedSuppliers.length !== originalSuppliers.length || selectedSuppliers.some(e => !originalSuppliers.includes(e))) && (
+            <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '10px 14px', marginTop: '10px', color: '#92400E', fontSize: '13px' }}>
+              {language === 'ar'
+                ? '⚠ لقد غيّرت قائمة الموردين على طلب لديه عروض بالفعل — الموردون الذين أزلتهم يحتفظون بعروضهم السابقة، والموردون الجدد لن يروا الطلب إلا إذا كان لا يزال مطابقًا لتخصصهم.'
+                : "⚠ You've changed the supplier list on a request that already has quotes — removed suppliers keep their existing quotes, and newly added suppliers will only see this request if it still matches their specialty."}
+            </div>
+          )}
         </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button type="button" onClick={handleReview}
-            style={{ flex: 1, padding: '14px', backgroundColor: '#FFFDF9', color: '#C0603E', border: '2px solid #C0603E', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
-            {tx.reviewBtn}
-          </button>
-         <button type="button" onClick={handleDirectSend}
-            style={{ flex: 1, padding: '14px', backgroundColor: '#C0603E', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
-            {tx.sendBtn}
-          </button>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch' }}>
           {(!editMode || isDraftEdit) && (
             <button type="button" onClick={handleSaveDraft}
-              style={{ flex: 1, padding: '14px', backgroundColor: '#8A7B6C', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+              style={{ padding: '0 20px', backgroundColor: 'transparent', color: '#8A7B6C', border: '1px solid #E8DFD3', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}>
               {tx.draftBtn}
             </button>
           )}
+          <button type="button" onClick={handleReview}
+            style={{ padding: '0 24px', backgroundColor: '#FFFDF9', color: '#C0603E', border: '2px solid #C0603E', borderRadius: '4px', cursor: 'pointer', fontSize: '15px', fontWeight: 'bold' }}>
+            {tx.reviewBtn}
+          </button>
+          <button type="button" onClick={handleDirectSend}
+            style={{ flex: 1, padding: '14px', backgroundColor: '#C0603E', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+            {tx.sendBtn}
+          </button>
         </div>
 
         {showPreview && (

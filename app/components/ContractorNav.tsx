@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { buildNotifications, notifIconMap, timeAgo, NotifItem } from '../lib/notifications';
+import { buildNotifications, notifIconMap, timeAgo, notifHref, NotifItem } from '../lib/notifications';
 import { purgeExpiredTrash } from '../lib/requestHelpers';
 
 type Lang = 'ar' | 'en';
@@ -53,7 +53,9 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
     purgeExpiredTrash();
     const deletedRequests = (JSON.parse(localStorage.getItem('deletedRequests') || '[]') as any[])
       .filter(r => r.contractorId === user.email);
-    setTrashCount(deletedRequests.length);
+    const deletedDrafts = (JSON.parse(localStorage.getItem('deletedDrafts') || '[]') as any[])
+      .filter(d => d.contractorId === user.email);
+    setTrashCount(deletedRequests.length + deletedDrafts.length);
   }, []);
 
   useEffect(() => {
@@ -66,17 +68,16 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
 
   const unreadCount = notifs.filter(n => n.unread && !seenIds.has(n.id)).length;
 
-  const openBell = () => {
-    const next = !bellOpen;
-    setBellOpen(next);
-    if (next && unreadCount > 0) {
-      const userData = localStorage.getItem('currentUser');
-      if (!userData) return;
-      const user = JSON.parse(userData);
-      const updated = new Set([...seenIds, ...notifs.map(n => n.id)]);
-      setSeenIds(updated);
-      localStorage.setItem(`notifSeen_${user.email}`, JSON.stringify([...updated]));
-    }
+  const openBell = () => { setBellOpen(prev => !prev); };
+
+  const markSeen = (id: string) => {
+    if (seenIds.has(id)) return;
+    const userData = localStorage.getItem('currentUser');
+    if (!userData) return;
+    const user = JSON.parse(userData);
+    const updated = new Set([...seenIds, id]);
+    setSeenIds(updated);
+    localStorage.setItem(`notifSeen_${user.email}`, JSON.stringify([...updated]));
   };
 
   const handleLogout = () => { localStorage.removeItem('currentUser'); router.push('/login'); };
@@ -145,7 +146,7 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
                       const isNew = n.unread && !seenIds.has(n.id);
                       const icon = notifIconMap[n.type];
                       return (
-                        <Link key={n.id} href={`/my-requests?reqId=${n.requestId}`} onClick={() => setBellOpen(false)}
+                        <Link key={n.id} href={notifHref(n)} onClick={() => { markSeen(n.id); setBellOpen(false); }}
                           className={`flex items-start gap-2.5 px-4 py-3 hover:bg-[#FAF7F2] transition-colors ${isNew ? 'bg-[#F3EAE0]/40' : ''}`}>
                           <div className={`w-8 h-8 rounded-lg ${icon.bg} flex items-center justify-center text-sm shrink-0 mt-0.5`}>
                             {icon.icon}

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
 import { displayVal, restoreRequest, permanentlyDeleteRequest, purgeExpiredTrash, restoreDraft, permanentlyDeleteDraft, RequestLike } from '../lib/requestHelpers';
+import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
 
@@ -202,7 +203,7 @@ export default function Trash() {
                             </span>
                           </div>
                           <div className="flex items-center gap-3 flex-wrap text-[11px] text-stone-400">
-                            {req.location && <span className="flex items-center gap-1">📍 {req.location}</span>}
+                            {req.location && <span className="flex items-center gap-1">📍 {getCityName(req.location, lang)}</span>}
                           </div>
                         </div>
                       </div>
@@ -248,7 +249,7 @@ export default function Trash() {
                             </span>
                           </div>
                           <div className="flex items-center gap-3 flex-wrap text-[11px] text-stone-400">
-                            {draft.location && <span className="flex items-center gap-1">📍 {draft.location}</span>}
+                            {draft.location && <span className="flex items-center gap-1">📍 {getCityName(draft.location, lang)}</span>}
                           </div>
                         </div>
                       </div>
