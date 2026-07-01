@@ -40,7 +40,7 @@ export default function HelpTooltip({ lang, textAr, textEn }: { lang: Lang; text
         onMouseLeave={hide}
         onClick={e => { e.stopPropagation(); show(); }}
         aria-label={lang === 'ar' ? 'مساعدة' : 'Help'}
-        className="w-4 h-4 rounded-full bg-stone-200 text-stone-600 text-[10px] font-bold inline-flex items-center justify-center hover:bg-[#8A7B6C] hover:text-white transition-colors cursor-help shrink-0 align-middle"
+        className="w-[18px] h-[18px] rounded-full bg-white border-2 border-[#C0603E] text-[#C0603E] text-[11px] font-bold inline-flex items-center justify-center hover:bg-[#C0603E] hover:text-white transition-colors cursor-help shrink-0 align-middle shadow-sm"
       >
         ؟
       </button>
