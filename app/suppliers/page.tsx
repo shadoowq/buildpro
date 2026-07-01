@@ -86,10 +86,10 @@ function t(key: keyof typeof T, lang: Lang): string {
 
 function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
   return (
-    <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+    <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1">
       {(['ar', 'en'] as Lang[]).map(l => (
         <button key={l} onClick={() => setLang(l)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[#0F4C75] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[#C0603E] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
           <img src={l === 'ar' ? 'https://flagcdn.com/w20/sa.png' : 'https://flagcdn.com/w20/us.png'} width="20" height="14" alt={l} className="rounded-sm" />
           {l.toUpperCase()}
         </button>
@@ -114,7 +114,7 @@ function StatusBadge({ status, lang }: { status: string; lang: Lang }) {
 }
 
 function StarRating({ rating, count }: { rating: number; count: number }) {
-  if (count === 0) return <span className="text-slate-300 text-xs">—</span>;
+  if (count === 0) return <span className="text-stone-300 text-xs">—</span>;
   return (
     <span className="text-amber-400 text-sm">
       {'★'.repeat(Math.round(rating))}{'☆'.repeat(5 - Math.round(rating))}
@@ -230,12 +230,12 @@ export default function SuppliersPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
 
       <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/suppliers" />
 
       {/* HERO */}
-      <div className="bg-[#0F4C75] px-7 pt-6 pb-6">
+      <div className="bg-[#C0603E] px-7 pt-6 pb-6">
         <h1 className="text-white text-xl font-bold mb-1">{t('title', lang)}</h1>
         <p className="text-white/50 text-xs">{t('subtitle', lang)}</p>
       </div>
@@ -243,10 +243,10 @@ export default function SuppliersPage() {
       {/* STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {stats.map((s, i) => (
-          <div key={i} className="bg-white border border-[#E2EAF2] rounded-xl p-4">
+          <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
-            <div className="text-2xl font-bold text-slate-900">{s.val}</div>
-            <div className="text-[11px] text-slate-500 mt-1">{s.label}</div>
+            <div className="text-2xl font-bold text-stone-900">{s.val}</div>
+            <div className="text-[11px] text-stone-500 mt-1">{s.label}</div>
           </div>
         ))}
       </div>
@@ -254,25 +254,25 @@ export default function SuppliersPage() {
       <div className="px-4 md:px-7 pb-10">
 
         {/* FILTER BAR */}
-        <div className="bg-white border border-[#E2EAF2] rounded-2xl px-5 py-3.5 mb-5 flex items-center gap-3 flex-wrap">
+        <div className="bg-white border border-[#E8DFD3] rounded-2xl px-5 py-3.5 mb-5 flex items-center gap-3 flex-wrap">
           {/* search */}
-          <div className="flex items-center gap-2 bg-[#F8FAFC] border border-[#E2EAF2] rounded-lg px-3 py-1.5 w-60">
-            <span className="text-slate-300 text-sm">🔍</span>
+          <div className="flex items-center gap-2 bg-[#FAF7F2] border border-[#E8DFD3] rounded-lg px-3 py-1.5 w-60">
+            <span className="text-stone-300 text-sm">🔍</span>
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder={t('search', lang)}
-              className="bg-transparent border-none outline-none text-xs font-cairo w-full placeholder-slate-300 text-slate-700" />
+              className="bg-transparent border-none outline-none text-xs font-cairo w-full placeholder-stone-300 text-stone-700" />
           </div>
           {/* city */}
           <select value={cityFilter} onChange={e => setCityFilter(e.target.value)}
-            className="text-xs font-semibold border border-[#E2EAF2] rounded-lg px-3 py-2 bg-white text-slate-700 outline-none cursor-pointer">
+            className="text-xs font-semibold border border-[#E8DFD3] rounded-lg px-3 py-2 bg-white text-stone-700 outline-none cursor-pointer">
             <option value="">{t('allCities', lang)}</option>
             {availableCities.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
           {/* sort */}
-          <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 mr-auto">
+          <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1 mr-auto">
             {([['quotes', t('sortByQ', lang)], ['rating', t('sortByR', lang)], ['date', t('sortByD', lang)]] as ['quotes' | 'rating' | 'date', string][]).map(([val, label]) => (
               <button key={val} onClick={() => setSortBy(val)}
-                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${sortBy === val ? 'bg-white text-[#0F4C75] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all ${sortBy === val ? 'bg-white text-[#C0603E] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
                 {label}
               </button>
             ))}
@@ -281,30 +281,30 @@ export default function SuppliersPage() {
 
         {/* SUPPLIERS GRID */}
         {suppliers.length === 0 ? (
-          <div className="bg-white border border-[#E2EAF2] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
+          <div className="bg-white border border-[#E8DFD3] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
             <span className="text-4xl">🏢</span>
-            <p className="text-slate-900 font-bold text-base">{t('noSuppliers', lang)}</p>
-            <p className="text-slate-400 text-sm max-w-xs">{t('noSuppSub', lang)}</p>
+            <p className="text-stone-900 font-bold text-base">{t('noSuppliers', lang)}</p>
+            <p className="text-stone-400 text-sm max-w-xs">{t('noSuppSub', lang)}</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white border border-[#E2EAF2] rounded-2xl p-10 text-center">
-            <p className="text-slate-400 text-sm">{t('noResults', lang)}</p>
+          <div className="bg-white border border-[#E8DFD3] rounded-2xl p-10 text-center">
+            <p className="text-stone-400 text-sm">{t('noResults', lang)}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map(s => (
               <div key={s.email}
-                className="bg-white border border-[#E2EAF2] rounded-2xl p-5 hover:shadow-md hover:border-[#1B9AAA]/30 transition-all cursor-pointer group"
+                className="bg-white border border-[#E8DFD3] rounded-2xl p-5 hover:shadow-md hover:border-[#8A7B6C]/30 transition-all cursor-pointer group"
                 onClick={() => setSelected(s)}>
                 {/* header */}
                 <div className="flex items-start gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-[#EBF5FF] border border-[#BFDBFE] flex items-center justify-center text-[14px] font-bold text-[#1D4ED8] shrink-0 group-hover:bg-[#DBEAFE] transition-colors">
+                  <div className="w-12 h-12 rounded-xl bg-[#F3EAE0] border border-[#E8DFD3] flex items-center justify-center text-[14px] font-bold text-[#C0603E] shrink-0 group-hover:bg-[#EDE0D2] transition-colors">
                     {s.initials}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-900 truncate">{s.company}</p>
-                    <p className="text-[11px] text-slate-400 truncate">{s.name}</p>
-                    {s.city && <p className="text-[10px] text-slate-400 mt-0.5">📍 {s.city}</p>}
+                    <p className="text-sm font-bold text-stone-900 truncate">{s.company}</p>
+                    <p className="text-[11px] text-stone-400 truncate">{s.name}</p>
+                    {s.city && <p className="text-[10px] text-stone-400 mt-0.5">📍 {s.city}</p>}
                   </div>
                 </div>
 
@@ -312,32 +312,32 @@ export default function SuppliersPage() {
                 <div className="flex items-center gap-2 mb-3">
                   <StarRating rating={s.avgRating} count={s.ratingCount} />
                   {s.ratingCount > 0 && (
-                    <span className="text-[10px] text-slate-400">({s.avgRating.toFixed(1)})</span>
+                    <span className="text-[10px] text-stone-400">({s.avgRating.toFixed(1)})</span>
                   )}
                 </div>
 
                 {/* stats */}
-                <div className="flex gap-3 border-t border-[#F1F5F9] pt-3">
+                <div className="flex gap-3 border-t border-[#F1EAE0] pt-3">
                   <div className="flex-1 text-center">
-                    <p className="text-lg font-bold text-slate-900">{s.quoteCount}</p>
-                    <p className="text-[10px] text-slate-400">{t('quotes', lang)}</p>
+                    <p className="text-lg font-bold text-stone-900">{s.quoteCount}</p>
+                    <p className="text-[10px] text-stone-400">{t('quotes', lang)}</p>
                   </div>
-                  <div className="w-px bg-[#F1F5F9]" />
+                  <div className="w-px bg-[#F1EAE0]" />
                   <div className="flex-1 text-center">
                     <p className="text-lg font-bold text-emerald-600">{s.acceptedCount}</p>
-                    <p className="text-[10px] text-slate-400">{t('accepted2', lang)}</p>
+                    <p className="text-[10px] text-stone-400">{t('accepted2', lang)}</p>
                   </div>
-                  <div className="w-px bg-[#F1F5F9]" />
+                  <div className="w-px bg-[#F1EAE0]" />
                   <div className="flex-1 text-center">
-                    <p className="text-[11px] font-semibold text-slate-600">
+                    <p className="text-[11px] font-semibold text-stone-600">
                       {s.quoteCount > 0 ? Math.round((s.acceptedCount / s.quoteCount) * 100) : 0}%
                     </p>
-                    <p className="text-[10px] text-slate-400">{lang === 'ar' ? 'قبول' : 'rate'}</p>
+                    <p className="text-[10px] text-stone-400">{lang === 'ar' ? 'قبول' : 'rate'}</p>
                   </div>
                 </div>
 
                 {/* last activity */}
-                <p className="text-[10px] text-slate-300 mt-3">
+                <p className="text-[10px] text-stone-300 mt-3">
                   {lang === 'ar' ? 'آخر نشاط:' : 'Last:'} {new Date(s.lastActivity).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}
                 </p>
               </div>
@@ -352,14 +352,14 @@ export default function SuppliersPage() {
           <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto" dir={dir} onClick={e => e.stopPropagation()}>
 
             {/* modal header */}
-            <div className="flex items-center justify-between p-5 border-b border-slate-100">
+            <div className="flex items-center justify-between p-5 border-b border-stone-100">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-[#EBF5FF] border border-[#BFDBFE] flex items-center justify-center text-[14px] font-bold text-[#1D4ED8]">
+                <div className="w-12 h-12 rounded-xl bg-[#F3EAE0] border border-[#E8DFD3] flex items-center justify-center text-[14px] font-bold text-[#C0603E]">
                   {selected.initials}
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">{selected.company}</h2>
-                  <p className="text-xs text-slate-400">{selected.name}</p>
+                  <h2 className="text-base font-bold text-stone-900">{selected.company}</h2>
+                  <p className="text-xs text-stone-400">{selected.name}</p>
                 </div>
               </div>
               <button onClick={() => setSelected(null)}
@@ -375,9 +375,9 @@ export default function SuppliersPage() {
                   { label: t('phone', lang), val: selected.phone || t('noContact', lang), icon: '📞' },
                   { label: t('email', lang), val: selected.email, icon: '✉' },
                 ].map((item, i) => (
-                  <div key={i} className="bg-[#F8FAFC] border border-[#E2EAF2] rounded-xl p-3">
-                    <p className="text-[10px] text-slate-400 mb-1">{item.label}</p>
-                    <p className="text-xs font-semibold text-slate-700 truncate">{item.icon} {item.val}</p>
+                  <div key={i} className="bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-3">
+                    <p className="text-[10px] text-stone-400 mb-1">{item.label}</p>
+                    <p className="text-xs font-semibold text-stone-700 truncate">{item.icon} {item.val}</p>
                   </div>
                 ))}
               </div>
@@ -388,18 +388,18 @@ export default function SuppliersPage() {
                   <div className="text-3xl font-bold text-amber-500">{selected.avgRating.toFixed(1)}</div>
                   <div>
                     <StarRating rating={selected.avgRating} count={selected.ratingCount} />
-                    <p className="text-[10px] text-slate-500 mt-0.5">{lang === 'ar' ? `بناءً على ${selected.ratingCount} تقييم` : `Based on ${selected.ratingCount} rating(s)`}</p>
+                    <p className="text-[10px] text-stone-500 mt-0.5">{lang === 'ar' ? `بناءً على ${selected.ratingCount} تقييم` : `Based on ${selected.ratingCount} rating(s)`}</p>
                   </div>
                 </div>
               )}
 
               {/* quote history table */}
               <div>
-                <h3 className="text-sm font-bold text-slate-900 mb-3">{t('history', lang)}</h3>
-                <div className="border border-slate-200 rounded-xl overflow-hidden">
+                <h3 className="text-sm font-bold text-stone-900 mb-3">{t('history', lang)}</h3>
+                <div className="border border-stone-200 rounded-xl overflow-hidden">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="bg-[#0F4C75] text-white">
+                      <tr className="bg-[#C0603E] text-white">
                         {[t('reqLabel', lang), t('price', lang), t('delivery', lang), t('status', lang), t('date', lang)].map(h => (
                           <th key={h} className="px-4 py-2.5 text-right font-semibold">{h}</th>
                         ))}
@@ -407,12 +407,12 @@ export default function SuppliersPage() {
                     </thead>
                     <tbody>
                       {[...selected.quotes].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((q, i) => (
-                        <tr key={q.id} className={`border-b border-slate-100 last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-[#F8FAFC]'}`}>
-                          <td className="px-4 py-2.5 font-semibold text-[#1B9AAA]">#{q.requestId}</td>
-                          <td className="px-4 py-2.5 font-bold text-slate-900">{Number(q.totalPrice).toLocaleString()} {t('sar', lang)}</td>
-                          <td className="px-4 py-2.5 text-slate-600">{q.deliveryDays} {t('days', lang)}</td>
+                        <tr key={q.id} className={`border-b border-stone-100 last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-[#FAF7F2]'}`}>
+                          <td className="px-4 py-2.5 font-semibold text-[#8A7B6C]">#{q.requestId}</td>
+                          <td className="px-4 py-2.5 font-bold text-stone-900">{Number(q.totalPrice).toLocaleString()} {t('sar', lang)}</td>
+                          <td className="px-4 py-2.5 text-stone-600">{q.deliveryDays} {t('days', lang)}</td>
                           <td className="px-4 py-2.5"><StatusBadge status={q.status} lang={lang} /></td>
-                          <td className="px-4 py-2.5 text-slate-400">{new Date(q.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</td>
+                          <td className="px-4 py-2.5 text-stone-400">{new Date(q.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -421,9 +421,9 @@ export default function SuppliersPage() {
               </div>
             </div>
 
-            <div className="p-5 border-t border-slate-100">
+            <div className="p-5 border-t border-stone-100">
               <button onClick={() => setSelected(null)}
-                className="w-full bg-slate-100 text-slate-700 font-semibold py-2.5 rounded-xl text-sm hover:bg-slate-200 transition-colors">
+                className="w-full bg-stone-100 text-stone-700 font-semibold py-2.5 rounded-xl text-sm hover:bg-stone-200 transition-colors">
                 {t('close', lang)}
               </button>
             </div>

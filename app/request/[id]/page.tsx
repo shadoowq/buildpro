@@ -213,18 +213,18 @@ export default function RequestDetailPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center font-cairo">
-      <div className="text-slate-400 text-sm">{lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
+    <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center font-cairo">
+      <div className="text-stone-400 text-sm">{lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
     </div>
   );
 
   if (!request) return (
-    <div className="min-h-screen bg-[#F0F4F8] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
       <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/my-requests" />
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <span className="text-5xl">📭</span>
-        <p className="text-slate-900 font-bold text-lg">{t('notFound', lang)}</p>
-        <Link href="/my-requests" className="bg-[#0F4C75] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#0D3F63] transition-colors">
+        <p className="text-stone-900 font-bold text-lg">{t('notFound', lang)}</p>
+        <Link href="/my-requests" className="bg-[#C0603E] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#9C4C31] transition-colors">
           {t('goBack', lang)}
         </Link>
       </div>
@@ -235,13 +235,13 @@ export default function RequestDetailPage() {
   const fastestId  = quotes.length > 1 ? quotes.reduce((a, b) => a.deliveryDays < b.deliveryDays ? a : b).id : null;
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] font-cairo print:bg-white" dir={dir}>
+    <div className="min-h-screen bg-[#F7F2EC] font-cairo print:bg-white" dir={dir}>
       <div className="print:hidden">
         <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/my-requests" />
       </div>
 
       {/* HERO */}
-      <div className="bg-[#0F4C75] px-4 md:px-7 pt-5 pb-5 print:hidden">
+      <div className="bg-[#C0603E] px-4 md:px-7 pt-5 pb-5 print:hidden">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <Link href="/my-requests" className="text-white/50 text-xs hover:text-white/80 transition-colors mb-2 inline-block">
@@ -249,7 +249,7 @@ export default function RequestDetailPage() {
             </Link>
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-white text-xl font-bold">{getReqName(request)}</h1>
-              <span className="text-[#1B9AAA] font-mono font-bold text-sm">#{request.id}</span>
+              <span className="text-[#8A7B6C] font-mono font-bold text-sm">#{request.id}</span>
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${request.status === 'open' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30' : 'bg-white/10 text-white/60 border border-white/20'}`}>
                 {t(request.status === 'open' ? 'open' : 'closed', lang)}
               </span>
@@ -279,7 +279,7 @@ export default function RequestDetailPage() {
               {request.status === 'open' ? t('closeReq', lang) : t('openReq', lang)}
             </button>
             <Link href={`/create-request?edit=${request.id}`}
-              className="text-xs font-semibold px-3 py-2 bg-[#1B9AAA] hover:bg-[#158494] text-white rounded-lg transition-colors flex items-center gap-1.5">
+              className="text-xs font-semibold px-3 py-2 bg-[#8A7B6C] hover:bg-[#6F6255] text-white rounded-lg transition-colors flex items-center gap-1.5">
               ✏ {t('editReq', lang)}
             </Link>
           </div>
@@ -287,13 +287,13 @@ export default function RequestDetailPage() {
       </div>
 
       {/* print header */}
-      <div className="hidden print:block px-8 pt-6 pb-4 border-b border-slate-200">
+      <div className="hidden print:block px-8 pt-6 pb-4 border-b border-stone-200">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-2xl font-bold text-[#0F4C75]">BuildPro</p>
-            <p className="text-slate-500 text-sm mt-1">{t('reqDetails', lang)} — #{request.id}</p>
+            <p className="text-2xl font-bold text-[#C0603E]">BuildPro</p>
+            <p className="text-stone-500 text-sm mt-1">{t('reqDetails', lang)} — #{request.id}</p>
           </div>
-          <div className="text-right text-sm text-slate-600">
+          <div className="text-right text-sm text-stone-600">
             <p className="font-bold">{getReqName(request)}</p>
             <p>{request.location} · {request.deadline}</p>
             <p>{new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</p>
@@ -305,10 +305,10 @@ export default function RequestDetailPage() {
       <div className="px-4 md:px-7 py-6 space-y-5 max-w-5xl print:max-w-full print:px-8 print:py-4">
 
         {/* MATERIALS */}
-        <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden print:border print:border-slate-200 print:rounded-lg">
-          <div className="px-5 py-3.5 border-b border-[#F1F5F9] flex items-center gap-2">
+        <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden print:border print:border-stone-200 print:rounded-lg">
+          <div className="px-5 py-3.5 border-b border-[#F1EAE0] flex items-center gap-2">
             <span className="text-base">📦</span>
-            <h2 className="text-sm font-bold text-slate-900">{t('materials', lang)}</h2>
+            <h2 className="text-sm font-bold text-stone-900">{t('materials', lang)}</h2>
           </div>
           <div className="p-5">
             {request.materials && request.materials.length > 0 ? (
@@ -317,7 +317,7 @@ export default function RequestDetailPage() {
                   <thead>
                     <tr>
                       {['#', t('matType', lang), t('usage', lang), t('size', lang), t('thickness', lang), t('finish', lang), t('color', lang), t('qty', lang), t('targetPrice', lang), t('origin', lang), t('deliveryDate', lang), t('note', lang), t('images', lang)].map(h => (
-                        <th key={h} className="border border-slate-200 bg-[#0F4C75] px-3 py-2 text-right text-white font-semibold whitespace-nowrap print:py-1.5">
+                        <th key={h} className="border border-stone-200 bg-[#C0603E] px-3 py-2 text-right text-white font-semibold whitespace-nowrap print:py-1.5">
                           {h}
                         </th>
                       ))}
@@ -325,25 +325,25 @@ export default function RequestDetailPage() {
                   </thead>
                   <tbody>
                     {request.materials.map((m: any, i: number) => (
-                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[#F8FAFC]'}>
-                        <td className="border border-slate-200 px-3 py-2 font-bold text-slate-900 text-center">{i + 1}</td>
-                        <td className="border border-slate-200 px-3 py-2 font-bold text-slate-900">{displayVal(m.type, lang)}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{displayVal(m.usage, lang)}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.size || '—'}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.thickness || '—'}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{displayVal(m.finish, lang)}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{displayVal(m.color, lang)}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.quantity ? `${m.quantity} ${lang === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : '—'}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.targetPrice ? `${m.targetPrice} ${lang === 'en' ? (m.currency === 'ر.س' ? 'SAR' : m.currency || 'SAR') : (m.currency || 'ر.س')}` : '—'}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{displayVal(m.origin, lang)}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700">{m.deliveryDate || '—'}</td>
-                        <td className="border border-slate-200 px-3 py-2 text-slate-700 max-w-[120px]">{m.note || '—'}</td>
-                        <td className="border border-slate-200 px-3 py-2 print:hidden">
+                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[#FAF7F2]'}>
+                        <td className="border border-stone-200 px-3 py-2 font-bold text-stone-900 text-center">{i + 1}</td>
+                        <td className="border border-stone-200 px-3 py-2 font-bold text-stone-900">{displayVal(m.type, lang)}</td>
+                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{displayVal(m.usage, lang)}</td>
+                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.size || '—'}</td>
+                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.thickness || '—'}</td>
+                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{displayVal(m.finish, lang)}</td>
+                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{displayVal(m.color, lang)}</td>
+                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.quantity ? `${m.quantity} ${lang === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : '—'}</td>
+                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.targetPrice ? `${m.targetPrice} ${lang === 'en' ? (m.currency === 'ر.س' ? 'SAR' : m.currency || 'SAR') : (m.currency || 'ر.س')}` : '—'}</td>
+                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{displayVal(m.origin, lang)}</td>
+                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.deliveryDate || '—'}</td>
+                        <td className="border border-stone-200 px-3 py-2 text-stone-700 max-w-[120px]">{m.note || '—'}</td>
+                        <td className="border border-stone-200 px-3 py-2 print:hidden">
                           {m.images?.length > 0 ? (
                             <div className="flex gap-1">
                               {m.images.map((img: string, j: number) => (
                                 <img key={j} src={img} alt="" onClick={() => setLightbox(img)}
-                                  className="w-10 h-10 object-cover rounded border border-slate-200 cursor-zoom-in" />
+                                  className="w-10 h-10 object-cover rounded border border-stone-200 cursor-zoom-in" />
                               ))}
                             </div>
                           ) : '—'}
@@ -354,7 +354,7 @@ export default function RequestDetailPage() {
                 </table>
               </div>
             ) : (
-              <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-700 space-y-1">
+              <div className="bg-stone-50 rounded-xl p-4 text-sm text-stone-700 space-y-1">
                 {request.ceramic > 0   && <p>• {lang === 'ar' ? 'سيراميك'  : 'Ceramic'}:   {request.ceramic} m²</p>}
                 {request.porcelain > 0 && <p>• {lang === 'ar' ? 'بورسلان'  : 'Porcelain'}: {request.porcelain} m²</p>}
                 {request.marble > 0    && <p>• {lang === 'ar' ? 'رخام'     : 'Marble'}:    {request.marble} m²</p>}
@@ -367,24 +367,24 @@ export default function RequestDetailPage() {
 
         {/* DESCRIPTION */}
         {request.description && (
-          <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden print:border-slate-200 print:rounded-lg">
-            <div className="px-5 py-3.5 border-b border-[#F1F5F9] flex items-center gap-2">
+          <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden print:border-stone-200 print:rounded-lg">
+            <div className="px-5 py-3.5 border-b border-[#F1EAE0] flex items-center gap-2">
               <span className="text-base">📝</span>
-              <h2 className="text-sm font-bold text-slate-900">{t('description', lang)}</h2>
+              <h2 className="text-sm font-bold text-stone-900">{t('description', lang)}</h2>
             </div>
-            <p className="px-5 py-4 text-sm text-slate-700 leading-relaxed">{request.description}</p>
+            <p className="px-5 py-4 text-sm text-stone-700 leading-relaxed">{request.description}</p>
           </div>
         )}
 
         {/* QUOTES */}
-        <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden print:border-slate-200 print:rounded-lg">
-          <div className="px-5 py-3.5 border-b border-[#F1F5F9] flex items-center justify-between">
+        <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden print:border-stone-200 print:rounded-lg">
+          <div className="px-5 py-3.5 border-b border-[#F1EAE0] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-base">💼</span>
-              <h2 className="text-sm font-bold text-slate-900">{t('quotesSection', lang)} ({quotes.length})</h2>
+              <h2 className="text-sm font-bold text-stone-900">{t('quotesSection', lang)} ({quotes.length})</h2>
             </div>
             {quotes.length > 0 && (
-              <div className="flex gap-3 text-[11px] text-slate-400">
+              <div className="flex gap-3 text-[11px] text-stone-400">
                 {cheapestId && <span>🟢 {t('cheapest', lang)}: {Number(quotes.find(q => q.id === cheapestId)?.totalPrice || 0).toLocaleString()} {t('sar', lang)}</span>}
                 {fastestId  && <span>⚡ {t('fastest', lang)}: {quotes.find(q => q.id === fastestId)?.deliveryDays} {t('days', lang)}</span>}
               </div>
@@ -394,34 +394,34 @@ export default function RequestDetailPage() {
           {quotes.length === 0 ? (
             <div className="py-10 text-center">
               <p className="text-2xl mb-2">📭</p>
-              <p className="text-sm text-slate-400">{t('noQuotes', lang)}</p>
+              <p className="text-sm text-stone-400">{t('noQuotes', lang)}</p>
             </div>
           ) : (
-            <div className="divide-y divide-[#F8FAFC]">
+            <div className="divide-y divide-[#FAF7F2]">
               {quotes.map(q => (
                 <div key={q.id}>
                   <div className={`flex items-start gap-4 px-5 py-4 flex-wrap md:flex-nowrap ${q.status === 'accepted' ? 'bg-emerald-50/40' : q.status === 'rejected' ? 'bg-red-50/30' : ''}`}>
                     {/* avatar */}
-                    <div className="w-10 h-10 rounded-xl bg-[#EBF5FF] border border-[#BFDBFE] flex items-center justify-center text-[12px] font-bold text-[#1D4ED8] shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-[#F3EAE0] border border-[#E8DFD3] flex items-center justify-center text-[12px] font-bold text-[#C0603E] shrink-0">
                       {q.supplierCompany.slice(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-bold text-slate-900">{q.supplierCompany}</p>
-                        <p className="text-[11px] text-slate-400">{q.supplierName}</p>
+                        <p className="text-sm font-bold text-stone-900">{q.supplierCompany}</p>
+                        <p className="text-[11px] text-stone-400">{q.supplierName}</p>
                         <StatusBadge status={q.status} lang={lang} />
                         {q.id === cheapestId && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{t('cheapest', lang)}</span>}
                         {q.id === fastestId  && <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">{t('fastest', lang)}</span>}
                       </div>
                       <div className="flex gap-4 mt-1">
-                        <span className="text-xl font-bold text-slate-900">{Number(q.totalPrice).toLocaleString()} <span className="text-xs font-medium text-slate-500">{t('sar', lang)}</span></span>
-                        <span className="text-xs text-slate-500 self-end">{t('delivery', lang)} {q.deliveryDays} {t('days', lang)}</span>
+                        <span className="text-xl font-bold text-stone-900">{Number(q.totalPrice).toLocaleString()} <span className="text-xs font-medium text-stone-500">{t('sar', lang)}</span></span>
+                        <span className="text-xs text-stone-500 self-end">{t('delivery', lang)} {q.deliveryDays} {t('days', lang)}</span>
                       </div>
-                      {q.description && <p className="text-xs text-slate-500 mt-1">{q.description}</p>}
+                      {q.description && <p className="text-xs text-stone-500 mt-1">{q.description}</p>}
                       {q.status === 'revision' && q.revisionNote && (
                         <p className="text-xs text-amber-700 mt-1 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">✏ {q.revisionNote}</p>
                       )}
-                      <p className="text-[10px] text-slate-300 mt-1">{formatDate(q.createdAt, lang)}</p>
+                      <p className="text-[10px] text-stone-300 mt-1">{formatDate(q.createdAt, lang)}</p>
                     </div>
                     {/* actions */}
                     <div className="flex gap-1.5 shrink-0 flex-wrap print:hidden">
@@ -442,12 +442,12 @@ export default function RequestDetailPage() {
                         </>
                       ) : (
                         <button onClick={() => handleQuoteAction(q.id, 'pending')}
-                          className="text-[11px] font-semibold px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors">
+                          className="text-[11px] font-semibold px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors">
                           {t('undo', lang)}
                         </button>
                       )}
                       <a href={`/print/quote/${q.id}`} target="_blank"
-                        className="text-[11px] font-semibold px-3 py-1.5 bg-slate-50 text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors">
+                        className="text-[11px] font-semibold px-3 py-1.5 bg-stone-50 text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors">
                         🖨
                       </a>
                     </div>
@@ -457,7 +457,7 @@ export default function RequestDetailPage() {
                     <div className="px-5 py-4 bg-amber-50 border-t border-amber-200">
                       <textarea value={revisionNote} onChange={e => { setRevisionNote(e.target.value); setRevisionError(false); }}
                         placeholder={t('writeRev', lang)} rows={2}
-                        className={`w-full text-xs border rounded-lg px-3 py-2 outline-none font-cairo bg-white resize-none text-slate-700 ${revisionError ? 'border-red-400 bg-red-50' : 'border-amber-200'}`} />
+                        className={`w-full text-xs border rounded-lg px-3 py-2 outline-none font-cairo bg-white resize-none text-stone-700 ${revisionError ? 'border-red-400 bg-red-50' : 'border-amber-200'}`} />
                       {revisionError && <p className="text-[10px] text-red-600 mt-1">{lang === 'ar' ? 'الرجاء كتابة ملاحظة أولاً' : 'Please write a note first'}</p>}
                       <div className="flex gap-2 mt-2">
                         <button onClick={() => handleRevisionSubmit(q.id)}
@@ -479,15 +479,15 @@ export default function RequestDetailPage() {
 
         {/* ACTIVITY LOG */}
         {logs.length > 0 && (
-          <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden print:border-slate-200 print:rounded-lg">
-            <div className="px-5 py-3.5 border-b border-[#F1F5F9] flex items-center gap-2">
+          <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden print:border-stone-200 print:rounded-lg">
+            <div className="px-5 py-3.5 border-b border-[#F1EAE0] flex items-center gap-2">
               <span className="text-base">📋</span>
-              <h2 className="text-sm font-bold text-slate-900">{t('activity', lang)}</h2>
+              <h2 className="text-sm font-bold text-stone-900">{t('activity', lang)}</h2>
             </div>
-            <div className="divide-y divide-[#F8FAFC]">
+            <div className="divide-y divide-[#FAF7F2]">
               {logs.map((log, i) => (
-                <div key={log.id} className={`flex items-center justify-between px-5 py-3 text-xs ${i % 2 === 0 ? 'bg-white' : 'bg-[#FAFBFC]'}`}>
-                  <span className="text-slate-700">
+                <div key={log.id} className={`flex items-center justify-between px-5 py-3 text-xs ${i % 2 === 0 ? 'bg-white' : 'bg-[#FFFDF9]'}`}>
+                  <span className="text-stone-700">
                     {log.action.includes('قبول') || log.action.includes('Accepted') ? '✅'
                      : log.action.includes('رفض') || log.action.includes('Rejected') ? '❌'
                      : log.action.includes('إغلاق') || log.action.includes('closed') ? '🔒'
@@ -497,7 +497,7 @@ export default function RequestDetailPage() {
                      : '📋'}{' '}
                     {lang === 'ar' ? log.action : log.actionEn}
                   </span>
-                  <span className="text-slate-400 whitespace-nowrap me-4">
+                  <span className="text-stone-400 whitespace-nowrap me-4">
                     {new Date(log.timestamp).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US')}
                   </span>
                 </div>

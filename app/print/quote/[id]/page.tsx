@@ -52,7 +52,7 @@ export default function PrintQuote() {
   if (!ready) return null;
 
   if (!quote) return (
-    <div className="print-area" style={{ padding: 40, fontFamily: 'Cairo, sans-serif', textAlign: 'center', color: '#94a3b8' }}>
+    <div className="print-area" style={{ padding: 40, fontFamily: 'Cairo, sans-serif', textAlign: 'center', color: '#A8A29E' }}>
       {lang === 'ar' ? 'العرض غير موجود' : 'Quote not found'}
     </div>
   );
@@ -74,9 +74,9 @@ export default function PrintQuote() {
 
   const materials = getMaterials();
   const S = {
-    th:  { background: '#0F4C75', color: '#fff', fontWeight: 700, padding: '7px 8px', textAlign: (lang === 'ar' ? 'right' : 'left') as 'right' | 'left', border: '1px solid #0D3F63', fontSize: 11 },
-    tdE: { border: '1px solid #E2EAF2', padding: '6px 8px', color: '#334155', fontSize: 11 },
-    tdO: { border: '1px solid #E2EAF2', padding: '6px 8px', color: '#334155', fontSize: 11, background: '#F8FAFC' },
+    th:  { background: '#C0603E', color: '#fff', fontWeight: 700, padding: '7px 8px', textAlign: (lang === 'ar' ? 'right' : 'left') as 'right' | 'left', border: '1px solid #9C4C31', fontSize: 11 },
+    tdE: { border: '1px solid #E8DFD3', padding: '6px 8px', color: '#44403C', fontSize: 11 },
+    tdO: { border: '1px solid #E8DFD3', padding: '6px 8px', color: '#44403C', fontSize: 11, background: '#FAF7F2' },
   };
   const matCols   = lang === 'ar' ? ['#', 'المادة', 'الاستخدام', 'الكمية', 'المقاس', 'الفنش', 'اللون', 'الصناعة'] : ['#', 'Material', 'Usage', 'Qty', 'Size', 'Finish', 'Color', 'Origin'];
   const matFields = ['type', 'usage', 'quantity', 'size', 'finish', 'color', 'origin'];
@@ -88,11 +88,11 @@ export default function PrintQuote() {
 
   return (
     <>
-      <div className="no-print" style={{ display: 'flex', padding: '10px 16px', background: '#0F4C75', gap: 12, alignItems: 'center' }}>
+      <div className="no-print" style={{ display: 'flex', padding: '10px 16px', background: '#C0603E', gap: 12, alignItems: 'center' }}>
         <button onClick={() => window.history.back()} style={{ color: '#fff', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: 13 }}>
           {lang === 'ar' ? '← رجوع' : '← Back'}
         </button>
-        <button onClick={() => window.print()} style={{ color: '#fff', background: '#1B9AAA', border: 'none', borderRadius: 8, padding: '6px 18px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: 13 }}>
+        <button onClick={() => window.print()} style={{ color: '#fff', background: '#8A7B6C', border: 'none', borderRadius: 8, padding: '6px 18px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: 13 }}>
           🖨 {lang === 'ar' ? 'طباعة' : 'Print'}
         </button>
       </div>
@@ -103,14 +103,14 @@ export default function PrintQuote() {
         <table style={{ width: '100%', marginBottom: 14, borderCollapse: 'collapse' }}>
           <tbody><tr>
             <td style={{ verticalAlign: 'top' }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#0F4C75' }}>Build<span style={{ color: '#1B9AAA' }}>Pro</span></div>
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{lang === 'ar' ? 'منصة تسعير مواد البناء' : 'Construction Materials Pricing Platform'}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#C0603E' }}>Build<span style={{ color: '#8A7B6C' }}>Pro</span></div>
+              <div style={{ fontSize: 11, color: '#A8A29E', marginTop: 2 }}>{lang === 'ar' ? 'منصة تسعير مواد البناء' : 'Construction Materials Pricing Platform'}</div>
             </td>
             <td style={{ textAlign: lang === 'ar' ? 'left' : 'right', verticalAlign: 'top' }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#0F4C75' }}>{lang === 'ar' ? 'عرض سعر' : 'QUOTATION'}</div>
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>{lang === 'ar' ? 'رقم العرض:' : 'Quote No:'} <strong style={{ color: '#0F4C75' }}>#{quote.id}</strong></div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>{lang === 'ar' ? 'تاريخ العرض:' : 'Quote Date:'} {quoteDate}</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>{lang === 'ar' ? 'تاريخ الطباعة:' : 'Printed:'} {printDate}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#C0603E' }}>{lang === 'ar' ? 'عرض سعر' : 'QUOTATION'}</div>
+              <div style={{ fontSize: 11, color: '#78716C', marginTop: 3 }}>{lang === 'ar' ? 'رقم العرض:' : 'Quote No:'} <strong style={{ color: '#C0603E' }}>#{quote.id}</strong></div>
+              <div style={{ fontSize: 11, color: '#78716C' }}>{lang === 'ar' ? 'تاريخ العرض:' : 'Quote Date:'} {quoteDate}</div>
+              <div style={{ fontSize: 11, color: '#78716C' }}>{lang === 'ar' ? 'تاريخ الطباعة:' : 'Printed:'} {printDate}</div>
               <div style={{ marginTop: 6, display: 'inline-block', background: `${statusInfo.color}18`, border: `1px solid ${statusInfo.color}50`, borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: statusInfo.color }}>
                 {lang === 'ar' ? statusInfo.ar : statusInfo.en}
               </div>
@@ -118,35 +118,35 @@ export default function PrintQuote() {
           </tr></tbody>
         </table>
 
-        <div style={{ height: 3, background: 'linear-gradient(90deg, #0F4C75, #1B9AAA)', borderRadius: 2, marginBottom: 16 }} />
+        <div style={{ height: 3, background: 'linear-gradient(90deg, #C0603E, #8A7B6C)', borderRadius: 2, marginBottom: 16 }} />
 
         {/* FROM / TO */}
         <table style={{ width: '100%', marginBottom: 16, borderCollapse: 'collapse' }}>
           <tbody><tr>
             <td style={{ width: '48%', verticalAlign: 'top', paddingLeft: lang === 'ar' ? 12 : 0, paddingRight: lang === 'ar' ? 0 : 12 }}>
-              <div style={{ background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 8, padding: '10px 14px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#0369A1', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>{lang === 'ar' ? 'من: المورد' : 'FROM: SUPPLIER'}</div>
-                <div style={{ fontWeight: 700, fontSize: 13, color: '#0F4C75', marginBottom: 3 }}>{quote.supplierCompany}</div>
-                <div style={{ fontSize: 11, color: '#475569' }}>{quote.supplierName}</div>
-                {supplier?.phone && <div style={{ fontSize: 11, color: '#475569', marginTop: 2 }}>{supplier.phone}</div>}
-                {supplier?.city  && <div style={{ fontSize: 11, color: '#475569' }}>📍 {supplier.city}</div>}
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>{quote.supplierId}</div>
+              <div style={{ background: '#F3EAE0', border: '1px solid #E8DFD3', borderRadius: 8, padding: '10px 14px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#C0603E', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>{lang === 'ar' ? 'من: المورد' : 'FROM: SUPPLIER'}</div>
+                <div style={{ fontWeight: 700, fontSize: 13, color: '#C0603E', marginBottom: 3 }}>{quote.supplierCompany}</div>
+                <div style={{ fontSize: 11, color: '#57534E' }}>{quote.supplierName}</div>
+                {supplier?.phone && <div style={{ fontSize: 11, color: '#57534E', marginTop: 2 }}>{supplier.phone}</div>}
+                {supplier?.city  && <div style={{ fontSize: 11, color: '#57534E' }}>📍 {supplier.city}</div>}
+                <div style={{ fontSize: 11, color: '#A8A29E', marginTop: 3 }}>{quote.supplierId}</div>
               </div>
             </td>
             <td style={{ width: '48%', verticalAlign: 'top' }}>
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2EAF2', borderRadius: 8, padding: '10px 14px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>{lang === 'ar' ? 'إلى: المقاول' : 'TO: CONTRACTOR'}</div>
+              <div style={{ background: '#FAF7F2', border: '1px solid #E8DFD3', borderRadius: 8, padding: '10px 14px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#78716C', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>{lang === 'ar' ? 'إلى: المقاول' : 'TO: CONTRACTOR'}</div>
                 {contractor ? <>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: '#334155', marginBottom: 3 }}>{contractor.name}</div>
-                  {contractor.company && <div style={{ fontSize: 11, color: '#475569' }}>{contractor.company}</div>}
-                  {contractor.phone   && <div style={{ fontSize: 11, color: '#475569' }}>{contractor.phone}</div>}
-                  {contractor.city    && <div style={{ fontSize: 11, color: '#475569' }}>📍 {contractor.city}</div>}
-                </> : <div style={{ fontSize: 11, color: '#94a3b8' }}>{req?.contractorId}</div>}
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#44403C', marginBottom: 3 }}>{contractor.name}</div>
+                  {contractor.company && <div style={{ fontSize: 11, color: '#57534E' }}>{contractor.company}</div>}
+                  {contractor.phone   && <div style={{ fontSize: 11, color: '#57534E' }}>{contractor.phone}</div>}
+                  {contractor.city    && <div style={{ fontSize: 11, color: '#57534E' }}>📍 {contractor.city}</div>}
+                </> : <div style={{ fontSize: 11, color: '#A8A29E' }}>{req?.contractorId}</div>}
                 {req && (
-                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #E2EAF2', fontSize: 11 }}>
-                    <span style={{ color: '#64748b' }}>{lang === 'ar' ? 'المشروع:' : 'Project:'} </span>
-                    <span style={{ fontWeight: 600, color: '#334155' }}>{reqName}</span>
-                    {req.location && <div style={{ color: '#64748b', marginTop: 2 }}>📍 {req.location}</div>}
+                  <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px solid #E8DFD3', fontSize: 11 }}>
+                    <span style={{ color: '#78716C' }}>{lang === 'ar' ? 'المشروع:' : 'Project:'} </span>
+                    <span style={{ fontWeight: 600, color: '#44403C' }}>{reqName}</span>
+                    {req.location && <div style={{ color: '#78716C', marginTop: 2 }}>📍 {req.location}</div>}
                   </div>
                 )}
               </div>
@@ -155,7 +155,7 @@ export default function PrintQuote() {
         </table>
 
         {/* PRICE BOX */}
-        <div style={{ background: 'linear-gradient(135deg, #0F4C75, #1B9AAA)', borderRadius: 12, padding: '18px 22px', marginBottom: 16, color: '#fff', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+        <div style={{ background: 'linear-gradient(135deg, #C0603E, #8A7B6C)', borderRadius: 12, padding: '18px 22px', marginBottom: 16, color: '#fff', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 10, opacity: 0.7, marginBottom: 4 }}>{lang === 'ar' ? 'إجمالي العرض' : 'TOTAL PRICE'}</div>
             <div style={{ fontSize: 28, fontWeight: 800 }}>{Number(quote.totalPrice).toLocaleString()}</div>
@@ -180,7 +180,7 @@ export default function PrintQuote() {
         {/* MATERIALS */}
         {materials.length > 0 && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#0F4C75', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'المواد المعروضة' : 'QUOTED MATERIALS'}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#C0603E', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'المواد المعروضة' : 'QUOTED MATERIALS'}</div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>{matCols.map((c, i) => <th key={i} style={S.th}>{c}</th>)}</tr>
@@ -190,7 +190,7 @@ export default function PrintQuote() {
                   const td = i % 2 === 0 ? S.tdE : S.tdO;
                   return (
                     <tr key={i}>
-                      <td style={{ ...td, textAlign: 'center', fontWeight: 700, color: '#0F4C75' }}>{i + 1}</td>
+                      <td style={{ ...td, textAlign: 'center', fontWeight: 700, color: '#C0603E' }}>{i + 1}</td>
                       {matFields.map(f => <td key={f} style={td}>{matVal(m, f)}</td>)}
                     </tr>
                   );
@@ -203,8 +203,8 @@ export default function PrintQuote() {
         {/* NOTES */}
         {quote.description && (
           <div style={{ marginBottom: 14 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#0F4C75', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'ملاحظات المورد' : 'SUPPLIER NOTES'}</div>
-            <div style={{ background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 6, padding: '10px 14px', fontSize: 12, color: '#0F4C75', lineHeight: 1.7 }}>{quote.description}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#C0603E', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'ملاحظات المورد' : 'SUPPLIER NOTES'}</div>
+            <div style={{ background: '#F3EAE0', border: '1px solid #E8DFD3', borderRadius: 6, padding: '10px 14px', fontSize: 12, color: '#C0603E', lineHeight: 1.7 }}>{quote.description}</div>
           </div>
         )}
 
@@ -216,19 +216,19 @@ export default function PrintQuote() {
         )}
 
         {/* SIGNATURES */}
-        <div style={{ marginTop: 24, borderTop: '1px solid #E2EAF2', paddingTop: 14 }}>
+        <div style={{ marginTop: 24, borderTop: '1px solid #E8DFD3', paddingTop: 14 }}>
           <table style={{ width: '100%' }}>
             <tbody><tr>
               {[lang === 'ar' ? 'توقيع المورد' : "Supplier's Signature", lang === 'ar' ? 'توقيع المقاول' : "Contractor's Signature", lang === 'ar' ? 'الختم الرسمي' : 'Official Stamp'].map((lbl, i) => (
                 <td key={i} style={{ textAlign: 'center' }}>
-                  <div style={{ borderTop: '1px solid #CBD5E1', marginTop: 32, paddingTop: 5, fontSize: 11, color: '#64748b' }}>{lbl}</div>
+                  <div style={{ borderTop: '1px solid #D6D3D1', marginTop: 32, paddingTop: 5, fontSize: 11, color: '#78716C' }}>{lbl}</div>
                 </td>
               ))}
             </tr></tbody>
           </table>
         </div>
 
-        <div style={{ marginTop: 14, textAlign: 'center', fontSize: 10, color: '#94a3b8', borderTop: '1px solid #F1F5F9', paddingTop: 8 }}>
+        <div style={{ marginTop: 14, textAlign: 'center', fontSize: 10, color: '#A8A29E', borderTop: '1px solid #F1EAE0', paddingTop: 8 }}>
           {lang === 'ar' ? `تم إنشاء هذا العرض عبر منصة BuildPro · ${printDate}` : `Generated via BuildPro platform · ${printDate}`}
         </div>
       </div>

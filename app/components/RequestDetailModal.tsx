@@ -19,21 +19,21 @@ export default function RequestDetailModal({
   onClose, onToggle, onDelete, onEdit, onQuoteAction, onRevisionSubmit, setLightboxImg,
 }: RequestDetailModalProps) {
   const tr = (ar: string, en: string) => lang === 'ar' ? ar : en;
-  const thStyle: React.CSSProperties = { padding: '8px 10px', backgroundColor: '#0F4C75', color: 'white', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', textAlign: 'center', border: '1px solid #0D3F63' };
-  const tdStyle: React.CSSProperties = { padding: '7px 10px', color: '#334155', fontSize: 12, textAlign: 'center', border: '1px solid #E2EAF2' };
+  const thStyle: React.CSSProperties = { padding: '8px 10px', backgroundColor: '#C0603E', color: 'white', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', textAlign: 'center', border: '1px solid #9C4C31' };
+  const tdStyle: React.CSSProperties = { padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' };
   return (
     <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[95vh] overflow-y-auto" dir={dir} onClick={e => e.stopPropagation()}>
         {/* header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+        <div className="flex items-center justify-between p-5 border-b border-stone-100">
           <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-lg font-bold text-slate-900">{tr('تفاصيل الطلب', 'Request Details')}</h2>
-            <span className="text-[#1B9AAA] font-bold text-sm">#{req.id}</span>
-            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${req.status === 'open' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'}`}>
+            <h2 className="text-lg font-bold text-stone-900">{tr('تفاصيل الطلب', 'Request Details')}</h2>
+            <span className="text-[#8A7B6C] font-bold text-sm">#{req.id}</span>
+            <span className={`text-xs font-semibold px-3 py-1 rounded-full ${req.status === 'open' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-stone-100 text-stone-600'}`}>
               {req.status === 'open' ? tr('مفتوح', 'Open') : tr('مغلق', 'Closed')}
             </span>
-            {req.location && <span className="text-slate-400 text-sm">📍 {req.location}</span>}
-            {req.deadline && <span className="text-slate-400 text-sm">⏱ {req.deadline}</span>}
+            {req.location && <span className="text-stone-400 text-sm">📍 {req.location}</span>}
+            {req.deadline && <span className="text-stone-400 text-sm">⏱ {req.deadline}</span>}
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center font-bold hover:bg-red-100 text-lg">✕</button>
         </div>
@@ -41,9 +41,9 @@ export default function RequestDetailModal({
         <div className="p-5 space-y-5">
           {/* materials */}
           <div>
-            <h3 className="text-sm font-bold text-slate-900 mb-3">{tr('المواد المطلوبة', 'Required Materials')}</h3>
+            <h3 className="text-sm font-bold text-stone-900 mb-3">{tr('المواد المطلوبة', 'Required Materials')}</h3>
             {req.materials && req.materials.length > 0 ? (
-              <div className="overflow-x-auto border border-slate-200 rounded-xl">
+              <div className="overflow-x-auto border border-stone-200 rounded-xl">
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
@@ -54,7 +54,7 @@ export default function RequestDetailModal({
                   </thead>
                   <tbody>
                     {req.materials.map((m: any, i: number) => (
-                      <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#fff' : '#F8FAFC' }}>
+                      <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#fff' : '#FAF7F2' }}>
                         <td style={tdStyle}>{i + 1}</td>
                         <td style={{ ...tdStyle, fontWeight: 700 }}>{displayVal(m.type, lang)}</td>
                         <td style={tdStyle}>{displayVal(m.usage, lang)}</td>
@@ -72,7 +72,7 @@ export default function RequestDetailModal({
                             <div className="flex gap-1 justify-center">
                               {m.images.map((img: string, j: number) => (
                                 <img key={j} src={img} alt="" onClick={e => { e.stopPropagation(); setLightboxImg(img); }}
-                                  className="w-10 h-10 object-cover rounded border border-slate-200 cursor-zoom-in" />
+                                  className="w-10 h-10 object-cover rounded border border-stone-200 cursor-zoom-in" />
                               ))}
                             </div>
                           ) : '—'}
@@ -83,7 +83,7 @@ export default function RequestDetailModal({
                 </table>
               </div>
             ) : (
-              <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-600 space-y-1">
+              <div className="bg-stone-50 rounded-xl p-4 text-sm text-stone-600 space-y-1">
                 {!!req.ceramic   && req.ceramic   > 0 && <p>• {tr('سيراميك','Ceramic')}: {req.ceramic} m²</p>}
                 {!!req.porcelain && req.porcelain > 0 && <p>• {tr('بورسلان','Porcelain')}: {req.porcelain} m²</p>}
                 {!!req.marble    && req.marble    > 0 && <p>• {tr('رخام','Marble')}: {req.marble} m²</p>}
@@ -96,34 +96,34 @@ export default function RequestDetailModal({
           {/* description */}
           {req.description && (
             <div>
-              <h3 className="text-sm font-bold text-slate-900 mb-2">{tr('الوصف', 'Description')}</h3>
-              <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-600">{req.description}</div>
+              <h3 className="text-sm font-bold text-stone-900 mb-2">{tr('الوصف', 'Description')}</h3>
+              <div className="bg-stone-50 rounded-xl p-4 text-sm text-stone-600">{req.description}</div>
             </div>
           )}
 
           {/* quotes */}
           <div>
-            <h3 className="text-sm font-bold text-slate-900 mb-3">{tr('عروض الأسعار', 'Quotes')} ({quotes.length})</h3>
+            <h3 className="text-sm font-bold text-stone-900 mb-3">{tr('عروض الأسعار', 'Quotes')} ({quotes.length})</h3>
             {quotes.length === 0 ? (
-              <div className="bg-slate-50 rounded-xl p-4 text-sm text-slate-400 text-center">{tr('لا توجد عروض أسعار بعد', 'No quotes yet')}</div>
+              <div className="bg-stone-50 rounded-xl p-4 text-sm text-stone-400 text-center">{tr('لا توجد عروض أسعار بعد', 'No quotes yet')}</div>
             ) : (
               <div className="space-y-3">
                 {quotes.map((quote: Quote) => {
                   const supplierData = quote.status === 'accepted' ? getSupplierData(quote.supplierId) : null;
                   return (
-                    <div key={quote.id} className={`border rounded-xl p-4 ${quote.status === 'accepted' ? 'bg-emerald-50 border-emerald-200' : quote.status === 'rejected' ? 'bg-red-50 border-red-200' : quote.status === 'revision' ? 'bg-amber-50 border-amber-200' : 'bg-white border-slate-200'}`}>
+                    <div key={quote.id} className={`border rounded-xl p-4 ${quote.status === 'accepted' ? 'bg-emerald-50 border-emerald-200' : quote.status === 'rejected' ? 'bg-red-50 border-red-200' : quote.status === 'revision' ? 'bg-amber-50 border-amber-200' : 'bg-white border-stone-200'}`}>
                       <div className="flex justify-between items-start mb-3">
                         <div>
-                          <p className="font-bold text-slate-900 text-sm">{quote.supplierCompany}</p>
-                          <p className="text-slate-400 text-xs">{quote.supplierName}</p>
+                          <p className="font-bold text-stone-900 text-sm">{quote.supplierCompany}</p>
+                          <p className="text-stone-400 text-xs">{quote.supplierName}</p>
                         </div>
-                        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${quote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : quote.status === 'rejected' ? 'bg-red-100 text-red-700' : quote.status === 'revision' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${quote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : quote.status === 'rejected' ? 'bg-red-100 text-red-700' : quote.status === 'revision' ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-600'}`}>
                           {quote.status === 'accepted' ? tr('مقبول','Accepted') : quote.status === 'rejected' ? tr('مرفوض','Rejected') : quote.status === 'revision' ? tr('طلب تعديل','Revision Requested') : tr('قيد الانتظار','Pending')}
                         </span>
                       </div>
-                      <p className="text-xl font-bold text-slate-900">{quote.totalPrice?.toLocaleString()} {tr('ر.س','SAR')}</p>
-                      <p className="text-xs text-slate-500 mt-1">{tr('مدة التوريد:','Delivery:')} {quote.deliveryDays} {tr('يوم','days')}</p>
-                      {quote.description && <p className="text-xs text-slate-500 mt-1">{quote.description}</p>}
+                      <p className="text-xl font-bold text-stone-900">{quote.totalPrice?.toLocaleString()} {tr('ر.س','SAR')}</p>
+                      <p className="text-xs text-stone-500 mt-1">{tr('مدة التوريد:','Delivery:')} {quote.deliveryDays} {tr('يوم','days')}</p>
+                      {quote.description && <p className="text-xs text-stone-500 mt-1">{quote.description}</p>}
 
                       {quote.status === 'accepted' && supplierData && (
                         <div className="mt-3 bg-emerald-100 border border-emerald-200 rounded-xl p-3 text-sm text-emerald-800 space-y-1">
@@ -148,18 +148,18 @@ export default function RequestDetailModal({
                       )}
                       {revisionQuoteId === quote.id && (
                         <div className="mt-3 bg-white border border-amber-200 rounded-xl p-3">
-                          <p className="text-xs font-bold text-slate-700 mb-2">{tr('اكتب ملاحظة التعديل:','Write revision note:')}</p>
+                          <p className="text-xs font-bold text-stone-700 mb-2">{tr('اكتب ملاحظة التعديل:','Write revision note:')}</p>
                           <textarea value={revisionNote} onChange={e => setRevisionNote(e.target.value)}
                             placeholder={tr('مثال: أريد سعر أقل أو توريد أسرع...','Ex: Need lower price or faster delivery...')}
-                            className="w-full border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 bg-white outline-none resize-none min-h-[70px] mb-2" />
+                            className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs text-stone-700 bg-white outline-none resize-none min-h-[70px] mb-2" />
                           <div className="flex gap-2">
                             <button onClick={() => onRevisionSubmit(quote.id)} className="flex-1 bg-amber-400 text-white text-xs font-bold py-1.5 rounded-lg">{tr('إرسال التعديل','Send Revision')}</button>
-                            <button onClick={() => { setRevisionQuoteId(null); setRevisionNote(''); }} className="flex-1 bg-slate-100 text-slate-600 text-xs font-bold py-1.5 rounded-lg">{tr('إلغاء','Cancel')}</button>
+                            <button onClick={() => { setRevisionQuoteId(null); setRevisionNote(''); }} className="flex-1 bg-stone-100 text-stone-600 text-xs font-bold py-1.5 rounded-lg">{tr('إلغاء','Cancel')}</button>
                           </div>
                         </div>
                       )}
                       {(quote.status === 'accepted' || quote.status === 'rejected' || quote.status === 'revision') && (
-                        <button onClick={() => onQuoteAction(quote.id, 'pending')} className="mt-2 w-full bg-slate-100 text-slate-600 text-xs font-bold py-1.5 rounded-lg hover:bg-slate-200">{tr('إلغاء القرار','Undo Decision')}</button>
+                        <button onClick={() => onQuoteAction(quote.id, 'pending')} className="mt-2 w-full bg-stone-100 text-stone-600 text-xs font-bold py-1.5 rounded-lg hover:bg-stone-200">{tr('إلغاء القرار','Undo Decision')}</button>
                       )}
                     </div>
                   );
@@ -171,15 +171,15 @@ export default function RequestDetailModal({
           {/* activity log */}
           {logs.length > 0 && (
             <div>
-              <h3 className="text-sm font-bold text-slate-900 mb-3">{tr('تاريخ النشاط', 'Activity History')}</h3>
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <h3 className="text-sm font-bold text-stone-900 mb-3">{tr('تاريخ النشاط', 'Activity History')}</h3>
+              <div className="border border-stone-200 rounded-xl overflow-hidden">
                 {logs.map((log: ActivityLog, i: number) => (
-                  <div key={log.id} className={`flex items-center justify-between px-4 py-3 text-xs border-b border-slate-100 last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-                    <span className="text-slate-700">
+                  <div key={log.id} className={`flex items-center justify-between px-4 py-3 text-xs border-b border-stone-100 last:border-0 ${i % 2 === 0 ? 'bg-white' : 'bg-stone-50'}`}>
+                    <span className="text-stone-700">
                       {log.action.includes('قبول') || log.action.includes('Accepted') ? '✅' : log.action.includes('رفض') || log.action.includes('Rejected') ? '❌' : log.action.includes('تعديل') || log.action.includes('Revision') ? '✏️' : log.action.includes('إغلاق') || log.action.includes('closed') ? '🔒' : log.action.includes('فتح') || log.action.includes('reopened') ? '🔓' : log.action.includes('تقييم') || log.action.includes('Rated') ? '⭐' : '📋'}{' '}
                       {lang === 'ar' ? log.action : log.actionEn}
                     </span>
-                    <span className="text-slate-400 whitespace-nowrap mr-4">{formatDate(log.timestamp, lang)}</span>
+                    <span className="text-stone-400 whitespace-nowrap mr-4">{formatDate(log.timestamp, lang)}</span>
                   </div>
                 ))}
               </div>
@@ -188,9 +188,9 @@ export default function RequestDetailModal({
         </div>
 
         {/* footer actions */}
-        <div className="flex gap-3 p-5 border-t border-slate-100">
-          <button onClick={onClose} className="flex-1 bg-slate-100 text-slate-600 font-semibold py-2.5 rounded-xl text-sm hover:bg-slate-200">{tr('إغلاق','Close')}</button>
-          <button onClick={onEdit} className="flex-1 bg-[#1B9AAA] text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-[#158494]">{tr('تعديل','Edit')}</button>
+        <div className="flex gap-3 p-5 border-t border-stone-100">
+          <button onClick={onClose} className="flex-1 bg-stone-100 text-stone-600 font-semibold py-2.5 rounded-xl text-sm hover:bg-stone-200">{tr('إغلاق','Close')}</button>
+          <button onClick={onEdit} className="flex-1 bg-[#8A7B6C] text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-[#6F6255]">{tr('تعديل','Edit')}</button>
           <button onClick={onToggle}
             className={`flex-1 font-semibold py-2.5 rounded-xl text-sm transition-colors ${req.status === 'open' ? 'bg-amber-400 text-white hover:bg-amber-500' : 'bg-emerald-500 text-white hover:bg-emerald-600'}`}>
             {req.status === 'open' ? tr('إغلاق الطلب','Close Request') : tr('فتح الطلب','Open Request')}

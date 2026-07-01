@@ -497,14 +497,14 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     zoomHint: 'Use mouse wheel to zoom in/out',
   };
 
-  const labelStyle: React.CSSProperties = { display: 'block', marginBottom: '6px', fontWeight: 'bold', color: '#0F172A', fontSize: '15px' };
-  const thStyle: React.CSSProperties = { padding: '10px 6px', backgroundColor: '#f8f9fa', borderBottom: '2px solid #dee2e6', color: '#333', fontWeight: 'bold', fontSize: '12px', whiteSpace: 'nowrap', textAlign: 'center' };
+  const labelStyle: React.CSSProperties = { display: 'block', marginBottom: '6px', fontWeight: 'bold', color: '#1C1917', fontSize: '15px' };
+  const thStyle: React.CSSProperties = { padding: '10px 6px', backgroundColor: '#FAF7F2', borderBottom: '2px solid #dee2e6', color: '#333', fontWeight: 'bold', fontSize: '12px', whiteSpace: 'nowrap', textAlign: 'center' };
   const tdStyle: React.CSSProperties = { padding: '6px 4px', borderBottom: '1px solid #f0f0f0', verticalAlign: 'top', minWidth: '130px' };
   const selectStyle: React.CSSProperties = { padding: '5px 4px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '12px', color: '#333', backgroundColor: '#fff', flex: 1 };
-  const orBtnStyle: React.CSSProperties = { padding: '5px 8px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', whiteSpace: 'nowrap' };
+  const orBtnStyle: React.CSSProperties = { padding: '5px 8px', backgroundColor: '#8A7B6C', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', whiteSpace: 'nowrap' };
   const inputStyle: React.CSSProperties = { padding: '5px 6px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '13px', color: '#333', backgroundColor: '#fff', width: '100%', boxSizing: 'border-box' };
   const fieldStyle: React.CSSProperties = { width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '16px', color: '#333', backgroundColor: '#fff', boxSizing: 'border-box' };
-  const pvTh: React.CSSProperties = { padding: '8px 6px', backgroundColor: '#f1f3f5', borderBottom: '2px solid #dee2e6', color: '#333', fontWeight: 'bold', fontSize: '12px', whiteSpace: 'nowrap', textAlign: 'center' };
+  const pvTh: React.CSSProperties = { padding: '8px 6px', backgroundColor: '#FAF7F2', borderBottom: '2px solid #dee2e6', color: '#333', fontWeight: 'bold', fontSize: '12px', whiteSpace: 'nowrap', textAlign: 'center' };
   const pvTd: React.CSSProperties = { padding: '8px 6px', borderBottom: '1px solid #f0f0f0', color: '#333', fontSize: '13px', textAlign: 'center' };
 
   const TokenDisplay = ({ id, field, value }: { id: number, field: keyof MaterialRow, value: string }) => {
@@ -512,7 +512,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     return (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
         {tokens.map((token, i) => (
-          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', backgroundColor: '#d4edda', border: '1px solid #28a745', borderRadius: '4px', padding: '2px 6px', fontSize: '12px', color: '#155724' }}>
+          <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', backgroundColor: '#F3EAE0', border: '1px solid #C0603E', borderRadius: '4px', padding: '2px 6px', fontSize: '12px', color: '#2B2420' }}>
             {display(token)}
             <button type="button" onClick={() => removeToken(id, field, token)}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc3545', fontWeight: 'bold', fontSize: '13px', padding: '0', lineHeight: 1 }}>×</button>
@@ -546,8 +546,8 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     <div className="bp-page" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
       <Navbar />
       <div style={{ padding: '20px', maxWidth: '1400px', margin: '0 auto' }}>
-        <h1 style={{ color: '#0F172A', marginBottom: '10px' }}>{pageTitle}</h1>
-        <p style={{ color: '#64748B', fontSize: '13px', marginBottom: '20px' }}>{tx.hint}</p>
+        <h1 style={{ color: '#1C1917', marginBottom: '10px' }}>{pageTitle}</h1>
+        <p style={{ color: '#78716C', fontSize: '13px', marginBottom: '20px' }}>{tx.hint}</p>
 
         {editMode && !isDraftEdit && existingQuotesCount > 0 && (
           <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '12px 16px', marginBottom: '20px', color: '#92400E', fontSize: '13px' }}>
@@ -564,12 +564,12 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
             value={projectName}
             onChange={e => setProjectName(e.target.value)}
             placeholder={tx.projectNamePlaceholder}
-            style={{ ...fieldStyle, border: '2px solid #1B9AAA', borderRadius: '8px', fontSize: '15px' }}
+            style={{ ...fieldStyle, border: '2px solid #8A7B6C', borderRadius: '8px', fontSize: '15px' }}
           />
         </div>
 
         <div style={{ marginBottom: '30px' }}>
-          <h3 style={{ color: '#0F172A', marginBottom: '15px' }}>{tx.materials}</h3>
+          <h3 style={{ color: '#1C1917', marginBottom: '15px' }}>{tx.materials}</h3>
           <div style={{ overflowX: 'auto', border: '1px solid #dee2e6', borderRadius: '8px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
               <thead>
@@ -613,7 +613,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                           placeholder={tx.optional} min="0"
                           style={{ flex: 1, padding: '5px 6px', border: 'none', fontSize: '13px', color: '#333', backgroundColor: '#fff', outline: 'none', minWidth: '60px' }} />
                         <select value={row.currency} onChange={e => updateRow(row.id, 'currency', e.target.value)}
-                          style={{ padding: '5px 3px', border: 'none', borderLeft: '1px solid #eee', fontSize: '11px', color: '#333', backgroundColor: '#f8f9fa', cursor: 'pointer', outline: 'none' }}>
+                          style={{ padding: '5px 3px', border: 'none', borderLeft: '1px solid #eee', fontSize: '11px', color: '#333', backgroundColor: '#FAF7F2', cursor: 'pointer', outline: 'none' }}>
                           <option value="ر.س">{language === 'ar' ? 'ر.س' : 'SAR'}</option>
                           <option value="$">$</option>
                           <option value="€">€</option>
@@ -643,7 +643,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                         ))}
                       </div>
                       {row.images.length < 2 ? (
-                        <label style={{ display: 'inline-block', padding: '4px 8px', backgroundColor: '#17a2b8', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
+                        <label style={{ display: 'inline-block', padding: '4px 8px', backgroundColor: '#8A7B6C', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
                           {tx.uploadImage}
                           <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={e => handleImageUpload(row.id, e)} />
                         </label>
@@ -661,7 +661,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
             </table>
           </div>
           <button type="button" onClick={addRow}
-            style={{ marginTop: '12px', padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>
+            style={{ marginTop: '12px', padding: '10px 20px', backgroundColor: '#8A7B6C', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>
             {tx.addMaterial}
           </button>
         </div>
@@ -684,8 +684,8 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
 
         <div style={{ marginBottom: '20px' }}>
           <label style={labelStyle}>{tx.attachments}</label>
-          <p style={{ color: '#64748B', fontSize: '12px', margin: '0 0 8px 0' }}>{tx.attachHint}</p>
-          <label style={{ display: 'inline-block', padding: '10px 20px', backgroundColor: '#6610f2', color: 'white', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>
+          <p style={{ color: '#78716C', fontSize: '12px', margin: '0 0 8px 0' }}>{tx.attachHint}</p>
+          <label style={{ display: 'inline-block', padding: '10px 20px', backgroundColor: '#8A7B6C', color: 'white', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>
             {tx.uploadFiles}
             <input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar" style={{ display: 'none' }} onChange={handleFileUpload} />
           </label>
@@ -711,16 +711,16 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
 
         <div style={{ marginBottom: '25px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <label style={{ fontWeight: 'bold', color: '#0F172A', fontSize: '16px' }}>{tx.suppliers}</label>
+            <label style={{ fontWeight: 'bold', color: '#1C1917', fontSize: '16px' }}>{tx.suppliers}</label>
             {suppliers.length > 0 && (
               <button type="button" onClick={handleSelectAll}
-                style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>
+                style={{ padding: '6px 12px', backgroundColor: '#8A7B6C', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>
                 {selectedSuppliers.length === suppliers.length ? tx.deselectAll : tx.selectAll}
               </button>
             )}
           </div>
           {suppliers.length === 0 ? (
-            <div style={{ padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '4px', color: '#666', textAlign: 'center' }}>{tx.noSuppliers}</div>
+            <div style={{ padding: '20px', backgroundColor: '#FAF7F2', borderRadius: '4px', color: '#666', textAlign: 'center' }}>{tx.noSuppliers}</div>
           ) : (
             <div style={{ border: '1px solid #ddd', borderRadius: '4px', maxHeight: '250px', overflowY: 'auto', backgroundColor: '#fff' }}>
               {suppliers.map((supplier, index) => (
@@ -743,16 +743,16 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
 
         <div style={{ display: 'flex', gap: '12px' }}>
           <button type="button" onClick={handleReview}
-            style={{ flex: 1, padding: '14px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+            style={{ flex: 1, padding: '14px', backgroundColor: '#FFFDF9', color: '#C0603E', border: '2px solid #C0603E', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
             {tx.reviewBtn}
           </button>
          <button type="button" onClick={handleDirectSend}
-            style={{ flex: 1, padding: '14px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+            style={{ flex: 1, padding: '14px', backgroundColor: '#C0603E', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
             {tx.sendBtn}
           </button>
           {(!editMode || isDraftEdit) && (
             <button type="button" onClick={handleSaveDraft}
-              style={{ flex: 1, padding: '14px', backgroundColor: '#ffc107', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+              style={{ flex: 1, padding: '14px', backgroundColor: '#8A7B6C', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
               {tx.draftBtn}
             </button>
           )}
@@ -768,8 +768,8 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                 <button onClick={() => setShowPreview(false)} className="no-print"
                   style={{ padding: '8px 12px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✕</button>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
-                {projectName && <p style={{ margin: 0, color: '#0F4C75', fontSize: '15px', fontWeight: 'bold', gridColumn: '1 / -1' }}>📁 {projectName}</p>}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', backgroundColor: '#FAF7F2', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+                {projectName && <p style={{ margin: 0, color: '#C0603E', fontSize: '15px', fontWeight: 'bold', gridColumn: '1 / -1' }}>📁 {projectName}</p>}
                 <p style={{ margin: 0, color: '#333', fontSize: '14px' }}><strong>{tx.submittedBy}:</strong> {user.name} ({user.email})</p>
                 <p style={{ margin: 0, color: '#333', fontSize: '14px' }}><strong>{tx.dateTime}:</strong> {dateStr} - {timeStr}</p>
                 <p style={{ margin: 0, color: '#333', fontSize: '14px' }}><strong>{tx.city}:</strong> {location ? (language === 'ar' ? location : getCityName(location, 'en')) : tx.noValue}</p>
@@ -828,14 +828,14 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                 </table>
               </div>
               {attachedFiles.length > 0 && (
-                <div style={{ marginBottom: '16px', backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '6px' }}>
+                <div style={{ marginBottom: '16px', backgroundColor: '#FAF7F2', padding: '12px', borderRadius: '6px' }}>
                   <p style={{ color: '#333', fontWeight: 'bold', fontSize: '14px', margin: '0 0 8px 0' }}>{tx.attachedFilesLabel}:</p>
                   <ul style={{ margin: 0, paddingInlineStart: '20px', color: '#333', fontSize: '13px' }}>
                     {attachedFiles.map((f, i) => <li key={i}>{f.name}</li>)}
                   </ul>
                 </div>
               )}
-              <div style={{ marginBottom: '20px', backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '6px' }}>
+              <div style={{ marginBottom: '20px', backgroundColor: '#FAF7F2', padding: '12px', borderRadius: '6px' }}>
                 <p style={{ color: '#333', fontWeight: 'bold', fontSize: '14px', margin: '0 0 8px 0' }}>{tx.selectedSuppliersLabel}: {selectedSuppliers.length}</p>
                 <ul style={{ margin: 0, paddingInlineStart: '20px', color: '#333', fontSize: '13px' }}>
                   {selectedSuppliers.map(email => {
@@ -846,15 +846,15 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
               </div>
               <div style={{ display: 'flex', gap: '12px' }} className="no-print">
                 <button onClick={handleConfirmSubmit}
-                  style={{ flex: 2, padding: '14px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+                  style={{ flex: 2, padding: '14px', backgroundColor: '#C0603E', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
                   {tx.confirm}
                 </button>
                 <button onClick={handlePrint}
-                  style={{ flex: 1, padding: '14px', backgroundColor: '#6610f2', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+                  style={{ flex: 1, padding: '14px', backgroundColor: '#8A7B6C', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
                   {tx.print}
                 </button>
                 <button onClick={() => setShowPreview(false)}
-                  style={{ flex: 1, padding: '14px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
+                  style={{ flex: 1, padding: '14px', backgroundColor: '#FFFDF9', color: '#8A7B6C', border: '2px solid #8A7B6C', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}>
                   {tx.back}
                 </button>
               </div>
@@ -876,14 +876,14 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <button onClick={e => { e.stopPropagation(); setZoomLevel(prev => Math.max(prev - 0.2, 0.5)); }}
-                  style={{ width: '36px', height: '36px', backgroundColor: '#495057', color: 'white', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>−</button>
+                  style={{ width: '36px', height: '36px', backgroundColor: '#44403C', color: 'white', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>−</button>
                 <span style={{ color: 'white', fontSize: '13px', minWidth: '50px', textAlign: 'center' }}>{Math.round(zoomLevel * 100)}%</span>
                 <button onClick={e => { e.stopPropagation(); setZoomLevel(prev => Math.min(prev + 0.2, 4)); }}
-                  style={{ width: '36px', height: '36px', backgroundColor: '#495057', color: 'white', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>+</button>
+                  style={{ width: '36px', height: '36px', backgroundColor: '#44403C', color: 'white', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>+</button>
                 <button onClick={e => { e.stopPropagation(); setZoomLevel(1); }}
-                  style={{ padding: '6px 12px', backgroundColor: '#6c757d', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>{tx.zoomReset}</button>
+                  style={{ padding: '6px 12px', backgroundColor: '#78716C', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}>{tx.zoomReset}</button>
                 <a href={lightboxImg} download="buildpro-image.jpg" onClick={e => e.stopPropagation()}
-                  style={{ padding: '6px 14px', backgroundColor: '#28a745', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: 'bold' }}>{tx.download}</a>
+                  style={{ padding: '6px 14px', backgroundColor: '#8A7B6C', color: 'white', borderRadius: '6px', textDecoration: 'none', fontSize: '13px', fontWeight: 'bold' }}>{tx.download}</a>
                 <button onClick={e => { e.stopPropagation(); setLightboxImg(null); setZoomLevel(1); }}
                   style={{ padding: '6px 14px', backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>{tx.close}</button>
               </div>

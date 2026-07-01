@@ -73,10 +73,10 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
       <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/notifications" />
 
-      <div className="bg-[#0F4C75] px-4 md:px-7 pt-6 pb-6">
+      <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-6">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-white text-xl font-bold mb-1">{t('title', lang)}</h1>
@@ -84,7 +84,7 @@ export default function NotificationsPage() {
           </div>
           {notifs.length > 0 && (
             <button onClick={markAllRead}
-              className="bg-[#1B9AAA] hover:bg-[#158494] text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors">
+              className="bg-[#8A7B6C] hover:bg-[#6F6255] text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors">
               {t('markAllRead', lang)}
             </button>
           )}
@@ -92,12 +92,12 @@ export default function NotificationsPage() {
       </div>
 
       <div className="px-4 md:px-7 py-6 max-w-2xl mx-auto">
-        <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden">
+        <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
           {notifs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-4">
               <span className="text-3xl mb-3">🔔</span>
-              <p className="text-sm font-bold text-slate-700">{t('noNotifs', lang)}</p>
-              <p className="text-xs text-slate-400 mt-1">{t('noNotifsSub', lang)}</p>
+              <p className="text-sm font-bold text-stone-700">{t('noNotifs', lang)}</p>
+              <p className="text-xs text-stone-400 mt-1">{t('noNotifsSub', lang)}</p>
             </div>
           ) : (
             notifs.map(n => {
@@ -105,15 +105,15 @@ export default function NotificationsPage() {
               const isNew = !seenIds.has(n.id);
               return (
                 <Link key={n.id} href={`/my-requests?reqId=${n.requestId}`} onClick={() => markRead(n.id)}
-                  className={`flex gap-3 px-5 py-4 border-b border-[#F8FAFC] last:border-0 hover:bg-[#FAFBFD] transition-colors ${isNew ? 'bg-blue-50/40' : ''}`}>
+                  className={`flex gap-3 px-5 py-4 border-b border-[#FAF7F2] last:border-0 hover:bg-[#FFFDF9] transition-colors ${isNew ? 'bg-blue-50/40' : ''}`}>
                   <div className={`w-9 h-9 rounded-lg ${icon.bg} flex items-center justify-center text-base ${icon.color} shrink-0`}>
                     {icon.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-700 leading-relaxed">{lang === 'ar' ? n.textAr : n.textEn}</p>
-                    <p className="text-[11px] text-slate-400 mt-1">{timeAgo(n.timestamp, lang)}</p>
+                    <p className="text-sm text-stone-700 leading-relaxed">{lang === 'ar' ? n.textAr : n.textEn}</p>
+                    <p className="text-[11px] text-stone-400 mt-1">{timeAgo(n.timestamp, lang)}</p>
                   </div>
-                  {isNew && <span className="w-2 h-2 rounded-full bg-[#1B9AAA] shrink-0 mt-1.5" />}
+                  {isNew && <span className="w-2 h-2 rounded-full bg-[#8A7B6C] shrink-0 mt-1.5" />}
                 </Link>
               );
             })

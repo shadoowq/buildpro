@@ -12,11 +12,11 @@ export interface NotifItem {
 }
 
 export const notifIconMap: Record<NotifType, { bg: string; icon: string; color: string }> = {
-  quote:    { bg: 'bg-blue-50',    icon: '📄', color: 'text-[#1B9AAA]'   },
+  quote:    { bg: 'bg-blue-50',    icon: '📄', color: 'text-[#8A7B6C]'   },
   accepted: { bg: 'bg-emerald-50', icon: '✓',  color: 'text-emerald-600' },
   rejected: { bg: 'bg-red-50',     icon: '✗',  color: 'text-red-500'     },
   revision: { bg: 'bg-amber-50',   icon: '✏',  color: 'text-amber-500'   },
-  close:    { bg: 'bg-slate-100',  icon: '🔒', color: 'text-slate-500'   },
+  close:    { bg: 'bg-stone-100',  icon: '🔒', color: 'text-stone-500'   },
   open:     { bg: 'bg-teal-50',    icon: '🔓', color: 'text-teal-600'    },
   rated:    { bg: 'bg-amber-50',   icon: '⭐', color: 'text-amber-500'   },
 };

@@ -109,15 +109,15 @@ export default function Drafts() {
     return getDraftName(d).toLowerCase().includes(q) || d.location?.toLowerCase().includes(q);
   });
 
-  if (!user) return <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center"><div className="text-slate-400">Loading...</div></div>;
+  if (!user) return <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center"><div className="text-stone-400">Loading...</div></div>;
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
 
       <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/drafts" />
 
       {/* ── HERO ── */}
-      <div className="bg-[#0F4C75] px-7 pt-6 pb-5">
+      <div className="bg-[#C0603E] px-7 pt-6 pb-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-white/50 text-xs mb-1">
@@ -131,7 +131,7 @@ export default function Drafts() {
             </p>
           </div>
           <Link href="/create-request"
-            className="bg-[#1B9AAA] hover:bg-[#158494] text-white text-sm font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors">
+            className="bg-[#8A7B6C] hover:bg-[#6F6255] text-white text-sm font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors">
             <span className="text-base">+</span> {t('طلب جديد', 'New Request', lang)}
           </Link>
         </div>
@@ -144,26 +144,26 @@ export default function Drafts() {
           { icon: '📋', bg: 'bg-blue-50',    val: drafts.reduce((s, d) => s + getMaterialCount(d), 0),         label: t('إجمالي المواد', 'Total Materials', lang) },
           { icon: '📍', bg: 'bg-emerald-50', val: [...new Set(drafts.map(d => d.location).filter(Boolean))].length, label: t('مدن مختلفة', 'Different Cities', lang) },
         ].map((s, i) => (
-          <div key={i} className="bg-white border border-[#E2EAF2] rounded-xl p-4">
+          <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
-            <div className="text-2xl font-bold text-slate-900">{s.val}</div>
-            <div className="text-[11px] text-slate-500 mt-1">{s.label}</div>
+            <div className="text-2xl font-bold text-stone-900">{s.val}</div>
+            <div className="text-[11px] text-stone-500 mt-1">{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* ── CONTENT ── */}
       <div className="px-7 pb-10">
-        <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden">
+        <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
 
           {/* search bar */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F1F5F9]">
-            <span className="text-sm font-bold text-slate-900">{t('المسودات المحفوظة', 'Saved Drafts', lang)}</span>
-            <div className="flex items-center gap-2 bg-[#F8FAFC] border border-[#E2EAF2] rounded-lg px-3 py-1.5 w-56">
-              <span className="text-slate-300 text-sm">🔍</span>
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F1EAE0]">
+            <span className="text-sm font-bold text-stone-900">{t('المسودات المحفوظة', 'Saved Drafts', lang)}</span>
+            <div className="flex items-center gap-2 bg-[#FAF7F2] border border-[#E8DFD3] rounded-lg px-3 py-1.5 w-56">
+              <span className="text-stone-300 text-sm">🔍</span>
               <input type="text" value={search} onChange={e => setSearch(e.target.value)}
                 placeholder={t('ابحث عن مسودة...', 'Search drafts...', lang)}
-                className="bg-transparent border-none outline-none text-xs font-cairo w-full placeholder-slate-300 text-slate-700" />
+                className="bg-transparent border-none outline-none text-xs font-cairo w-full placeholder-stone-300 text-stone-700" />
             </div>
           </div>
 
@@ -171,14 +171,14 @@ export default function Drafts() {
           {filtered.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
               <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center text-3xl mb-4">✏️</div>
-              <h3 className="text-slate-700 font-bold text-base mb-1">
+              <h3 className="text-stone-700 font-bold text-base mb-1">
                 {search ? t('لا توجد نتائج', 'No results found', lang) : t('لا توجد مسودات', 'No Drafts Yet', lang)}
               </h3>
-              <p className="text-slate-400 text-sm mb-5">
+              <p className="text-stone-400 text-sm mb-5">
                 {t('لما تحفظ طلب كمسودة هيظهر هنا', 'When you save a request as draft it will appear here', lang)}
               </p>
               <Link href="/create-request"
-                className="bg-[#0F4C75] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#0D3F63] transition-colors">
+                className="bg-[#C0603E] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#9C4C31] transition-colors">
                 {t('+ إنشاء طلب جديد', '+ Create New Request', lang)}
               </Link>
             </div>
@@ -186,12 +186,12 @@ export default function Drafts() {
 
           {/* drafts list */}
           {filtered.length > 0 && (
-            <div className="divide-y divide-[#F8FAFC]">
+            <div className="divide-y divide-[#FAF7F2]">
               {filtered.map(draft => {
                 const matCount = getMaterialCount(draft);
                 const suppCount = draft.selectedSuppliers?.length || 0;
                 return (
-                  <div key={draft.id} className="px-5 py-4 hover:bg-[#FAFBFD] transition-colors group">
+                  <div key={draft.id} className="px-5 py-4 hover:bg-[#FFFDF9] transition-colors group">
                     <div className="flex items-start justify-between gap-4">
 
                       {/* left: icon + info */}
@@ -202,14 +202,14 @@ export default function Drafts() {
                         <div className="flex-1 min-w-0">
                           {/* name */}
                           <div className="flex items-center gap-2 flex-wrap mb-1">
-                            <span className="text-[13px] font-bold text-slate-900 truncate">{getDraftName(draft)}</span>
+                            <span className="text-[13px] font-bold text-stone-900 truncate">{getDraftName(draft)}</span>
                             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
                               {t('مسودة', 'Draft', lang)}
                             </span>
                           </div>
 
                           {/* meta row */}
-                          <div className="flex items-center gap-3 flex-wrap text-[11px] text-slate-400">
+                          <div className="flex items-center gap-3 flex-wrap text-[11px] text-stone-400">
                             {draft.location && (
                               <span className="flex items-center gap-1">📍 {draft.location}</span>
                             )}
@@ -228,11 +228,11 @@ export default function Drafts() {
 
                           {/* description snippet */}
                           {draft.description && (
-                            <p className="text-[11px] text-slate-400 mt-1 truncate">{draft.description}</p>
+                            <p className="text-[11px] text-stone-400 mt-1 truncate">{draft.description}</p>
                           )}
 
                           {/* save time */}
-                          <p className="text-[10px] text-slate-300 mt-1">
+                          <p className="text-[10px] text-stone-300 mt-1">
                             {t('حُفظت:', 'Saved:', lang)} {formatDate(draft.savedAt)} {formatTime(draft.savedAt)}
                           </p>
                         </div>
@@ -241,11 +241,11 @@ export default function Drafts() {
                       {/* right: actions */}
                       <div className="flex items-center gap-2 shrink-0">
                         <button onClick={() => handleContinue(draft)}
-                          className="text-xs font-semibold px-4 py-2 bg-[#0F4C75] text-white rounded-xl hover:bg-[#0D3F63] transition-colors">
+                          className="text-xs font-semibold px-4 py-2 bg-[#C0603E] text-white rounded-xl hover:bg-[#9C4C31] transition-colors">
                           {t('استكمال', 'Continue', lang)}
                         </button>
                         <Link href={`/print/draft/${draft.id}`} target="_blank"
-                          className="text-xs font-semibold px-3 py-2 bg-slate-50 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors">
+                          className="text-xs font-semibold px-3 py-2 bg-stone-50 text-stone-600 border border-stone-200 rounded-xl hover:bg-stone-100 transition-colors">
                           🖨
                         </Link>
                         <button onClick={() => handleDelete(draft.id)}
@@ -262,13 +262,13 @@ export default function Drafts() {
                           .filter(m => m.type?.trim() || m.typePending?.trim())
                           .slice(0, 6)
                           .map((m, i) => (
-                            <span key={i} className="text-[10px] bg-[#F0F9FF] text-[#0369A1] px-2 py-0.5 rounded-md font-medium">
+                            <span key={i} className="text-[10px] bg-[#F3EAE0] text-[#C0603E] px-2 py-0.5 rounded-md font-medium">
                               {displayVal(m.type || m.typePending, lang)}
                               {m.quantity ? ` · ${m.quantity} ${lang === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : ''}
                             </span>
                           ))}
                         {matCount > 6 && (
-                          <span className="text-[10px] text-slate-400 px-2 py-0.5">+{matCount - 6}</span>
+                          <span className="text-[10px] text-stone-400 px-2 py-0.5">+{matCount - 6}</span>
                         )}
                       </div>
                     )}

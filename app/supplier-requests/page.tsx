@@ -118,7 +118,7 @@ export default function SupplierRequests() {
         </h1>
 
         {requests.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#f8f9fa', borderRadius: '8px', color: '#666' }}>
+          <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#FAF7F2', borderRadius: '8px', color: '#666' }}>
             <p style={{ fontSize: '18px' }}>
               {language === 'ar' ? 'لا توجد طلبات متاحة لك الآن' : 'No available requests for you now'}
             </p>
@@ -149,7 +149,7 @@ export default function SupplierRequests() {
                   <strong>{language === 'ar' ? 'الموعد:' : 'Deadline:'}</strong> {request.deadline}
                 </p>
 
-                <div style={{ marginTop: '10px', backgroundColor: '#f8f9fa', padding: '10px', borderRadius: '4px' }}>
+                <div style={{ marginTop: '10px', backgroundColor: '#FAF7F2', padding: '10px', borderRadius: '4px' }}>
                   {request.ceramic > 0 && <p style={{ margin: '3px 0', color: '#333', fontSize: '14px' }}>• {language === 'ar' ? 'سيراميك' : 'Ceramic'}: {request.ceramic} m²</p>}
                   {request.porcelain > 0 && <p style={{ margin: '3px 0', color: '#333', fontSize: '14px' }}>• {language === 'ar' ? 'بورسلين' : 'Porcelain'}: {request.porcelain} m²</p>}
                   {request.marble > 0 && <p style={{ margin: '3px 0', color: '#333', fontSize: '14px' }}>• {language === 'ar' ? 'رخام' : 'Marble'}: {request.marble} m²</p>}
@@ -164,7 +164,7 @@ export default function SupplierRequests() {
                 ) : (
                   <button
                     onClick={(e) => { e.stopPropagation(); setSelectedRequest(request); setShowQuoteForm(true); }}
-                    style={{ marginTop: '15px', width: '100%', padding: '10px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
+                    style={{ marginTop: '15px', width: '100%', padding: '10px', backgroundColor: '#C0603E', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
                   >
                     {language === 'ar' ? 'تقديم عرض سعر' : 'Submit Quote'}
                   </button>
@@ -190,7 +190,7 @@ export default function SupplierRequests() {
                 >✕</button>
               </div>
 
-              <div style={{ backgroundColor: '#f8f9fa', padding: '12px', borderRadius: '4px', marginBottom: '20px' }}>
+              <div style={{ backgroundColor: '#FAF7F2', padding: '12px', borderRadius: '4px', marginBottom: '20px' }}>
                 <p style={{ margin: '3px 0', color: '#333', fontWeight: 'bold' }}>
                   {language === 'ar' ? 'طلب #' : 'Request #'}{selectedRequest.id}
                 </p>
@@ -237,7 +237,7 @@ export default function SupplierRequests() {
                 </div>
 
                 <button type="submit"
-                  style={{ width: '100%', padding: '12px', backgroundColor: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}
+                  style={{ width: '100%', padding: '12px', backgroundColor: '#C0603E', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold' }}
                 >
                   {language === 'ar' ? 'إرسال العرض' : 'Submit Quote'}
                 </button>

@@ -36,7 +36,7 @@ export default function PrintDraft() {
   if (!ready) return null;
 
   if (!draft) return (
-    <div className="print-area" style={{ padding: 40, fontFamily: 'Cairo, sans-serif', textAlign: 'center', color: '#94a3b8' }}>
+    <div className="print-area" style={{ padding: 40, fontFamily: 'Cairo, sans-serif', textAlign: 'center', color: '#A8A29E' }}>
       {lang === 'ar' ? 'المسودة غير موجودة' : 'Draft not found'}
     </div>
   );
@@ -57,18 +57,18 @@ export default function PrintDraft() {
   };
 
   const S = {
-    th:  { background: '#475569', color: '#fff', fontWeight: 700, padding: '7px 8px', textAlign: 'right' as const, border: '1px solid #334155', whiteSpace: 'nowrap' as const, fontSize: 11 },
-    tdE: { border: '1px solid #E2EAF2', padding: '6px 8px', color: '#334155', fontSize: 11 },
-    tdO: { border: '1px solid #E2EAF2', padding: '6px 8px', color: '#334155', fontSize: 11, background: '#F8FAFC' },
+    th:  { background: '#57534E', color: '#fff', fontWeight: 700, padding: '7px 8px', textAlign: 'right' as const, border: '1px solid #44403C', whiteSpace: 'nowrap' as const, fontSize: 11 },
+    tdE: { border: '1px solid #E8DFD3', padding: '6px 8px', color: '#44403C', fontSize: 11 },
+    tdO: { border: '1px solid #E8DFD3', padding: '6px 8px', color: '#44403C', fontSize: 11, background: '#FAF7F2' },
   };
 
   return (
     <>
-      <div className="no-print" style={{ display: 'flex', padding: '10px 16px', background: '#475569', gap: 12, alignItems: 'center' }}>
+      <div className="no-print" style={{ display: 'flex', padding: '10px 16px', background: '#57534E', gap: 12, alignItems: 'center' }}>
         <button onClick={() => window.history.back()} style={{ color: '#fff', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: 13 }}>
           {lang === 'ar' ? '← رجوع' : '← Back'}
         </button>
-        <button onClick={() => window.print()} style={{ color: '#fff', background: '#1B9AAA', border: 'none', borderRadius: 8, padding: '6px 18px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: 13 }}>
+        <button onClick={() => window.print()} style={{ color: '#fff', background: '#8A7B6C', border: 'none', borderRadius: 8, padding: '6px 18px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: 13 }}>
           🖨 {lang === 'ar' ? 'طباعة' : 'Print'}
         </button>
       </div>
@@ -93,42 +93,42 @@ export default function PrintDraft() {
         <table style={{ width: '100%', marginBottom: 14, borderCollapse: 'collapse' }}>
           <tbody><tr>
             <td style={{ verticalAlign: 'top' }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#0F4C75' }}>Build<span style={{ color: '#1B9AAA' }}>Pro</span></div>
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{lang === 'ar' ? 'منصة تسعير مواد البناء' : 'Construction Materials Pricing Platform'}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#C0603E' }}>Build<span style={{ color: '#8A7B6C' }}>Pro</span></div>
+              <div style={{ fontSize: 11, color: '#A8A29E', marginTop: 2 }}>{lang === 'ar' ? 'منصة تسعير مواد البناء' : 'Construction Materials Pricing Platform'}</div>
             </td>
             <td style={{ textAlign: lang === 'ar' ? 'left' : 'right', verticalAlign: 'top' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#475569' }}>{lang === 'ar' ? 'مسودة طلب تسعير' : 'DRAFT RFQ'}</div>
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>{lang === 'ar' ? 'رقم المسودة:' : 'Draft No:'} <strong style={{ color: '#475569' }}>#{draft.id}</strong></div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>{lang === 'ar' ? 'تاريخ الطباعة:' : 'Printed:'} {printDate}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#57534E' }}>{lang === 'ar' ? 'مسودة طلب تسعير' : 'DRAFT RFQ'}</div>
+              <div style={{ fontSize: 11, color: '#78716C', marginTop: 3 }}>{lang === 'ar' ? 'رقم المسودة:' : 'Draft No:'} <strong style={{ color: '#57534E' }}>#{draft.id}</strong></div>
+              <div style={{ fontSize: 11, color: '#78716C' }}>{lang === 'ar' ? 'تاريخ الطباعة:' : 'Printed:'} {printDate}</div>
             </td>
           </tr></tbody>
         </table>
 
-        <div style={{ height: 3, background: 'linear-gradient(90deg, #475569, #94a3b8)', borderRadius: 2, marginBottom: 14 }} />
+        <div style={{ height: 3, background: 'linear-gradient(90deg, #57534E, #A8A29E)', borderRadius: 2, marginBottom: 14 }} />
 
         {/* INFO */}
         <table style={{ width: '100%', marginBottom: 14, borderCollapse: 'collapse' }}>
           <tbody><tr>
             <td style={{ width: '48%', verticalAlign: 'top', paddingLeft: lang === 'ar' ? 12 : 0, paddingRight: lang === 'ar' ? 0 : 12 }}>
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2EAF2', borderRadius: 8, padding: '10px 14px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#1B9AAA', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>{lang === 'ar' ? 'بيانات المقاول' : 'CONTRACTOR INFO'}</div>
+              <div style={{ background: '#FAF7F2', border: '1px solid #E8DFD3', borderRadius: 8, padding: '10px 14px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#8A7B6C', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>{lang === 'ar' ? 'بيانات المقاول' : 'CONTRACTOR INFO'}</div>
                 {user && <>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: '#0F4C75', marginBottom: 3 }}>{user.name}</div>
-                  {user.company && <div style={{ fontSize: 11, color: '#475569' }}>{user.company}</div>}
-                  {user.phone   && <div style={{ fontSize: 11, color: '#475569' }}>{user.phone}</div>}
-                  {user.city    && <div style={{ fontSize: 11, color: '#475569' }}>📍 {user.city}</div>}
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#C0603E', marginBottom: 3 }}>{user.name}</div>
+                  {user.company && <div style={{ fontSize: 11, color: '#57534E' }}>{user.company}</div>}
+                  {user.phone   && <div style={{ fontSize: 11, color: '#57534E' }}>{user.phone}</div>}
+                  {user.city    && <div style={{ fontSize: 11, color: '#57534E' }}>📍 {user.city}</div>}
                 </>}
               </div>
             </td>
             <td style={{ width: '48%', verticalAlign: 'top' }}>
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2EAF2', borderRadius: 8, padding: '10px 14px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>{lang === 'ar' ? 'تفاصيل المسودة' : 'DRAFT DETAILS'}</div>
-                {draft.projectName && <div style={{ fontWeight: 700, fontSize: 13, color: '#334155', marginBottom: 5 }}>{draft.projectName}</div>}
+              <div style={{ background: '#FAF7F2', border: '1px solid #E8DFD3', borderRadius: 8, padding: '10px 14px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#57534E', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>{lang === 'ar' ? 'تفاصيل المسودة' : 'DRAFT DETAILS'}</div>
+                {draft.projectName && <div style={{ fontWeight: 700, fontSize: 13, color: '#44403C', marginBottom: 5 }}>{draft.projectName}</div>}
                 <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
                   <tbody>
-                    {draft.location && <tr><td style={{ color: '#64748b', paddingBottom: 3 }}>{lang === 'ar' ? 'المدينة:' : 'City:'}</td><td style={{ fontWeight: 600, paddingBottom: 3 }}>{draft.location}</td></tr>}
-                    {draft.deadline && <tr><td style={{ color: '#64748b', paddingBottom: 3 }}>{lang === 'ar' ? 'الموعد النهائي:' : 'Deadline:'}</td><td style={{ fontWeight: 600, paddingBottom: 3 }}>{draft.deadline}</td></tr>}
-                    <tr><td style={{ color: '#64748b' }}>{lang === 'ar' ? 'عدد المواد:' : 'Materials:'}</td><td style={{ fontWeight: 600 }}>{materials.length}</td></tr>
+                    {draft.location && <tr><td style={{ color: '#78716C', paddingBottom: 3 }}>{lang === 'ar' ? 'المدينة:' : 'City:'}</td><td style={{ fontWeight: 600, paddingBottom: 3 }}>{draft.location}</td></tr>}
+                    {draft.deadline && <tr><td style={{ color: '#78716C', paddingBottom: 3 }}>{lang === 'ar' ? 'الموعد النهائي:' : 'Deadline:'}</td><td style={{ fontWeight: 600, paddingBottom: 3 }}>{draft.deadline}</td></tr>}
+                    <tr><td style={{ color: '#78716C' }}>{lang === 'ar' ? 'عدد المواد:' : 'Materials:'}</td><td style={{ fontWeight: 600 }}>{materials.length}</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -137,7 +137,7 @@ export default function PrintDraft() {
         </table>
 
         {/* MATERIALS TABLE */}
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'المواد المطلوبة' : 'REQUIRED MATERIALS'}</div>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#57534E', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'المواد المطلوبة' : 'REQUIRED MATERIALS'}</div>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16 }}>
           <thead>
             <tr>{cols.map((c, i) => <th key={i} style={S.th}>{c}</th>)}</tr>
@@ -147,13 +147,13 @@ export default function PrintDraft() {
               const td = i % 2 === 0 ? S.tdE : S.tdO;
               return (
                 <tr key={i}>
-                  <td style={{ ...td, textAlign: 'center', fontWeight: 700, color: '#475569' }}>{i + 1}</td>
+                  <td style={{ ...td, textAlign: 'center', fontWeight: 700, color: '#57534E' }}>{i + 1}</td>
                   {fields.map(f => <td key={f} style={td}>{cellVal(m, f)}</td>)}
                   <td style={td}>
                     {m.images?.length > 0 ? (
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                         {m.images.map((img: string, j: number) => (
-                          <img key={j} src={img} alt="" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4, border: '1px solid #E2EAF2' }} />
+                          <img key={j} src={img} alt="" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4, border: '1px solid #E8DFD3' }} />
                         ))}
                       </div>
                     ) : '—'}
@@ -161,19 +161,19 @@ export default function PrintDraft() {
                 </tr>
               );
             }) : (
-              <tr><td colSpan={cols.length} style={{ ...S.tdE, textAlign: 'center', color: '#94a3b8', padding: 16 }}>{lang === 'ar' ? 'لا توجد مواد' : 'No materials'}</td></tr>
+              <tr><td colSpan={cols.length} style={{ ...S.tdE, textAlign: 'center', color: '#A8A29E', padding: 16 }}>{lang === 'ar' ? 'لا توجد مواد' : 'No materials'}</td></tr>
             )}
           </tbody>
         </table>
 
         {draft.description && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'ملاحظات' : 'NOTES'}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#57534E', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'ملاحظات' : 'NOTES'}</div>
             <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 6, padding: '10px 14px', fontSize: 12, color: '#78350F', lineHeight: 1.7 }}>{draft.description}</div>
           </div>
         )}
 
-        <div style={{ marginTop: 14, textAlign: 'center', fontSize: 10, color: '#94a3b8', borderTop: '1px solid #F1F5F9', paddingTop: 8 }}>
+        <div style={{ marginTop: 14, textAlign: 'center', fontSize: 10, color: '#A8A29E', borderTop: '1px solid #F1EAE0', paddingTop: 8 }}>
           {lang === 'ar' ? `مسودة — تم إنشاؤها عبر BuildPro · ${printDate}` : `Draft — Created via BuildPro · ${printDate}`}
         </div>
       </div>

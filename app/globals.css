@@ -13,19 +13,19 @@
   --font-mono: var(--font-geist-mono);
   --font-cairo: 'Cairo', sans-serif;
 
-  --color-bp-navy:         #0F4C75;
-  --color-bp-navy-dark:    #0D3F63;
-  --color-bp-teal:         #1B9AAA;
-  --color-bp-teal-dark:    #158494;
-  --color-bp-bg:           #F0F4F8;
-  --color-bp-card:         #FAFBFC;
-  --color-bp-border:       #E2EAF2;
-  --color-bp-border-light: #F1F5F9;
+  --color-bp-primary:      #C0603E;
+  --color-bp-primary-dark: #9C4C31;
+  --color-bp-secondary:    #8A7B6C;
+  --color-bp-secondary-dark: #6F6255;
+  --color-bp-bg:           #F7F2EC;
+  --color-bp-card:         #FFFDF9;
+  --color-bp-border:       #E8DFD3;
+  --color-bp-border-light: #F1EAE0;
 }
 
 body {
-  background: #F0F4F8;
-  color: #1e293b;
+  background: #F7F2EC;
+  color: #292524;
   font-family: 'Cairo', Arial, sans-serif;
 }
 
@@ -33,7 +33,7 @@ body {
   /* override dark-mode CSS variables so var(--background) resolves to white */
   :root {
     --background: #ffffff;
-    --foreground: #1e293b;
+    --foreground: #292524;
     color-scheme: light;
   }
 
@@ -51,7 +51,7 @@ body {
   body {
     background: #ffffff !important;
     background-color: #ffffff !important;
-    color: #1e293b !important;
+    color: #292524 !important;
     margin: 0 !important;
     color-scheme: light !important;
   }
@@ -63,7 +63,7 @@ body {
 
   .print-area {
     background: #ffffff !important;
-    color: #1e293b !important;
+    color: #292524 !important;
   }
 
   .no-print {
@@ -79,31 +79,31 @@ body {
 /* ── BuildPro Global Styles ── */
 
 .bp-page {
-  background: #F0F4F8;
+  background: #F7F2EC;
   min-height: 100vh;
 }
 
 .bp-table th {
-  background: #0F4C75 !important;
+  background: #C0603E !important;
   color: #fff !important;
   font-family: 'Cairo', sans-serif !important;
   font-weight: 600 !important;
   padding: 10px 12px !important;
-  border: 1px solid #0D3F63 !important;
+  border: 1px solid #9C4C31 !important;
   white-space: nowrap;
 }
 
 .bp-table td {
   background: #fff;
-  color: #0F172A !important;
+  color: #1C1917 !important;
   font-family: 'Cairo', sans-serif !important;
   font-weight: 600 !important;
   padding: 8px 12px !important;
-  border: 1px solid #E2EAF2 !important;
+  border: 1px solid #E8DFD3 !important;
 }
 
 .bp-table tr:nth-child(even) td {
-  background: #F0F7FF;
+  background: #FAF5EE;
 }
 
 .bp-page h1,
@@ -114,5 +114,5 @@ body {
 .bp-page label,
 .bp-page span,
 .bp-page div {
-  color: #0F172A;
+  color: #1C1917;
 }

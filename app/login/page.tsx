@@ -55,19 +55,19 @@ export default function LoginPage() {
     <div className="min-h-screen flex font-cairo" dir={dir}>
 
       {/* ── LEFT / BRAND PANEL ── */}
-      <div className="hidden lg:flex flex-col justify-between w-[42%] bg-[#0F4C75] px-12 py-10 relative overflow-hidden">
+      <div className="hidden lg:flex flex-col justify-between w-[42%] bg-[#C0603E] px-12 py-10 relative overflow-hidden">
         {/* decorative blobs */}
-        <div className="absolute top-0 right-0 w-72 h-72 bg-[#1B9AAA]/20 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-72 h-72 bg-[#8A7B6C]/20 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-56 h-56 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
         {/* logo */}
         <Link href="/" className="text-xl font-extrabold text-white relative z-10">
-          Build<span className="text-[#1B9AAA]">Pro</span>
+          Build<span className="text-[#8A7B6C]">Pro</span>
         </Link>
 
         {/* center content */}
         <div className="relative z-10">
-          <div className="w-16 h-16 bg-[#1B9AAA]/20 rounded-2xl flex items-center justify-center text-4xl mb-6">🏗</div>
+          <div className="w-16 h-16 bg-[#8A7B6C]/20 rounded-2xl flex items-center justify-center text-4xl mb-6">🏗</div>
           <h2 className="text-white text-2xl font-extrabold leading-snug mb-3">
             {t('منصة تسعير مواد البناء\nرقم 1 في السعودية', 'Saudi Arabia\'s #1\nBuilding Materials\nPricing Platform')}
           </h2>
@@ -108,14 +108,14 @@ export default function LoginPage() {
       {/* ── RIGHT / FORM PANEL ── */}
       <div className="flex-1 bg-white flex flex-col">
         {/* top bar */}
-        <div className="flex items-center justify-between px-8 py-4 border-b border-[#F1F5F9]">
-          <Link href="/" className="lg:hidden text-[16px] font-extrabold text-[#0F4C75]">
-            Build<span className="text-[#1B9AAA]">Pro</span>
+        <div className="flex items-center justify-between px-8 py-4 border-b border-[#F1EAE0]">
+          <Link href="/" className="lg:hidden text-[16px] font-extrabold text-[#C0603E]">
+            Build<span className="text-[#8A7B6C]">Pro</span>
           </Link>
-          <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1 mr-auto">
+          <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1 mr-auto">
             {(['ar', 'en'] as Lang[]).map(l => (
               <button key={l} onClick={() => switchLang(l)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[#0F4C75] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[#C0603E] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
                 <img src={l === 'ar' ? 'https://flagcdn.com/w20/sa.png' : 'https://flagcdn.com/w20/us.png'}
                   width="20" height="14" alt={l} className="rounded-sm" />
                 {l.toUpperCase()}
@@ -128,10 +128,10 @@ export default function LoginPage() {
         <div className="flex-1 flex items-center justify-center px-8 py-10">
           <div className="w-full max-w-sm">
             <div className="mb-8">
-              <h1 className="text-2xl font-extrabold text-slate-900 mb-1">
+              <h1 className="text-2xl font-extrabold text-stone-900 mb-1">
                 {t('أهلاً بعودتك 👋', 'Welcome back 👋')}
               </h1>
-              <p className="text-slate-500 text-sm">
+              <p className="text-stone-500 text-sm">
                 {t('سجّل دخولك للوصول إلى حسابك', 'Sign in to access your account')}
               </p>
             </div>
@@ -139,7 +139,7 @@ export default function LoginPage() {
             <div className="space-y-4">
               {/* email */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-stone-700 mb-1.5">
                   {t('البريد الإلكتروني', 'Email address')}
                 </label>
                 <input
@@ -148,14 +148,14 @@ export default function LoginPage() {
                   onChange={e => setEmail(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleLogin()}
                   placeholder={t('example@email.com', 'example@email.com')}
-                  className="w-full border border-[#E2EAF2] bg-[#F8FAFC] rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1B9AAA] focus:border-transparent transition-all"
+                  className="w-full border border-[#E8DFD3] bg-[#FAF7F2] rounded-xl px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8A7B6C] focus:border-transparent transition-all"
                   dir="ltr"
                 />
               </div>
 
               {/* password */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                <label className="block text-xs font-semibold text-stone-700 mb-1.5">
                   {t('كلمة المرور', 'Password')}
                 </label>
                 <div className="relative">
@@ -165,13 +165,13 @@ export default function LoginPage() {
                     onChange={e => setPassword(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleLogin()}
                     placeholder="••••••••"
-                    className="w-full border border-[#E2EAF2] bg-[#F8FAFC] rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1B9AAA] focus:border-transparent transition-all"
+                    className="w-full border border-[#E8DFD3] bg-[#FAF7F2] rounded-xl px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8A7B6C] focus:border-transparent transition-all"
                     dir="ltr"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPass(p => !p)}
-                    className="absolute top-1/2 -translate-y-1/2 left-3 text-slate-400 hover:text-slate-600 text-xs"
+                    className="absolute top-1/2 -translate-y-1/2 left-3 text-stone-400 hover:text-stone-600 text-xs"
                   >
                     {showPass ? '🙈' : '👁'}
                   </button>
@@ -188,33 +188,33 @@ export default function LoginPage() {
               {/* submit */}
               <button
                 onClick={handleLogin}
-                className="w-full bg-[#0F4C75] hover:bg-[#0D3F63] text-white font-bold py-3 rounded-xl text-sm transition-colors"
+                className="w-full bg-[#C0603E] hover:bg-[#9C4C31] text-white font-bold py-3 rounded-xl text-sm transition-colors"
               >
                 {t('دخول', 'Sign In')}
               </button>
 
               {/* divider */}
               <div className="flex items-center gap-3 my-1">
-                <div className="flex-1 h-px bg-slate-100" />
-                <span className="text-slate-300 text-xs">{t('أو', 'or')}</span>
-                <div className="flex-1 h-px bg-slate-100" />
+                <div className="flex-1 h-px bg-stone-100" />
+                <span className="text-stone-300 text-xs">{t('أو', 'or')}</span>
+                <div className="flex-1 h-px bg-stone-100" />
               </div>
 
               {/* signup links */}
               <div className="grid grid-cols-2 gap-2">
                 <Link href="/signup?type=contractor"
-                  className="flex items-center justify-center gap-1.5 border border-[#E2EAF2] rounded-xl py-2.5 text-xs font-semibold text-slate-600 hover:bg-[#F0F4F8] hover:text-[#0F4C75] transition-colors">
+                  className="flex items-center justify-center gap-1.5 border border-[#E8DFD3] rounded-xl py-2.5 text-xs font-semibold text-stone-600 hover:bg-[#F7F2EC] hover:text-[#C0603E] transition-colors">
                   <span>👷</span> {t('مقاول جديد', 'New Contractor')}
                 </Link>
                 <Link href="/signup?type=supplier"
-                  className="flex items-center justify-center gap-1.5 border border-[#E2EAF2] rounded-xl py-2.5 text-xs font-semibold text-slate-600 hover:bg-[#F0F4F8] hover:text-[#0F4C75] transition-colors">
+                  className="flex items-center justify-center gap-1.5 border border-[#E8DFD3] rounded-xl py-2.5 text-xs font-semibold text-stone-600 hover:bg-[#F7F2EC] hover:text-[#C0603E] transition-colors">
                   <span>🏢</span> {t('مورد جديد', 'New Supplier')}
                 </Link>
               </div>
             </div>
 
-            <p className="text-center text-slate-400 text-xs mt-6">
-              <Link href="/" className="hover:text-[#0F4C75] transition-colors">
+            <p className="text-center text-stone-400 text-xs mt-6">
+              <Link href="/" className="hover:text-[#C0603E] transition-colors">
                 ← {t('العودة للصفحة الرئيسية', 'Back to homepage')}
               </Link>
             </p>

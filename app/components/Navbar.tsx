@@ -53,12 +53,12 @@ export default function Navbar() {
 
   return (
     <nav
-      className="bg-white border-b border-[#E2EAF2] px-7 flex items-center justify-between h-14 sticky top-0 z-20 font-cairo"
+      className="bg-white border-b border-[#E8DFD3] px-7 flex items-center justify-between h-14 sticky top-0 z-20 font-cairo"
       dir={dir}
     >
       {/* logo */}
-      <div className="text-[17px] font-bold text-[#0F4C75]">
-        Build<span className="text-[#1B9AAA]">Pro</span>
+      <div className="text-[17px] font-bold text-[#C0603E]">
+        Build<span className="text-[#8A7B6C]">Pro</span>
       </div>
 
       {/* nav links */}
@@ -69,8 +69,8 @@ export default function Navbar() {
             href={item.href}
             className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
               pathname === item.href
-                ? 'bg-[#EBF5FF] text-[#0F4C75] font-semibold'
-                : 'text-slate-600 hover:bg-[#F0F4F8] hover:text-[#0F4C75]'
+                ? 'bg-[#F3EAE0] text-[#C0603E] font-semibold'
+                : 'text-stone-600 hover:bg-[#F7F2EC] hover:text-[#C0603E]'
             }`}
           >
             {lang === 'ar' ? item.labelAr : item.labelEn}
@@ -84,7 +84,7 @@ export default function Navbar() {
               localStorage.removeItem('currentDraftId');
               router.push('/create-request');
             }}
-            className="text-xs px-3 py-1.5 rounded-lg font-medium bg-[#1B9AAA] text-white hover:bg-[#158494] transition-colors"
+            className="text-xs px-3 py-1.5 rounded-lg font-medium bg-[#8A7B6C] text-white hover:bg-[#6F6255] transition-colors"
           >
             {lang === 'ar' ? '+ طلب جديد' : '+ New Request'}
           </button>
@@ -95,13 +95,13 @@ export default function Navbar() {
       {/* right section */}
       <div className="flex items-center gap-2">
         {/* language toggle */}
-        <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1">
           {(['ar', 'en'] as Lang[]).map(l => (
             <button
               key={l}
               onClick={() => { localStorage.setItem('language', l); setLang(l); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                lang === l ? 'bg-white text-[#0F4C75] shadow-sm' : 'text-slate-400 hover:text-slate-600'
+                lang === l ? 'bg-white text-[#C0603E] shadow-sm' : 'text-stone-400 hover:text-stone-600'
               }`}
             >
               <img
@@ -114,7 +114,7 @@ export default function Navbar() {
         </div>
 
         {/* user avatar */}
-        <div className="w-9 h-9 rounded-lg bg-[#0F4C75] flex items-center justify-center text-white text-xs font-bold cursor-pointer">
+        <div className="w-9 h-9 rounded-lg bg-[#C0603E] flex items-center justify-center text-white text-xs font-bold cursor-pointer">
           {userName.charAt(0) || 'م'}
         </div>
 

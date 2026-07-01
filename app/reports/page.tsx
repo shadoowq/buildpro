@@ -31,9 +31,9 @@ function t(ar: string, en: string, lang: Lang) { return lang === 'ar' ? ar : en;
 function fmtN(n: number, lang: Lang = 'ar') { return n.toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US'); }
 function fmtDate(d: string, lang: Lang) { return new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
 
-const TH = 'border border-slate-200 bg-[#0F4C75] px-3 py-2.5 text-right text-white font-semibold text-[11px] whitespace-nowrap';
-const TD = 'border border-slate-200 px-3 py-2 text-[11px] text-slate-700';
-const TDE = 'border border-slate-200 px-3 py-2 text-[11px] text-slate-700 bg-[#F8FAFC]';
+const TH = 'border border-stone-200 bg-[#C0603E] px-3 py-2.5 text-right text-white font-semibold text-[11px] whitespace-nowrap';
+const TD = 'border border-stone-200 px-3 py-2 text-[11px] text-stone-700';
+const TDE = 'border border-stone-200 px-3 py-2 text-[11px] text-stone-700 bg-[#FAF7F2]';
 
 export default function ReportsPage() {
   const router = useRouter();
@@ -220,11 +220,11 @@ export default function ReportsPage() {
   const stars = (n: number) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8]" style={{ fontFamily: 'Cairo, Arial, sans-serif' }} dir={dir}>
+    <div className="min-h-screen bg-[#F7F2EC]" style={{ fontFamily: 'Cairo, Arial, sans-serif' }} dir={dir}>
       <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/reports" />
 
       {/* HERO */}
-      <div className="bg-[#0F4C75] px-4 md:px-7 pt-5 pb-0">
+      <div className="bg-[#C0603E] px-4 md:px-7 pt-5 pb-0">
         <div className="flex items-end justify-between">
           <div>
             <p className="text-white/50 text-xs mb-1">{printDate}</p>
@@ -239,7 +239,7 @@ export default function ReportsPage() {
         <div className="flex gap-0 mt-4 border-t border-white/10 overflow-x-auto">
           {REPORT_TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'text-white border-[#1B9AAA]' : 'text-white/40 border-transparent hover:text-white/70'}`}>
+              className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'text-white border-[#8A7B6C]' : 'text-white/40 border-transparent hover:text-white/70'}`}>
               {tab.iconAr} {lang === 'ar' ? tab.labelAr : tab.labelEn}
             </button>
           ))}
@@ -250,10 +250,10 @@ export default function ReportsPage() {
       <div className="px-4 md:px-7 py-6 print-area">
 
         {/* print header */}
-        <div className="hidden print:block mb-6 pb-4 border-b border-slate-200">
+        <div className="hidden print:block mb-6 pb-4 border-b border-stone-200">
           <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold text-[#0F4C75]">Build<span className="text-[#1B9AAA]">Pro</span></div>
-            <div className="text-sm text-slate-600 text-left">
+            <div className="text-2xl font-bold text-[#C0603E]">Build<span className="text-[#8A7B6C]">Pro</span></div>
+            <div className="text-sm text-stone-600 text-left">
               <p className="font-bold">{REPORT_TABS.find(t => t.id === activeTab)?.[lang === 'ar' ? 'labelAr' : 'labelEn']}</p>
               <p>{printDate}</p>
             </div>
@@ -271,18 +271,18 @@ export default function ReportsPage() {
                 { icon: '💰', bg: 'bg-emerald-50', val: `${fmtN(totalAccepted, lang)} ${t('ر.س','SAR',lang)}`,          label: t('إجمالي المبالغ المقبولة','Total Accepted',lang) },
                 { icon: '💡', bg: 'bg-amber-50',   val: `${fmtN(totalSavings, lang)} ${t('ر.س','SAR',lang)}`,           label: t('إجمالي الوفر','Total Savings',lang) },
               ].map((s, i) => (
-                <div key={i} className="bg-white border border-[#E2EAF2] rounded-xl p-4">
+                <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4">
                   <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
-                  <div className="text-lg font-bold text-slate-900">{s.val}</div>
-                  <div className="text-[11px] text-slate-500 mt-1">{s.label}</div>
+                  <div className="text-lg font-bold text-stone-900">{s.val}</div>
+                  <div className="text-[11px] text-stone-500 mt-1">{s.label}</div>
                 </div>
               ))}
             </div>
             {/* table */}
-            <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-[#F1F5F9] flex items-center justify-between">
-                <h2 className="text-sm font-bold text-slate-900">📋 {t('تفاصيل المشاريع','Project Details',lang)}</h2>
-                <span className="text-xs text-slate-400">{report1.length} {t('طلب','requests',lang)}</span>
+            <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[#F1EAE0] flex items-center justify-between">
+                <h2 className="text-sm font-bold text-stone-900">📋 {t('تفاصيل المشاريع','Project Details',lang)}</h2>
+                <span className="text-xs text-stone-400">{report1.length} {t('طلب','requests',lang)}</span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-xs">
@@ -295,21 +295,21 @@ export default function ReportsPage() {
                   </thead>
                   <tbody>
                     {report1.length === 0 && (
-                      <tr><td colSpan={9} className="text-center py-10 text-slate-400 text-sm">{t('لا توجد طلبات بعد','No requests yet',lang)}</td></tr>
+                      <tr><td colSpan={9} className="text-center py-10 text-stone-400 text-sm">{t('لا توجد طلبات بعد','No requests yet',lang)}</td></tr>
                     )}
                     {report1.map(({ req, quoteCount, accepted, minP, savings }, i) => (
                       <tr key={req.id}>
-                        <td className={i%2===0?TD:TDE}><span className="font-semibold text-[#0F4C75]">{getReqName(req)}</span></td>
+                        <td className={i%2===0?TD:TDE}><span className="font-semibold text-[#C0603E]">{getReqName(req)}</span></td>
                         <td className={i%2===0?TD:TDE}>{req.location || '—'}</td>
                         <td className={i%2===0?TD:TDE}>{req.deadline || '—'}</td>
                         <td className={i%2===0?TD:TDE}>
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${req.status==='open'?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-500'}`}>
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${req.status==='open'?'bg-emerald-50 text-emerald-700':'bg-stone-100 text-stone-500'}`}>
                             {req.status==='open'?t('مفتوح','Open',lang):t('مغلق','Closed',lang)}
                           </span>
                         </td>
                         <td className={`${i%2===0?TD:TDE} text-center font-bold`}>{quoteCount}</td>
                         <td className={`${i%2===0?TD:TDE} text-emerald-700 font-bold`}>{minP !== null ? `${fmtN(minP, lang)} ${t('ر.س','SAR',lang)}` : '—'}</td>
-                        <td className={`${i%2===0?TD:TDE} font-bold`}>{accepted ? `${fmtN(Number(accepted.totalPrice), lang)} ${t('ر.س','SAR',lang)}` : <span className="text-slate-400">—</span>}</td>
+                        <td className={`${i%2===0?TD:TDE} font-bold`}>{accepted ? `${fmtN(Number(accepted.totalPrice), lang)} ${t('ر.س','SAR',lang)}` : <span className="text-stone-400">—</span>}</td>
                         <td className={`${i%2===0?TD:TDE} text-amber-700 font-bold`}>{savings !== null && savings > 0 ? `${fmtN(savings, lang)} ${t('ر.س','SAR',lang)}` : '—'}</td>
                         <td className={i%2===0?TD:TDE}>{fmtDate(req.createdAt, lang)}</td>
                       </tr>
@@ -331,16 +331,16 @@ export default function ReportsPage() {
                 { icon: '⭐', bg: 'bg-amber-50',   val: (() => { const rated = report2.filter(r => r.ratingCount > 0); return rated.length ? (rated.reduce((s,r)=>s+r.rating/r.ratingCount,0)/rated.length).toFixed(1) : '—'; })(), label: t('متوسط التقييم','Avg Rating',lang) },
                 { icon: '⚡', bg: 'bg-teal-50',    val: report2.length ? `${Math.round(report2.reduce((s,r)=>s+(r.total?r.totalDays/r.total:0),0)/report2.length)} ${t('يوم','days',lang)}` : '—', label: t('متوسط مدة التوريد','Avg Delivery',lang) },
               ].map((s, i) => (
-                <div key={i} className="bg-white border border-[#E2EAF2] rounded-xl p-4">
+                <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4">
                   <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
-                  <div className="text-lg font-bold text-slate-900">{s.val}</div>
-                  <div className="text-[11px] text-slate-500 mt-1">{s.label}</div>
+                  <div className="text-lg font-bold text-stone-900">{s.val}</div>
+                  <div className="text-[11px] text-stone-500 mt-1">{s.label}</div>
                 </div>
               ))}
             </div>
-            <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-[#F1F5F9]">
-                <h2 className="text-sm font-bold text-slate-900">🏆 {t('بطاقة أداء الموردين','Supplier Scorecard',lang)}</h2>
+            <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[#F1EAE0]">
+                <h2 className="text-sm font-bold text-stone-900">🏆 {t('بطاقة أداء الموردين','Supplier Scorecard',lang)}</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-xs">
@@ -353,7 +353,7 @@ export default function ReportsPage() {
                   </thead>
                   <tbody>
                     {report2.length === 0 && (
-                      <tr><td colSpan={9} className="text-center py-10 text-slate-400 text-sm">{t('لا توجد بيانات موردين','No supplier data',lang)}</td></tr>
+                      <tr><td colSpan={9} className="text-center py-10 text-stone-400 text-sm">{t('لا توجد بيانات موردين','No supplier data',lang)}</td></tr>
                     )}
                     {report2.map((s, i) => {
                       const rate = s.total > 0 ? Math.round((s.accepted / s.total) * 100) : 0;
@@ -363,11 +363,11 @@ export default function ReportsPage() {
                       const td = i%2===0?TD:TDE;
                       return (
                         <tr key={s.id}>
-                          <td className={`${td} text-center font-bold text-[#0F4C75]`}>{i+1}</td>
+                          <td className={`${td} text-center font-bold text-[#C0603E]`}>{i+1}</td>
                           <td className={td}>
                             <div className="flex items-center gap-2">
-                              <div className="w-7 h-7 rounded-lg bg-[#EBF5FF] text-[#0F4C75] text-[10px] font-bold flex items-center justify-center shrink-0">{s.company.slice(0,2)}</div>
-                              <div><p className="font-semibold text-slate-900">{s.company}</p><p className="text-slate-400">{s.name}</p></div>
+                              <div className="w-7 h-7 rounded-lg bg-[#F3EAE0] text-[#C0603E] text-[10px] font-bold flex items-center justify-center shrink-0">{s.company.slice(0,2)}</div>
+                              <div><p className="font-semibold text-stone-900">{s.company}</p><p className="text-stone-400">{s.name}</p></div>
                             </div>
                           </td>
                           <td className={`${td} text-center font-bold`}>{s.total}</td>
@@ -375,13 +375,13 @@ export default function ReportsPage() {
                           <td className={`${td} text-center text-red-600 font-bold`}>{s.rejected}</td>
                           <td className={td}>
                             <div className="flex items-center gap-2">
-                              <div className="h-1.5 flex-1 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{width:`${rate}%`}} /></div>
+                              <div className="h-1.5 flex-1 bg-stone-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full" style={{width:`${rate}%`}} /></div>
                               <span className="font-bold text-emerald-700">{rate}%</span>
                             </div>
                           </td>
                           <td className={`${td} font-bold`}>{fmtN(avgP, lang)} {t('ر.س','SAR',lang)}</td>
                           <td className={`${td} text-center`}>{avgD} {t('يوم','days',lang)}</td>
-                          <td className={td}>{avgR ? <span className="text-amber-500 font-bold">{avgR} ★</span> : <span className="text-slate-300">—</span>}</td>
+                          <td className={td}>{avgR ? <span className="text-amber-500 font-bold">{avgR} ★</span> : <span className="text-stone-300">—</span>}</td>
                         </tr>
                       );
                     })}
@@ -395,35 +395,35 @@ export default function ReportsPage() {
         {/* ══════ REPORT 3: Quote Comparison ══════ */}
         {activeTab === 'compare' && (
           <div className="space-y-4">
-            <div className="bg-white border border-[#E2EAF2] rounded-2xl p-4 flex items-center gap-3">
-              <label className="text-sm font-bold text-slate-700 shrink-0">{t('اختر الطلب:','Select Request:',lang)}</label>
+            <div className="bg-white border border-[#E8DFD3] rounded-2xl p-4 flex items-center gap-3">
+              <label className="text-sm font-bold text-stone-700 shrink-0">{t('اختر الطلب:','Select Request:',lang)}</label>
               <select value={compareReqId} onChange={e => setCompareReqId(Number(e.target.value))}
-                className="flex-1 border border-[#E2EAF2] rounded-lg px-3 py-2 text-sm font-cairo text-slate-700 outline-none bg-[#F8FAFC]">
+                className="flex-1 border border-[#E8DFD3] rounded-lg px-3 py-2 text-sm font-cairo text-stone-700 outline-none bg-[#FAF7F2]">
                 {requests.map(r => <option key={r.id} value={r.id}>{getReqName(r)} — #{r.id}</option>)}
               </select>
             </div>
             {compareQuotes.length === 0 ? (
-              <div className="bg-white border border-[#E2EAF2] rounded-2xl py-16 text-center">
+              <div className="bg-white border border-[#E8DFD3] rounded-2xl py-16 text-center">
                 <p className="text-3xl mb-3">📭</p>
-                <p className="text-slate-400 text-sm">{t('لا توجد عروض على هذا الطلب','No quotes for this request',lang)}</p>
+                <p className="text-stone-400 text-sm">{t('لا توجد عروض على هذا الطلب','No quotes for this request',lang)}</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {/* summary pills */}
                 <div className="flex gap-3 flex-wrap">
-                  <div className="bg-white border border-[#E2EAF2] rounded-xl px-4 py-2.5 text-sm">
-                    <span className="text-slate-500">{t('أقل سعر:','Cheapest:',lang)} </span>
+                  <div className="bg-white border border-[#E8DFD3] rounded-xl px-4 py-2.5 text-sm">
+                    <span className="text-stone-500">{t('أقل سعر:','Cheapest:',lang)} </span>
                     <span className="font-bold text-emerald-600">{cheapestQ ? `${fmtN(Number(cheapestQ.totalPrice), lang)} ${t('ر.س','SAR',lang)}` : '—'}</span>
-                    {cheapestQ && <span className="text-slate-400 text-xs"> ({cheapestQ.supplierCompany})</span>}
+                    {cheapestQ && <span className="text-stone-400 text-xs"> ({cheapestQ.supplierCompany})</span>}
                   </div>
-                  <div className="bg-white border border-[#E2EAF2] rounded-xl px-4 py-2.5 text-sm">
-                    <span className="text-slate-500">{t('أسرع توريد:','Fastest:',lang)} </span>
+                  <div className="bg-white border border-[#E8DFD3] rounded-xl px-4 py-2.5 text-sm">
+                    <span className="text-stone-500">{t('أسرع توريد:','Fastest:',lang)} </span>
                     <span className="font-bold text-blue-600">{fastestQ ? `${fastestQ.deliveryDays} ${t('يوم','days',lang)}` : '—'}</span>
-                    {fastestQ && <span className="text-slate-400 text-xs"> ({fastestQ.supplierCompany})</span>}
+                    {fastestQ && <span className="text-stone-400 text-xs"> ({fastestQ.supplierCompany})</span>}
                   </div>
                   {compareQuotes.length > 1 && cheapestQ && (
-                    <div className="bg-white border border-[#E2EAF2] rounded-xl px-4 py-2.5 text-sm">
-                      <span className="text-slate-500">{t('فرق الأسعار:','Price Range:',lang)} </span>
+                    <div className="bg-white border border-[#E8DFD3] rounded-xl px-4 py-2.5 text-sm">
+                      <span className="text-stone-500">{t('فرق الأسعار:','Price Range:',lang)} </span>
                       <span className="font-bold text-amber-600">
                         {fmtN(Math.max(...compareQuotes.map(q=>Number(q.totalPrice))) - Math.min(...compareQuotes.map(q=>Number(q.totalPrice))), lang)} {t('ر.س','SAR',lang)}
                       </span>
@@ -431,7 +431,7 @@ export default function ReportsPage() {
                   )}
                 </div>
                 {/* table */}
-                <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden">
+                <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-xs">
                       <thead>
@@ -450,15 +450,15 @@ export default function ReportsPage() {
                           const td = i%2===0?TD:TDE;
                           return (
                             <tr key={q.id} className={isCheapest ? 'bg-emerald-50/50' : ''}>
-                              <td className={`${td} text-center font-bold text-[#0F4C75]`}>{i+1}</td>
+                              <td className={`${td} text-center font-bold text-[#C0603E]`}>{i+1}</td>
                               <td className={td}>
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-semibold text-slate-900">{q.supplierCompany}</span>
+                                  <span className="font-semibold text-stone-900">{q.supplierCompany}</span>
                                   {isCheapest && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{t('الأرخص','Cheapest',lang)}</span>}
                                   {isFastest  && <span className="text-[9px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-bold">{t('الأسرع','Fastest',lang)}</span>}
                                 </div>
                               </td>
-                              <td className={`${td} font-bold ${isCheapest?'text-emerald-700':'text-slate-900'}`}>{fmtN(Number(q.totalPrice), lang)} {t('ر.س','SAR',lang)}</td>
+                              <td className={`${td} font-bold ${isCheapest?'text-emerald-700':'text-stone-900'}`}>{fmtN(Number(q.totalPrice), lang)} {t('ر.س','SAR',lang)}</td>
                               <td className={`${td} text-center`}>{q.deliveryDays} {t('يوم','days',lang)}</td>
                               <td className={td}>
                                 {diff === 0 ? <span className="text-emerald-600 font-bold">—</span> :
@@ -481,9 +481,9 @@ export default function ReportsPage() {
         {/* ══════ REPORT 4: Monthly ══════ */}
         {activeTab === 'monthly' && (
           <div className="space-y-4">
-            <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-[#F1F5F9]">
-                <h2 className="text-sm font-bold text-slate-900">📅 {t('النشاط الشهري (آخر 12 شهر)','Monthly Activity (Last 12 Months)',lang)}</h2>
+            <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[#F1EAE0]">
+                <h2 className="text-sm font-bold text-stone-900">📅 {t('النشاط الشهري (آخر 12 شهر)','Monthly Activity (Last 12 Months)',lang)}</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-xs">
@@ -496,24 +496,24 @@ export default function ReportsPage() {
                   </thead>
                   <tbody>
                     {report4.length === 0 && (
-                      <tr><td colSpan={6} className="text-center py-10 text-slate-400 text-sm">{t('لا توجد بيانات','No data yet',lang)}</td></tr>
+                      <tr><td colSpan={6} className="text-center py-10 text-stone-400 text-sm">{t('لا توجد بيانات','No data yet',lang)}</td></tr>
                     )}
                     {report4.map((row, i) => {
                       const rate = row.quotesReceived > 0 ? Math.round((row.accepted / row.quotesReceived) * 100) : 0;
                       const td = i%2===0?TD:TDE;
                       return (
                         <tr key={row.month}>
-                          <td className={`${td} font-bold text-[#0F4C75]`}>{formatMonth(row.month)}</td>
+                          <td className={`${td} font-bold text-[#C0603E]`}>{formatMonth(row.month)}</td>
                           <td className={`${td} text-center font-bold`}>{row.reqs}</td>
                           <td className={`${td} text-center`}>{row.quotesReceived}</td>
                           <td className={`${td} text-center text-emerald-700 font-bold`}>{row.accepted}</td>
                           <td className={td}>
                             <div className="flex items-center gap-2">
-                              <div className="h-1.5 flex-1 bg-slate-100 rounded-full overflow-hidden min-w-[60px]"><div className="h-full bg-emerald-500 rounded-full" style={{width:`${rate}%`}} /></div>
+                              <div className="h-1.5 flex-1 bg-stone-100 rounded-full overflow-hidden min-w-[60px]"><div className="h-full bg-emerald-500 rounded-full" style={{width:`${rate}%`}} /></div>
                               <span className="font-bold">{rate}%</span>
                             </div>
                           </td>
-                          <td className={`${td} font-bold text-[#0F4C75]`}>{row.totalVal > 0 ? `${fmtN(row.totalVal, lang)} ${t('ر.س','SAR',lang)}` : '—'}</td>
+                          <td className={`${td} font-bold text-[#C0603E]`}>{row.totalVal > 0 ? `${fmtN(row.totalVal, lang)} ${t('ر.س','SAR',lang)}` : '—'}</td>
                         </tr>
                       );
                     })}
@@ -527,9 +527,9 @@ export default function ReportsPage() {
         {/* ══════ REPORT 5: Materials ══════ */}
         {activeTab === 'materials' && (
           <div className="space-y-4">
-            <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-[#F1F5F9]">
-                <h2 className="text-sm font-bold text-slate-900">🧱 {t('تحليل المواد المطلوبة','Requested Materials Analysis',lang)}</h2>
+            <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[#F1EAE0]">
+                <h2 className="text-sm font-bold text-stone-900">🧱 {t('تحليل المواد المطلوبة','Requested Materials Analysis',lang)}</h2>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-xs">
@@ -542,19 +542,19 @@ export default function ReportsPage() {
                   </thead>
                   <tbody>
                     {report5.length === 0 && (
-                      <tr><td colSpan={6} className="text-center py-10 text-slate-400 text-sm">{t('لا توجد مواد','No materials data',lang)}</td></tr>
+                      <tr><td colSpan={6} className="text-center py-10 text-stone-400 text-sm">{t('لا توجد مواد','No materials data',lang)}</td></tr>
                     )}
                     {report5.map((m, i) => {
                       const avgAccepted = m.acceptedPrices.length ? Math.round(m.acceptedPrices.reduce((s,p)=>s+p,0)/m.acceptedPrices.length) : null;
                       const td = i%2===0?TD:TDE;
                       return (
                         <tr key={m.type}>
-                          <td className={`${td} text-center font-bold text-[#0F4C75]`}>{i+1}</td>
-                          <td className={`${td} font-bold text-slate-900`}>{m.type}</td>
+                          <td className={`${td} text-center font-bold text-[#C0603E]`}>{i+1}</td>
+                          <td className={`${td} font-bold text-stone-900`}>{m.type}</td>
                           <td className={`${td} text-center font-bold`}>{m.reqCount}</td>
                           <td className={`${td} font-bold`}>{m.totalQty.toLocaleString()} {m.unit}</td>
                           <td className={`${td} text-center`}>{m.quoteCount || '—'}</td>
-                          <td className={`${td} font-bold text-[#0F4C75]`}>{avgAccepted ? `${fmtN(avgAccepted, lang)} ${t('ر.س','SAR',lang)}` : '—'}</td>
+                          <td className={`${td} font-bold text-[#C0603E]`}>{avgAccepted ? `${fmtN(avgAccepted, lang)} ${t('ر.س','SAR',lang)}` : '—'}</td>
                         </tr>
                       );
                     })}
@@ -571,20 +571,20 @@ export default function ReportsPage() {
             {/* big KPIs */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[
-                { icon: '📋', label: t('إجمالي الطلبات','Total Requests',lang),           val: requests.length,                         sub: `${exec.open} ${t('مفتوح','open',lang)} · ${exec.closed} ${t('مغلق','closed',lang)}`,       color: 'text-[#0F4C75]'  },
+                { icon: '📋', label: t('إجمالي الطلبات','Total Requests',lang),           val: requests.length,                         sub: `${exec.open} ${t('مفتوح','open',lang)} · ${exec.closed} ${t('مغلق','closed',lang)}`,       color: 'text-[#C0603E]'  },
                 { icon: '💼', label: t('إجمالي العروض الواردة','Total Quotes Received',lang), val: quotes.length,                          sub: `${exec.pendQ} ${t('انتظار','pending',lang)} · ${exec.accQ} ${t('مقبول','accepted',lang)}`, color: 'text-teal-600'    },
                 { icon: '💰', label: t('إجمالي المبالغ المقبولة','Total Accepted Value',lang), val: `${fmtN(exec.totalV, lang)} ${t('ر.س','SAR',lang)}`, sub: `${exec.accQ} ${t('عرض مقبول','accepted quotes',lang)}`,                             color: 'text-emerald-600' },
                 { icon: '⚡', label: t('متوسط وقت استلام العروض','Avg Quote Response',lang),  val: `${exec.avgDays.toFixed(1)} ${t('يوم','days',lang)}`, sub: t('من تاريخ الطلب','from request date',lang),                              color: 'text-amber-600'   },
                 { icon: '✅', label: t('نسبة القبول الكلية','Overall Accept Rate',lang),      val: quotes.length ? `${Math.round((exec.accQ/quotes.length)*100)}%` : '—', sub: `${exec.accQ} / ${quotes.length}`,                     color: 'text-blue-600'    },
                 { icon: '⭐', label: t('متوسط تقييم الموردين','Avg Supplier Rating',lang),   val: ratings.length ? exec.avgRating.toFixed(1) : '—', sub: `${ratings.length} ${t('تقييم','ratings',lang)}`,                              color: 'text-amber-500'   },
               ].map((k, i) => (
-                <div key={i} className="bg-white border border-[#E2EAF2] rounded-2xl p-5">
+                <div key={i} className="bg-white border border-[#E8DFD3] rounded-2xl p-5">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 bg-[#F0F9FF] rounded-xl flex items-center justify-center text-xl shrink-0">{k.icon}</div>
+                    <div className="w-10 h-10 bg-[#F3EAE0] rounded-xl flex items-center justify-center text-xl shrink-0">{k.icon}</div>
                     <div>
                       <div className={`text-2xl font-black ${k.color}`}>{k.val}</div>
-                      <div className="text-xs font-semibold text-slate-700 mt-0.5">{k.label}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">{k.sub}</div>
+                      <div className="text-xs font-semibold text-stone-700 mt-0.5">{k.label}</div>
+                      <div className="text-[10px] text-stone-400 mt-0.5">{k.sub}</div>
                     </div>
                   </div>
                 </div>
@@ -593,32 +593,32 @@ export default function ReportsPage() {
 
             {/* Top 3 suppliers */}
             {exec.top3.length > 0 && (
-              <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-[#F1F5F9]">
-                  <h2 className="text-sm font-bold text-slate-900">🏆 {t('أفضل 3 موردين','Top 3 Suppliers',lang)}</h2>
+              <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-[#F1EAE0]">
+                  <h2 className="text-sm font-bold text-stone-900">🏆 {t('أفضل 3 موردين','Top 3 Suppliers',lang)}</h2>
                 </div>
-                <div className="divide-y divide-[#F8FAFC]">
+                <div className="divide-y divide-[#FAF7F2]">
                   {exec.top3.map((s, i) => {
                     const avgR = s.ratingCount > 0 ? (s.rating / s.ratingCount) : 0;
                     return (
                       <div key={s.id} className="flex items-center gap-4 px-5 py-4">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-sm shrink-0 ${i===0?'bg-amber-400':i===1?'bg-slate-400':'bg-orange-700'}`}>{i+1}</div>
-                        <div className="w-9 h-9 rounded-xl bg-[#EBF5FF] text-[#0F4C75] text-xs font-bold flex items-center justify-center shrink-0">{s.company.slice(0,2)}</div>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-sm shrink-0 ${i===0?'bg-amber-400':i===1?'bg-stone-400':'bg-orange-700'}`}>{i+1}</div>
+                        <div className="w-9 h-9 rounded-xl bg-[#F3EAE0] text-[#C0603E] text-xs font-bold flex items-center justify-center shrink-0">{s.company.slice(0,2)}</div>
                         <div className="flex-1">
-                          <p className="font-bold text-slate-900 text-sm">{s.company}</p>
-                          <p className="text-xs text-slate-400">{s.name}</p>
+                          <p className="font-bold text-stone-900 text-sm">{s.company}</p>
+                          <p className="text-xs text-stone-400">{s.name}</p>
                         </div>
                         <div className="text-center">
                           <div className="text-xl font-black text-emerald-600">{s.accepted}</div>
-                          <div className="text-[10px] text-slate-400">{t('مقبول','accepted',lang)}</div>
+                          <div className="text-[10px] text-stone-400">{t('مقبول','accepted',lang)}</div>
                         </div>
                         <div className="text-center">
                           <div className="text-sm font-bold text-amber-500">{avgR > 0 ? `${avgR.toFixed(1)} ★` : '—'}</div>
-                          <div className="text-[10px] text-slate-400">{t('تقييم','rating',lang)}</div>
+                          <div className="text-[10px] text-stone-400">{t('تقييم','rating',lang)}</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-sm font-bold text-[#0F4C75]">{Math.round((s.accepted/s.total)*100)}%</div>
-                          <div className="text-[10px] text-slate-400">{t('قبول','acceptance',lang)}</div>
+                          <div className="text-sm font-bold text-[#C0603E]">{Math.round((s.accepted/s.total)*100)}%</div>
+                          <div className="text-[10px] text-stone-400">{t('قبول','acceptance',lang)}</div>
                         </div>
                       </div>
                     );

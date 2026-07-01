@@ -55,10 +55,10 @@ function t(key: keyof typeof T, lang: Lang): string {
 
 function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
   return (
-    <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
+    <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1">
       {(['ar', 'en'] as Lang[]).map(l => (
         <button key={l} onClick={() => setLang(l)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[#0F4C75] shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[#C0603E] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
           <img src={l === 'ar' ? 'https://flagcdn.com/w20/sa.png' : 'https://flagcdn.com/w20/us.png'} width="20" height="14" alt={l} className="rounded-sm" />
           {l.toUpperCase()}
         </button>
@@ -69,9 +69,9 @@ function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void 
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-[#E2EAF2] rounded-2xl overflow-hidden">
-      <div className="px-6 py-4 border-b border-[#F1F5F9] bg-[#FAFBFC]">
-        <h2 className="text-sm font-bold text-slate-900">{title}</h2>
+    <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
+      <div className="px-6 py-4 border-b border-[#F1EAE0] bg-[#FFFDF9]">
+        <h2 className="text-sm font-bold text-stone-900">{title}</h2>
       </div>
       <div className="p-6">{children}</div>
     </div>
@@ -81,15 +81,15 @@ function SectionCard({ title, children }: { title: string; children: React.React
 function Field({ label, note, children }: { label: string; note?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-slate-600 mb-1.5">{label}</label>
+      <label className="block text-xs font-semibold text-stone-600 mb-1.5">{label}</label>
       {children}
-      {note && <p className="text-[10px] text-slate-400 mt-1">{note}</p>}
+      {note && <p className="text-[10px] text-stone-400 mt-1">{note}</p>}
     </div>
   );
 }
 
-const inputCls = 'w-full text-sm border border-[#E2EAF2] rounded-xl px-4 py-2.5 outline-none font-cairo bg-white text-slate-800 placeholder-slate-300 focus:border-[#1B9AAA] focus:ring-2 focus:ring-[#1B9AAA]/10 transition-all';
-const readonlyCls = 'w-full text-sm border border-[#E2EAF2] rounded-xl px-4 py-2.5 font-cairo bg-[#F8FAFC] text-slate-500 cursor-not-allowed';
+const inputCls = 'w-full text-sm border border-[#E8DFD3] rounded-xl px-4 py-2.5 outline-none font-cairo bg-white text-stone-800 placeholder-stone-300 focus:border-[#8A7B6C] focus:ring-2 focus:ring-[#8A7B6C]/10 transition-all';
+const readonlyCls = 'w-full text-sm border border-[#E8DFD3] rounded-xl px-4 py-2.5 font-cairo bg-[#FAF7F2] text-stone-500 cursor-not-allowed';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -186,8 +186,8 @@ export default function ProfilePage() {
   const contractorNav = user?.userType === 'contractor';
 
   if (!user) return (
-    <div className="min-h-screen bg-[#F0F4F8] flex items-center justify-center font-cairo">
-      <div className="text-slate-400 text-sm">{lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
+    <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center font-cairo">
+      <div className="text-stone-400 text-sm">{lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
     </div>
   );
 
@@ -196,18 +196,18 @@ export default function ProfilePage() {
     : (lang === 'ar' ? 'غير معروف' : 'Unknown');
 
   return (
-    <div className="min-h-screen bg-[#F0F4F8] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
 
       {contractorNav
         ? <ContractorNav lang={lang} setLang={handleLangChange} userName={name} active="/profile" />
         : (
-          <nav className="bg-white border-b border-[#E2EAF2] px-4 md:px-7 flex items-center justify-between h-14 sticky top-0 z-20">
-            <div className="text-[17px] font-bold text-[#0F4C75]">Build<span className="text-[#1B9AAA]">Pro</span></div>
+          <nav className="bg-white border-b border-[#E8DFD3] px-4 md:px-7 flex items-center justify-between h-14 sticky top-0 z-20">
+            <div className="text-[17px] font-bold text-[#C0603E]">Build<span className="text-[#8A7B6C]">Pro</span></div>
             <div className="flex gap-1">
-              <Link href="/supplier-requests" className="text-xs px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-[#F0F4F8] hover:text-[#0F4C75] transition-colors">
+              <Link href="/supplier-requests" className="text-xs px-3 py-1.5 rounded-lg font-medium text-stone-600 hover:bg-[#F7F2EC] hover:text-[#C0603E] transition-colors">
                 {lang === 'ar' ? 'الطلبات المتاحة' : 'Available Requests'}
               </Link>
-              <Link href="/my-quotes" className="text-xs px-3 py-1.5 rounded-lg font-medium text-slate-600 hover:bg-[#F0F4F8] hover:text-[#0F4C75] transition-colors">
+              <Link href="/my-quotes" className="text-xs px-3 py-1.5 rounded-lg font-medium text-stone-600 hover:bg-[#F7F2EC] hover:text-[#C0603E] transition-colors">
                 {lang === 'ar' ? 'عروضي' : 'My Quotes'}
               </Link>
             </div>
@@ -219,7 +219,7 @@ export default function ProfilePage() {
       }
 
       {/* HERO */}
-      <div className="bg-[#0F4C75] px-7 pt-6 pb-6">
+      <div className="bg-[#C0603E] px-7 pt-6 pb-6">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white text-xl font-bold">
             {name.charAt(0) || 'م'}
@@ -263,7 +263,7 @@ export default function ProfilePage() {
               <div className={readonlyCls}>{user.email}</div>
             </Field>
             <button onClick={handleSaveInfo}
-              className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${infoSaved ? 'bg-emerald-500 text-white' : 'bg-[#0F4C75] hover:bg-[#0D3F63] text-white'}`}>
+              className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${infoSaved ? 'bg-emerald-500 text-white' : 'bg-[#C0603E] hover:bg-[#9C4C31] text-white'}`}>
               {infoSaved ? t('saved', lang) : t('saveInfo', lang)}
             </button>
           </div>
@@ -292,7 +292,7 @@ export default function ProfilePage() {
               </div>
             )}
             <button onClick={handleChangePassword}
-              className="w-full py-2.5 rounded-xl text-sm font-bold bg-[#1B9AAA] hover:bg-[#158494] text-white transition-colors">
+              className="w-full py-2.5 rounded-xl text-sm font-bold bg-[#8A7B6C] hover:bg-[#6F6255] text-white transition-colors">
               {t('savePass', lang)}
             </button>
           </div>
@@ -301,15 +301,15 @@ export default function ProfilePage() {
         {/* ACCOUNT DETAILS */}
         <SectionCard title={t('account', lang)}>
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-[#F8FAFC] border border-[#E2EAF2] rounded-xl p-4">
-              <p className="text-[10px] text-slate-400 mb-1">{t('role', lang)}</p>
-              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full ${user.userType === 'contractor' ? 'bg-[#EBF5FF] text-[#0F4C75]' : 'bg-teal-50 text-teal-700'}`}>
+            <div className="bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-4">
+              <p className="text-[10px] text-stone-400 mb-1">{t('role', lang)}</p>
+              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full ${user.userType === 'contractor' ? 'bg-[#F3EAE0] text-[#C0603E]' : 'bg-teal-50 text-teal-700'}`}>
                 {user.userType === 'contractor' ? '👷' : '🏢'} {user.userType === 'contractor' ? t('contractor', lang) : t('supplier', lang)}
               </span>
             </div>
-            <div className="bg-[#F8FAFC] border border-[#E2EAF2] rounded-xl p-4">
-              <p className="text-[10px] text-slate-400 mb-1">{t('memberSince', lang)}</p>
-              <p className="text-sm font-bold text-slate-700">{memberSince}</p>
+            <div className="bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-4">
+              <p className="text-[10px] text-stone-400 mb-1">{t('memberSince', lang)}</p>
+              <p className="text-sm font-bold text-stone-700">{memberSince}</p>
             </div>
           </div>
         </SectionCard>
@@ -321,8 +321,8 @@ export default function ProfilePage() {
           </div>
           <div className="p-6 flex items-center justify-between">
             <div>
-              <p className="text-sm font-semibold text-slate-800">{t('logout', lang)}</p>
-              <p className="text-xs text-slate-400 mt-0.5">{user.email}</p>
+              <p className="text-sm font-semibold text-stone-800">{t('logout', lang)}</p>
+              <p className="text-xs text-stone-400 mt-0.5">{user.email}</p>
             </div>
             <button onClick={handleLogout}
               className="text-sm font-bold px-5 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors">

@@ -43,14 +43,14 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
       {state && (
         <div className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center p-4" onClick={() => handle(false)}>
           <div dir={state.dir} className="bg-white rounded-2xl p-6 max-w-sm w-full font-cairo" onClick={e => e.stopPropagation()}>
-            <p className="text-sm text-slate-700 mb-5 text-center leading-relaxed">{state.message}</p>
+            <p className="text-sm text-stone-700 mb-5 text-center leading-relaxed">{state.message}</p>
             <div className="flex gap-3">
               <button onClick={() => handle(false)}
-                className="flex-1 bg-slate-100 text-slate-600 font-semibold py-2.5 rounded-xl text-sm hover:bg-slate-200 transition-colors">
+                className="flex-1 bg-stone-100 text-stone-600 font-semibold py-2.5 rounded-xl text-sm hover:bg-stone-200 transition-colors">
                 {state.options?.cancelText || (state.dir === 'rtl' ? 'إلغاء' : 'Cancel')}
               </button>
               <button onClick={() => handle(true)}
-                className={`flex-1 font-semibold py-2.5 rounded-xl text-sm text-white transition-colors ${state.options?.danger ? 'bg-red-500 hover:bg-red-600' : 'bg-[#1B9AAA] hover:bg-[#158494]'}`}>
+                className={`flex-1 font-semibold py-2.5 rounded-xl text-sm text-white transition-colors ${state.options?.danger ? 'bg-red-500 hover:bg-red-600' : 'bg-[#8A7B6C] hover:bg-[#6F6255]'}`}>
                 {state.options?.confirmText || (state.dir === 'rtl' ? 'تأكيد' : 'Confirm')}
               </button>
             </div>

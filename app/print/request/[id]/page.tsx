@@ -47,7 +47,7 @@ export default function PrintRequest() {
   if (!ready) return null;
 
   if (!req) return (
-    <div className="print-area" style={{ padding: 40, fontFamily: 'Cairo, sans-serif', textAlign: 'center', color: '#94a3b8' }}>
+    <div className="print-area" style={{ padding: 40, fontFamily: 'Cairo, sans-serif', textAlign: 'center', color: '#A8A29E' }}>
       {lang === 'ar' ? 'الطلب غير موجود' : 'Request not found'}
     </div>
   );
@@ -85,19 +85,19 @@ export default function PrintRequest() {
   };
 
   const S = {
-    th:  { background: '#0F4C75', color: '#fff', fontWeight: 700, padding: '7px 8px', textAlign: (lang === 'ar' ? 'right' : 'left') as 'right' | 'left', border: '1px solid #0D3F63', whiteSpace: 'nowrap' as const, fontSize: 11 },
-    tdE: { border: '1px solid #E2EAF2', padding: '6px 8px', color: '#334155', fontSize: 11 },
-    tdO: { border: '1px solid #E2EAF2', padding: '6px 8px', color: '#334155', fontSize: 11, background: '#F8FAFC' },
+    th:  { background: '#C0603E', color: '#fff', fontWeight: 700, padding: '7px 8px', textAlign: (lang === 'ar' ? 'right' : 'left') as 'right' | 'left', border: '1px solid #9C4C31', whiteSpace: 'nowrap' as const, fontSize: 11 },
+    tdE: { border: '1px solid #E8DFD3', padding: '6px 8px', color: '#44403C', fontSize: 11 },
+    tdO: { border: '1px solid #E8DFD3', padding: '6px 8px', color: '#44403C', fontSize: 11, background: '#FAF7F2' },
   };
 
   return (
     <>
       {/* ── controls (hidden on print) ── */}
-      <div className="no-print" style={{ display: 'flex', padding: '10px 16px', background: '#0F4C75', gap: 12, alignItems: 'center' }}>
+      <div className="no-print" style={{ display: 'flex', padding: '10px 16px', background: '#C0603E', gap: 12, alignItems: 'center' }}>
         <button onClick={() => window.history.back()} style={{ color: '#fff', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: 13 }}>
           {lang === 'ar' ? '← رجوع' : '← Back'}
         </button>
-        <button onClick={() => window.print()} style={{ color: '#fff', background: '#1B9AAA', border: 'none', borderRadius: 8, padding: '6px 18px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: 13 }}>
+        <button onClick={() => window.print()} style={{ color: '#fff', background: '#8A7B6C', border: 'none', borderRadius: 8, padding: '6px 18px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: 13 }}>
           🖨 {lang === 'ar' ? 'طباعة' : 'Print'}
         </button>
       </div>
@@ -109,44 +109,44 @@ export default function PrintRequest() {
         <table style={{ width: '100%', marginBottom: 16, borderCollapse: 'collapse' }}>
           <tbody><tr>
             <td style={{ verticalAlign: 'top' }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#0F4C75' }}>Build<span style={{ color: '#1B9AAA' }}>Pro</span></div>
-              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{lang === 'ar' ? 'منصة تسعير مواد البناء' : 'Construction Materials Pricing Platform'}</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#C0603E' }}>Build<span style={{ color: '#8A7B6C' }}>Pro</span></div>
+              <div style={{ fontSize: 11, color: '#A8A29E', marginTop: 2 }}>{lang === 'ar' ? 'منصة تسعير مواد البناء' : 'Construction Materials Pricing Platform'}</div>
             </td>
             <td style={{ textAlign: lang === 'ar' ? 'left' : 'right', verticalAlign: 'top' }}>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#0F4C75' }}>{lang === 'ar' ? 'طلب تسعير' : 'REQUEST FOR QUOTATION'}</div>
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>{lang === 'ar' ? 'رقم الطلب:' : 'RFQ No:'} <strong style={{ color: '#0F4C75' }}>#{req.id}</strong></div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>{lang === 'ar' ? 'تاريخ الإصدار:' : 'Date:'} {printDate}</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#C0603E' }}>{lang === 'ar' ? 'طلب تسعير' : 'REQUEST FOR QUOTATION'}</div>
+              <div style={{ fontSize: 11, color: '#78716C', marginTop: 3 }}>{lang === 'ar' ? 'رقم الطلب:' : 'RFQ No:'} <strong style={{ color: '#C0603E' }}>#{req.id}</strong></div>
+              <div style={{ fontSize: 11, color: '#78716C' }}>{lang === 'ar' ? 'تاريخ الإصدار:' : 'Date:'} {printDate}</div>
             </td>
           </tr></tbody>
         </table>
 
-        <div style={{ height: 3, background: 'linear-gradient(90deg, #0F4C75, #1B9AAA)', borderRadius: 2, marginBottom: 16 }} />
+        <div style={{ height: 3, background: 'linear-gradient(90deg, #C0603E, #8A7B6C)', borderRadius: 2, marginBottom: 16 }} />
 
         {/* INFO BOX */}
         <table style={{ width: '100%', marginBottom: 16, borderCollapse: 'collapse' }}>
           <tbody><tr>
             <td style={{ width: '48%', verticalAlign: 'top', paddingLeft: lang === 'ar' ? 12 : 0, paddingRight: lang === 'ar' ? 0 : 12 }}>
-              <div style={{ background: '#F8FAFC', border: '1px solid #E2EAF2', borderRadius: 8, padding: '10px 14px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#1B9AAA', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>{lang === 'ar' ? 'بيانات المقاول' : 'CONTRACTOR INFO'}</div>
+              <div style={{ background: '#FAF7F2', border: '1px solid #E8DFD3', borderRadius: 8, padding: '10px 14px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#8A7B6C', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>{lang === 'ar' ? 'بيانات المقاول' : 'CONTRACTOR INFO'}</div>
                 {user && <>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: '#0F4C75', marginBottom: 3 }}>{user.name}</div>
-                  {user.company && <div style={{ fontSize: 11, color: '#475569' }}>{user.company}</div>}
-                  {user.phone   && <div style={{ fontSize: 11, color: '#475569' }}>{user.phone}</div>}
-                  {user.city    && <div style={{ fontSize: 11, color: '#475569' }}>📍 {user.city}</div>}
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 3 }}>{user.email}</div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#C0603E', marginBottom: 3 }}>{user.name}</div>
+                  {user.company && <div style={{ fontSize: 11, color: '#57534E' }}>{user.company}</div>}
+                  {user.phone   && <div style={{ fontSize: 11, color: '#57534E' }}>{user.phone}</div>}
+                  {user.city    && <div style={{ fontSize: 11, color: '#57534E' }}>📍 {user.city}</div>}
+                  <div style={{ fontSize: 11, color: '#A8A29E', marginTop: 3 }}>{user.email}</div>
                 </>}
               </div>
             </td>
             <td style={{ width: '48%', verticalAlign: 'top' }}>
-              <div style={{ background: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: 8, padding: '10px 14px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#0F4C75', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>{lang === 'ar' ? 'تفاصيل الطلب' : 'REQUEST DETAILS'}</div>
-                {req.projectName && <div style={{ fontWeight: 700, fontSize: 13, color: '#0F4C75', marginBottom: 5 }}>{req.projectName}</div>}
+              <div style={{ background: '#F3EAE0', border: '1px solid #E8DFD3', borderRadius: 8, padding: '10px 14px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#C0603E', textTransform: 'uppercase', marginBottom: 6, letterSpacing: 0.5 }}>{lang === 'ar' ? 'تفاصيل الطلب' : 'REQUEST DETAILS'}</div>
+                {req.projectName && <div style={{ fontWeight: 700, fontSize: 13, color: '#C0603E', marginBottom: 5 }}>{req.projectName}</div>}
                 <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
                   <tbody>
-                    {req.location && <tr><td style={{ color: '#64748b', paddingBottom: 3 }}>{lang === 'ar' ? 'المدينة:' : 'City:'}</td><td style={{ fontWeight: 600, color: '#1e293b', paddingBottom: 3 }}>{req.location}</td></tr>}
-                    {req.deadline && <tr><td style={{ color: '#64748b', paddingBottom: 3 }}>{lang === 'ar' ? 'الموعد النهائي:' : 'Deadline:'}</td><td style={{ fontWeight: 600, color: '#1e293b', paddingBottom: 3 }}>{req.deadline}</td></tr>}
-                    {req.budget   && <tr><td style={{ color: '#64748b', paddingBottom: 3 }}>{lang === 'ar' ? 'الميزانية:' : 'Budget:'}</td><td style={{ fontWeight: 600, color: '#0F4C75', paddingBottom: 3 }}>{Number(req.budget).toLocaleString()} {lang === 'ar' ? 'ر.س' : 'SAR'}</td></tr>}
-                    <tr><td style={{ color: '#64748b' }}>{lang === 'ar' ? 'تاريخ الإنشاء:' : 'Created:'}</td><td style={{ fontWeight: 600, color: '#1e293b' }}>{new Date(req.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</td></tr>
+                    {req.location && <tr><td style={{ color: '#78716C', paddingBottom: 3 }}>{lang === 'ar' ? 'المدينة:' : 'City:'}</td><td style={{ fontWeight: 600, color: '#292524', paddingBottom: 3 }}>{req.location}</td></tr>}
+                    {req.deadline && <tr><td style={{ color: '#78716C', paddingBottom: 3 }}>{lang === 'ar' ? 'الموعد النهائي:' : 'Deadline:'}</td><td style={{ fontWeight: 600, color: '#292524', paddingBottom: 3 }}>{req.deadline}</td></tr>}
+                    {req.budget   && <tr><td style={{ color: '#78716C', paddingBottom: 3 }}>{lang === 'ar' ? 'الميزانية:' : 'Budget:'}</td><td style={{ fontWeight: 600, color: '#C0603E', paddingBottom: 3 }}>{Number(req.budget).toLocaleString()} {lang === 'ar' ? 'ر.س' : 'SAR'}</td></tr>}
+                    <tr><td style={{ color: '#78716C' }}>{lang === 'ar' ? 'تاريخ الإنشاء:' : 'Created:'}</td><td style={{ fontWeight: 600, color: '#292524' }}>{new Date(req.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -155,7 +155,7 @@ export default function PrintRequest() {
         </table>
 
         {/* MATERIALS TABLE */}
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#0F4C75', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'المواد المطلوبة' : 'REQUIRED MATERIALS'}</div>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#C0603E', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'المواد المطلوبة' : 'REQUIRED MATERIALS'}</div>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16 }}>
           <thead>
             <tr>{cols.map((c, i) => <th key={i} style={S.th}>{c}</th>)}</tr>
@@ -165,14 +165,14 @@ export default function PrintRequest() {
               const td = i % 2 === 0 ? S.tdE : S.tdO;
               return (
                 <tr key={i}>
-                  <td style={{ ...td, textAlign: 'center', fontWeight: 700, color: '#0F4C75' }}>{i + 1}</td>
+                  <td style={{ ...td, textAlign: 'center', fontWeight: 700, color: '#C0603E' }}>{i + 1}</td>
                   {fields.map(f => <td key={f} style={td}>{cellVal(m, f)}</td>)}
                   {/* images cell */}
                   <td style={td}>
                     {m.images?.length > 0 ? (
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                         {m.images.map((img: string, j: number) => (
-                          <img key={j} src={img} alt="" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4, border: '1px solid #E2EAF2' }} />
+                          <img key={j} src={img} alt="" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4, border: '1px solid #E8DFD3' }} />
                         ))}
                       </div>
                     ) : '—'}
@@ -180,7 +180,7 @@ export default function PrintRequest() {
                 </tr>
               );
             }) : (
-              <tr><td colSpan={cols.length} style={{ ...S.tdE, textAlign: 'center', color: '#94a3b8', padding: 16 }}>{lang === 'ar' ? 'لا توجد مواد مفصلة' : 'No detailed materials'}</td></tr>
+              <tr><td colSpan={cols.length} style={{ ...S.tdE, textAlign: 'center', color: '#A8A29E', padding: 16 }}>{lang === 'ar' ? 'لا توجد مواد مفصلة' : 'No detailed materials'}</td></tr>
             )}
           </tbody>
         </table>
@@ -188,25 +188,25 @@ export default function PrintRequest() {
         {/* DESCRIPTION */}
         {req.description && (
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#0F4C75', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'ملاحظات إضافية' : 'ADDITIONAL NOTES'}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#C0603E', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'ملاحظات إضافية' : 'ADDITIONAL NOTES'}</div>
             <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 6, padding: '10px 14px', fontSize: 12, color: '#78350F', lineHeight: 1.7 }}>{req.description}</div>
           </div>
         )}
 
         {/* SIGNATURES */}
-        <div style={{ marginTop: 24, borderTop: '1px solid #E2EAF2', paddingTop: 14 }}>
+        <div style={{ marginTop: 24, borderTop: '1px solid #E8DFD3', paddingTop: 14 }}>
           <table style={{ width: '100%' }}>
             <tbody><tr>
               {[lang === 'ar' ? 'توقيع المقاول' : 'Contractor Signature', lang === 'ar' ? 'الختم الرسمي' : 'Official Stamp', lang === 'ar' ? 'تاريخ التوقيع' : 'Date'].map((lbl, i) => (
                 <td key={i} style={{ textAlign: 'center' }}>
-                  <div style={{ borderTop: '1px solid #CBD5E1', marginTop: 32, paddingTop: 5, fontSize: 11, color: '#64748b' }}>{lbl}</div>
+                  <div style={{ borderTop: '1px solid #D6D3D1', marginTop: 32, paddingTop: 5, fontSize: 11, color: '#78716C' }}>{lbl}</div>
                 </td>
               ))}
             </tr></tbody>
           </table>
         </div>
 
-        <div style={{ marginTop: 14, textAlign: 'center', fontSize: 10, color: '#94a3b8', borderTop: '1px solid #F1F5F9', paddingTop: 8 }}>
+        <div style={{ marginTop: 14, textAlign: 'center', fontSize: 10, color: '#A8A29E', borderTop: '1px solid #F1EAE0', paddingTop: 8 }}>
           {lang === 'ar' ? `تم إنشاء هذا الطلب عبر منصة BuildPro · ${printDate}` : `Generated via BuildPro platform · ${printDate}`}
         </div>
       </div>
