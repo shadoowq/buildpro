@@ -80,6 +80,27 @@ export function setQuoteStatus(quoteId: number, status: Quote['status'], revisio
   return { quotes: updated, quote };
 }
 
+export function withdrawQuote(quoteId: number): { quotes: Quote[]; quote: Quote | undefined } {
+  const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+  const quote = allQuotes.find((q: Quote) => q.id === quoteId);
+  const updated = allQuotes.filter((q: Quote) => q.id !== quoteId);
+  localStorage.setItem('quotes', JSON.stringify(updated));
+  return { quotes: updated, quote };
+}
+
+export function resubmitQuote(
+  quoteId: number,
+  updates: { totalPrice: number; deliveryDays: number; description: string }
+): { quotes: Quote[]; quote: Quote | undefined } {
+  const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+  const quote = allQuotes.find((q: Quote) => q.id === quoteId);
+  const updated = allQuotes.map((q: Quote) => q.id === quoteId
+    ? { ...q, ...updates, status: 'pending' as const, revisionNote: undefined }
+    : q);
+  localStorage.setItem('quotes', JSON.stringify(updated));
+  return { quotes: updated, quote };
+}
+
 /* ── trash (soft-delete) ── */
 
 export function softDeleteRequest(requestId: number): RequestLike[] {

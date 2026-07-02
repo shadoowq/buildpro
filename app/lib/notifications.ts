@@ -1,5 +1,5 @@
 export type Lang = 'ar' | 'en';
-export type NotifType = 'quote' | 'accepted' | 'rejected' | 'revision' | 'close' | 'open' | 'rated';
+export type NotifType = 'quote' | 'accepted' | 'rejected' | 'revision' | 'close' | 'open' | 'rated' | 'invite';
 
 export interface NotifItem {
   id: string;
@@ -19,10 +19,16 @@ export const notifIconMap: Record<NotifType, { bg: string; icon: string; color: 
   close:    { bg: 'bg-stone-100',  icon: '🔒', color: 'text-stone-500'   },
   open:     { bg: 'bg-[#F3EAE0]',  icon: '🔓', color: 'text-[#C0603E]'   },
   rated:    { bg: 'bg-amber-50',   icon: '⭐', color: 'text-amber-500'   },
+  invite:   { bg: 'bg-[#F3EAE0]',  icon: '📨', color: 'text-[#C0603E]'   },
 };
 
-export function notifHref(n: Pick<NotifItem, 'type' | 'requestId'>): string {
+export function notifHref(n: Pick<NotifItem, 'type' | 'requestId'>, role?: 'contractor' | 'supplier'): string {
   const quoteTypes: NotifType[] = ['quote', 'accepted', 'rejected', 'revision'];
+  if (role === 'supplier') {
+    return quoteTypes.includes(n.type)
+      ? `/my-quotes?reqId=${n.requestId}`
+      : `/supplier-requests?reqId=${n.requestId}`;
+  }
   return quoteTypes.includes(n.type)
     ? `/my-quotes?reqId=${n.requestId}`
     : `/my-requests?reqId=${n.requestId}`;
@@ -95,6 +101,66 @@ export function buildNotifications(
     .filter((x): x is NotifItem => x !== null);
 
   const all = [...quoteItems, ...logItems]
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  return opts?.limit ? all.slice(0, opts.limit) : all;
+}
+
+export function buildSupplierNotifications(
+  allQuotes: any[],
+  allActivityLogs: any[],
+  allRequests: any[],
+  allRatings: any[],
+  supplierEmail: string,
+  opts?: { limit?: number }
+): NotifItem[] {
+  const myQuotes = allQuotes.filter(q => q.supplierId === supplierEmail);
+
+  const statusItems: NotifItem[] = myQuotes
+    .filter(q => q.status !== 'pending')
+    .map(q => {
+      const type: NotifType = q.status === 'accepted' ? 'accepted' : q.status === 'rejected' ? 'rejected' : 'revision';
+      return {
+        id: `q-${q.id}-${q.status}`,
+        type,
+        requestId: q.requestId,
+        textAr: type === 'accepted' ? `تم قبول عرضك على طلب #${q.requestId} بسعر ${Number(q.totalPrice).toLocaleString()} ر.س`
+              : type === 'rejected' ? `تم رفض عرضك على طلب #${q.requestId}`
+              :                       `طلب تعديل على عرضك بخصوص طلب #${q.requestId}`,
+        textEn: type === 'accepted' ? `Your quote on request #${q.requestId} was accepted at ${Number(q.totalPrice).toLocaleString()} SAR`
+              : type === 'rejected' ? `Your quote on request #${q.requestId} was rejected`
+              :                       `Revision requested on your quote for request #${q.requestId}`,
+        timestamp: q.createdAt,
+        unread: true,
+      };
+    });
+
+  const invitedRequestIds = new Set(myQuotes.map(q => q.requestId));
+  const inviteItems: NotifItem[] = allRequests
+    .filter(r => r.status === 'open' && r.selectedSuppliers?.includes(supplierEmail) && !invitedRequestIds.has(r.id))
+    .map(r => ({
+      id: `invite-${r.id}`,
+      type: 'invite' as NotifType,
+      requestId: r.id,
+      textAr: `تمت دعوتك لتقديم عرض سعر على طلب #${r.id}`,
+      textEn: `You were invited to quote request #${r.id}`,
+      timestamp: r.createdAt,
+      unread: true,
+    }));
+
+  const ratingItems: NotifItem[] = allRatings
+    .filter(r => r.supplierId === supplierEmail)
+    .map(r => ({
+      id: `rating-${r.id}`,
+      type: 'rated' as NotifType,
+      requestId: r.requestId,
+      textAr: `تلقيت تقييم ${r.rating}★ على طلب #${r.requestId}`,
+      textEn: `You received a ${r.rating}★ rating on request #${r.requestId}`,
+      timestamp: r.createdAt,
+      unread: true,
+    }));
+
+  const all = [...statusItems, ...inviteItems, ...ratingItems]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return opts?.limit ? all.slice(0, opts.limit) : all;

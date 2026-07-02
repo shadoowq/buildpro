@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
+import SupplierNav from '../components/SupplierNav';
 import { saudiCities, getCityName } from '../lib/translations';
 
 type Lang = 'ar' | 'en';
@@ -194,22 +194,7 @@ export default function ProfilePage() {
 
       {contractorNav
         ? <ContractorNav lang={lang} setLang={handleLangChange} userName={name} active="/profile" />
-        : (
-          <nav className="bg-white border-b border-[#E8DFD3] px-4 md:px-7 flex items-center justify-between h-14 sticky top-0 z-20">
-            <div className="text-[17px] font-bold text-[#C0603E]">Build<span className="text-[#8A7B6C]">Pro</span></div>
-            <div className="flex gap-1">
-              <Link href="/supplier-requests" className="text-xs px-3 py-1.5 rounded-lg font-medium text-stone-600 hover:bg-[#F7F2EC] hover:text-[#C0603E] transition-colors">
-                {lang === 'ar' ? 'الطلبات المتاحة' : 'Available Requests'}
-              </Link>
-              <Link href="/my-quotes" className="text-xs px-3 py-1.5 rounded-lg font-medium text-stone-600 hover:bg-[#F7F2EC] hover:text-[#C0603E] transition-colors">
-                {lang === 'ar' ? 'عروضي' : 'My Quotes'}
-              </Link>
-            </div>
-            <button onClick={handleLogout} className="text-xs font-semibold text-red-500 bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors">
-              {lang === 'ar' ? 'خروج' : 'Logout'}
-            </button>
-          </nav>
-        )
+        : <SupplierNav lang={lang} setLang={handleLangChange} userName={name} active="/profile" />
       }
 
       {/* HERO */}
