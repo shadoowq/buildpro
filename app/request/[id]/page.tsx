@@ -559,7 +559,7 @@ export default function RequestDetailPage() {
                           {t('undo', lang)}
                         </button>
                       )}
-                      <a href={`/print/quote/${q.id}`} target="_blank"
+                      <a href={`/print/quote/${q.id}?autoprint=1`} target="_blank"
                         className="text-[11px] font-semibold px-3 py-1.5 bg-stone-50 text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors">
                         🖨
                       </a>

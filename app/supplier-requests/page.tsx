@@ -43,6 +43,7 @@ const T = {
   submitQuote:  { ar: 'تقديم عرض سعر',       en: 'Submit Quote' },
   continueDraft:{ ar: 'متابعة العرض (مسودة محفوظة)', en: 'Continue Quote (Draft Saved)' },
   quoteSubmitted:{ ar: '✓ تم تقديم عرض السعر', en: '✓ Quote Submitted' },
+  viewQuote:    { ar: 'عرض التفاصيل',        en: 'View Details' },
 };
 
 function tStr(key: keyof typeof T, lang: Lang): string {
@@ -99,6 +100,7 @@ export default function SupplierRequests() {
   }, [pendingReqId, requests]);
 
   const hasQuoted = (requestId: number) => allQuotes.some((q: any) => q.requestId === requestId && q.supplierId === user?.email);
+  const myQuoteFor = (requestId: number) => allQuotes.find((q: any) => q.requestId === requestId && q.supplierId === user?.email);
   const hasDraft = (requestId: number) => {
     if (typeof window === 'undefined') return false;
     return !!localStorage.getItem(`quoteDraft_${requestId}`);
@@ -245,8 +247,16 @@ export default function SupplierRequests() {
                   </div>
 
                   {quoted ? (
-                    <div className="w-full py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-center font-bold text-xs">
-                      {tStr('quoteSubmitted', language)}
+                    <div className="flex gap-2">
+                      <div className="flex-1 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-center font-bold text-xs">
+                        {tStr('quoteSubmitted', language)}
+                      </div>
+                      {myQuoteFor(request.id) && (
+                        <a href={`/print/quote/${myQuoteFor(request.id).id}`} target="_blank"
+                          className="py-2.5 px-3 bg-white text-[#C0603E] border border-[#C0603E] rounded-xl font-bold text-xs hover:bg-[#FFFDF9] transition-colors text-center">
+                          {tStr('viewQuote', language)}
+                        </a>
+                      )}
                     </div>
                   ) : hasDraft(request.id) ? (
                     <Link href={`/supplier-requests/quote/${request.id}`}

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import SupplierNav from '../../../components/SupplierNav';
 import { useToast } from '../../../components/Toast';
+import { useConfirm } from '../../../components/ConfirmDialog';
 import { useEscapeKey } from '../../../components/useEscapeKey';
 import { saudiCities, getCityName } from '../../../lib/translations';
 import {
@@ -166,6 +167,9 @@ const T = {
   updated:      { ar: 'تم تحديث العرض بنجاح!',   en: 'Quote updated successfully!' },
   submitted:    { ar: 'تم إرسال عرض السعر بنجاح!', en: 'Quote submitted successfully!' },
   tooLarge:     { ar: 'حجم المرفقات كبير جداً — احذف بعضها وحاول مرة أخرى', en: 'Attachments are too large — remove some and try again' },
+  confirmSend:  { ar: 'هل أنت متأكد من إرسال عرض السعر؟ لن تتمكن من تعديله بعد الإرسال — لو احتجت لتعديله لاحقًا فسيتطلب الأمر عرضًا جديدًا.', en: "Are you sure you want to send this quote? You won't be able to edit it after sending — changing it later will require a new quote." },
+  confirmUpdate:{ ar: 'هل أنت متأكد من إرسال التعديل؟', en: 'Are you sure you want to send this update?' },
+  sendConfirmBtn:{ ar: 'نعم، إرسال', en: 'Yes, Send' },
 };
 function tx(key: keyof typeof T, lang: Lang): string { return T[key][lang]; }
 
@@ -194,6 +198,7 @@ export default function SupplierQuoteBuilder() {
   const params = useParams();
   const requestId = Number(params.requestId);
   const showToast = useToast();
+  const confirmDialog = useConfirm();
 
   const [language, setLanguage] = useState<Lang>('ar');
   const [user, setUser] = useState<any>(null);
@@ -446,6 +451,12 @@ export default function SupplierQuoteBuilder() {
     localStorage.removeItem(`quoteDraft_${requestId}`);
     showToast(tx('submitted', language));
     router.push('/supplier-requests');
+  };
+
+  const confirmAndSubmit = async () => {
+    const msg = editQuoteId ? tx('confirmUpdate', language) : tx('confirmSend', language);
+    if (!(await confirmDialog(msg, { confirmText: tx('sendConfirmBtn', language) }))) return;
+    handleConfirmSubmit();
   };
 
   const handleSaveDraft = () => {
@@ -745,7 +756,7 @@ export default function SupplierQuoteBuilder() {
             className="px-6 py-3 bg-white text-[#C0603E] border-2 border-[#C0603E] rounded-xl font-bold text-sm hover:bg-[#FFFDF9] transition-colors">
             {tx('reviewBtn', language)}
           </button>
-          <button type="button" onClick={() => { if (validate()) handleConfirmSubmit(); }}
+          <button type="button" onClick={() => { if (validate()) confirmAndSubmit(); }}
             className="flex-1 py-3 bg-[#C0603E] hover:bg-[#9C4C31] text-white rounded-xl font-bold text-sm transition-colors">
             {editQuoteId ? tx('updateBtn', language) : tx('submitBtn', language)}
           </button>
@@ -787,6 +798,7 @@ export default function SupplierQuoteBuilder() {
                     <th className={th}>{tx('beforeTax', language)}</th>
                     <th className={th}>{tx('taxCol', language)}</th>
                     <th className={th}>{tx('lineTotal', language)}</th>
+                    <th className={th}>{tx('itemNote', language)}</th>
                     <th className={th}>{tx('image', language)}</th>
                   </tr>
                 </thead>
@@ -806,6 +818,7 @@ export default function SupplierQuoteBuilder() {
                       <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{rowSubtotal(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                       <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{rowTax(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                       <td className="px-3 py-2 text-center border-b border-[#F1EAE0] font-bold">{rowTotal(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0] max-w-[140px]">{li.description || tx('noValue', language)}</td>
                       <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">
                         {li.images.length > 0 ? (
                           <div className="flex gap-1 justify-center">
@@ -851,7 +864,7 @@ export default function SupplierQuoteBuilder() {
             )}
 
             <div className="flex gap-3">
-              <button onClick={handleConfirmSubmit}
+              <button onClick={confirmAndSubmit}
                 className="flex-[2] py-3 bg-[#C0603E] hover:bg-[#9C4C31] text-white rounded-xl font-bold text-sm transition-colors">
                 {tx('confirm', language)}
               </button>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { displayVal, formatDate, getSupplierData, arToEn, Lang, Quote, ActivityLog, RequestLike } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
 import { useEscapeKey } from './useEscapeKey';
+import QuoteCompareTable from './QuoteCompareTable';
 
 interface RequestDetailModalProps {
   req: RequestLike; lang: Lang; dir: 'rtl' | 'ltr';
@@ -23,6 +24,7 @@ export default function RequestDetailModal({
 }: RequestDetailModalProps) {
   const tr = (ar: string, en: string) => lang === 'ar' ? ar : en;
   const [linkCopied, setLinkCopied] = useState(false);
+  const [comparing, setComparing] = useState(false);
   const handleCopyLink = () => {
     navigator.clipboard.writeText(`${window.location.origin}/request/${req.id}`).then(() => {
       setLinkCopied(true);
@@ -128,9 +130,26 @@ export default function RequestDetailModal({
 
           {/* quotes */}
           <div>
-            <h3 className="text-sm font-bold text-stone-900 mb-3">{tr('عروض الأسعار', 'Quotes')} ({quotes.length})</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-stone-900">{tr('عروض الأسعار', 'Quotes')} ({quotes.length})</h3>
+              {quotes.length > 1 && (
+                <button onClick={() => setComparing(c => !c)}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${comparing ? 'bg-[#C0603E] text-white border-[#C0603E]' : 'bg-white text-[#C0603E] border-[#C0603E] hover:bg-[#F3EAE0]'}`}>
+                  {tr('مقارنة العروض', 'Compare Quotes')} {comparing ? '✕' : '⇄'}
+                </button>
+              )}
+            </div>
             {quotes.length === 0 ? (
               <div className="bg-stone-50 rounded-xl p-4 text-sm text-stone-400 text-center">{tr('لا توجد عروض أسعار بعد', 'No quotes yet')}</div>
+            ) : comparing ? (
+              <QuoteCompareTable quotes={quotes} lang={lang} variant="actions"
+                onAccept={id => onQuoteAction(id, 'accepted')}
+                onReject={id => onQuoteAction(id, 'rejected')}
+                onUndo={id => onQuoteAction(id, 'pending')}
+                printHrefBase="/print/quote/"
+                revisionQuoteId={revisionQuoteId} revisionNote={revisionNote}
+                setRevisionQuoteId={setRevisionQuoteId} setRevisionNote={setRevisionNote}
+                onRevisionSubmit={onRevisionSubmit} />
             ) : (
               <div className="space-y-3">
                 {quotes.map((quote: Quote) => {
@@ -142,9 +161,15 @@ export default function RequestDetailModal({
                           <p className="font-bold text-stone-900 text-sm">{quote.supplierCompany}</p>
                           <p className="text-stone-400 text-xs">{quote.supplierName}</p>
                         </div>
-                        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${quote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : quote.status === 'rejected' ? 'bg-red-100 text-red-700' : quote.status === 'revision' ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-600'}`}>
-                          {quote.status === 'accepted' ? tr('مقبول','Accepted') : quote.status === 'rejected' ? tr('مرفوض','Rejected') : quote.status === 'revision' ? tr('طلب تعديل','Revision Requested') : tr('قيد الانتظار','Pending')}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${quote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : quote.status === 'rejected' ? 'bg-red-100 text-red-700' : quote.status === 'revision' ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-600'}`}>
+                            {quote.status === 'accepted' ? tr('مقبول','Accepted') : quote.status === 'rejected' ? tr('مرفوض','Rejected') : quote.status === 'revision' ? tr('طلب تعديل','Revision Requested') : tr('قيد الانتظار','Pending')}
+                          </span>
+                          <a href={`/print/quote/${quote.id}`} target="_blank"
+                            className="text-[11px] font-semibold px-2.5 py-1 bg-stone-100 text-stone-600 rounded-full hover:bg-stone-200 transition-colors whitespace-nowrap">
+                            {tr('عرض التفاصيل','View Details')}
+                          </a>
+                        </div>
                       </div>
                       <p className="text-xl font-bold text-stone-900">{quote.totalPrice?.toLocaleString()} {tr('ر.س','SAR')}</p>
                       <p className="text-xs text-stone-500 mt-1">{tr('مدة التوريد:','Delivery:')} {quote.deliveryDays} {tr('يوم','days')}</p>

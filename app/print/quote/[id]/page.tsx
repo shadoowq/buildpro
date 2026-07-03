@@ -19,14 +19,16 @@ export default function PrintQuote() {
   const [contractor, setContractor] = useState<any>(null);
   const [supplier, setSupplier]     = useState<any>(null);
   const [ready, setReady] = useState(false);
-  const [printMode, setPrintMode] = useState<PrintMode>('multi');
+  const [printMode, setPrintMode] = useState<PrintMode>('single');
   const [singlePageHeightMm, setSinglePageHeightMm] = useState<number | null>(null);
+  const [autoPrint, setAutoPrint] = useState(false);
   const printAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
       const savedLang = localStorage.getItem('language') as Lang || 'ar';
       setLang(savedLang);
+      setAutoPrint(new URLSearchParams(window.location.search).get('autoprint') === '1');
 
       const cu = localStorage.getItem('currentUser');
       const currentUser = cu ? JSON.parse(cu) : null;
@@ -79,11 +81,12 @@ export default function PrintQuote() {
   const hasAutoPrintedRef = useRef(false);
   useEffect(() => {
     if (!ready || !quote || hasAutoPrintedRef.current) return;
+    if (!isPreview && !autoPrint) return;
     if (printMode === 'single' && singlePageHeightMm === null) return;
     hasAutoPrintedRef.current = true;
     const t = setTimeout(() => window.print(), 600);
     return () => clearTimeout(t);
-  }, [ready, quote, printMode, singlePageHeightMm]);
+  }, [ready, quote, printMode, singlePageHeightMm, isPreview, autoPrint]);
 
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
@@ -120,8 +123,8 @@ export default function PrintQuote() {
   const matCols   = lang === 'ar' ? ['#', 'المادة', 'الاستخدام', 'الكمية', 'المقاس', 'الفنش', 'اللون', 'الصناعة'] : ['#', 'Material', 'Usage', 'Qty', 'Size', 'Finish', 'Color', 'Origin'];
   const matFields = ['type', 'usage', 'quantity', 'size', 'finish', 'color', 'origin'];
   const liCols = lang === 'ar'
-    ? ['#', 'المادة', 'المقاس', 'السماكة', 'الفنش', 'اللون', 'الكمية', 'الوحدة', 'سعر الوحدة', 'الخصم', 'قبل الضريبة', 'الضريبة', 'الإجمالي', 'صورة']
-    : ['#', 'Material', 'Size', 'Thickness', 'Finish', 'Color', 'Qty', 'Unit', 'Unit Price', 'Discount', 'Before Tax', 'Tax', 'Total', 'Image'];
+    ? ['#', 'المادة', 'المقاس', 'السماكة', 'الفنش', 'اللون', 'الكمية', 'الوحدة', 'سعر الوحدة', 'الخصم', 'قبل الضريبة', 'الضريبة', 'الإجمالي', 'وصف البند', 'صورة']
+    : ['#', 'Material', 'Size', 'Thickness', 'Finish', 'Color', 'Qty', 'Unit', 'Unit Price', 'Discount', 'Before Tax', 'Tax', 'Total', 'Note', 'Image'];
   const matVal = (m: any, f: string) => {
     if (f === 'quantity') return m.quantity ? `${m.quantity} ${displayVal(m.unit, lang) !== '—' ? displayVal(m.unit, lang) : 'm²'}` : '—';
     if (f === 'type')     return displayVal(m.type || m.typePending, lang);
@@ -264,10 +267,7 @@ export default function PrintQuote() {
                   return (
                     <tr key={li.id}>
                       <td style={{ ...td, textAlign: 'center', fontWeight: 700, color: '#C0603E' }}>{i + 1}</td>
-                      <td style={td}>
-                        {displayVal(resolveOther(li.type, li.typeOther), lang)}
-                        {li.description && <div style={{ fontSize: 9, color: '#A8A29E', fontStyle: 'italic', marginTop: 2 }}>{li.description}</div>}
-                      </td>
+                      <td style={td}>{displayVal(resolveOther(li.type, li.typeOther), lang)}</td>
                       <td style={td}>{resolveOther(li.size, li.sizeOther) || '—'}</td>
                       <td style={td}>{resolveOther(li.thickness, li.thicknessOther) || '—'}</td>
                       <td style={td}>{displayVal(resolveOther(li.finish, li.finishOther), lang)}</td>
@@ -279,6 +279,7 @@ export default function PrintQuote() {
                       <td style={td}>{subtotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                       <td style={td}>{tax.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                       <td style={{ ...td, fontWeight: 700 }}>{lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                      <td style={{ ...td, maxWidth: 140 }}>{li.description || '—'}</td>
                       <td style={{ ...td, textAlign: 'center' }}>
                         {li.images && li.images.length > 0 ? (
                           <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>

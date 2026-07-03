@@ -30,6 +30,7 @@ interface Quote {
   revisionNote?: string;
   createdAt: string;
   quoteNumber?: string;
+  validUntil?: string;
 }
 
 interface Request {
@@ -93,6 +94,8 @@ const T = {
   confirmWithdraw:{ ar: 'هل أنت متأكد من سحب هذا العرض؟', en: 'Withdraw this quote?' },
   print:        { ar: 'طباعة',                en: 'Print'                 },
   withdrawnToTrash: { ar: 'تم نقل العرض لسلة المهملات', en: 'Quote moved to trash' },
+  view:         { ar: 'عرض',                  en: 'View'                  },
+  withdrawLocked: { ar: 'لا يمكن سحب العرض إلا بعد انتهاء صلاحيته', en: "Can't withdraw until the quote's validity expires" },
 };
 
 function tFn(key: keyof typeof T, lang: Lang, n?: number): string {
@@ -401,6 +404,10 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                               </button>
                             )}
                             <a href={`/print/quote/${q.id}`} target="_blank"
+                              className="text-[11px] font-semibold px-3 py-1.5 bg-[#F3EAE0] text-[#C0603E] rounded-lg hover:bg-[#EADFCF] transition-colors text-center">
+                              👁 {tFn('view', lang)}
+                            </a>
+                            <a href={`/print/quote/${q.id}?autoprint=1`} target="_blank"
                               className="text-[11px] font-semibold px-3 py-1.5 bg-stone-50 text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors text-center">
                               🖨 {lang === 'ar' ? 'طباعة' : 'Print'}
                             </a>
@@ -485,6 +492,8 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
     }
     return `#${requestId}`;
   };
+
+  const isWithdrawable = (q: Quote) => !q.validUntil || q.validUntil < new Date().toISOString().slice(0, 10);
 
   const handleWithdraw = async (quoteId: number, requestId: number) => {
     if (!(await confirmDialog(tFn('confirmWithdraw', lang), { confirmText: tFn('withdrawBtn', lang), danger: true }))) return;
@@ -590,11 +599,18 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                 <div className="flex items-center justify-between mt-3">
                   <p className="text-[10px] text-stone-400">{tFn('submittedOn', lang)} {formatDate(q.createdAt, lang)}</p>
                   <div className="flex gap-2">
-                    {q.status === 'pending' && (
-                      <button onClick={() => handleWithdraw(q.id, q.requestId)}
-                        className="text-[11px] font-semibold px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors">
-                        {tFn('withdrawBtn', lang)}
-                      </button>
+                    {(q.status === 'pending' || q.status === 'revision') && (
+                      isWithdrawable(q) ? (
+                        <button onClick={() => handleWithdraw(q.id, q.requestId)}
+                          className="text-[11px] font-semibold px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors">
+                          {tFn('withdrawBtn', lang)}
+                        </button>
+                      ) : (
+                        <span title={tFn('withdrawLocked', lang)}
+                          className="text-[11px] font-semibold px-3 py-1.5 bg-stone-50 text-stone-300 border border-stone-100 rounded-lg cursor-not-allowed">
+                          {tFn('withdrawBtn', lang)}
+                        </span>
+                      )
                     )}
                     {q.status === 'revision' && (
                       <Link href={`/supplier-requests/quote/${q.requestId}?editQuoteId=${q.id}`}
@@ -602,7 +618,11 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                         {tFn('editResubmitBtn', lang)}
                       </Link>
                     )}
-                    <a href={`/print/quote/${q.id}`} target="_blank" title={tFn('print', lang)}
+                    <a href={`/print/quote/${q.id}`} target="_blank" title={tFn('view', lang)}
+                      className="text-[11px] font-semibold px-3 py-1.5 bg-[#F3EAE0] text-[#C0603E] rounded-lg hover:bg-[#EADFCF] transition-colors">
+                      👁 {tFn('view', lang)}
+                    </a>
+                    <a href={`/print/quote/${q.id}?autoprint=1`} target="_blank" title={tFn('print', lang)}
                       className="text-[11px] font-semibold px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors">
                       🖨 {tFn('print', lang)}
                     </a>
