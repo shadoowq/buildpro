@@ -46,12 +46,16 @@ const T = {
   companyPlaceholder:{ ar: 'مثال: شركة المستقبل', en: 'Ex: Future Company'       },
   phonePlaceholder:  { ar: 'مثال: 0512345678',    en: 'Ex: 0512345678'           },
   branding:      { ar: 'الهوية البصرية / الورق الرسمي', en: 'Branding / Letterhead' },
-  brandingNote:  { ar: 'ارفع ليتر هيد شركتك (بانر عريض جاهز بالشعار وبيانات التواصل) — يظهر تلقائيًا أعلى كل عرض سعر تطبعه بدل هيدر المنصة', en: 'Upload your company letterhead (a wide ready-made banner with your logo and contact details) — it appears automatically at the top of every quote you print, replacing the platform header' },
-  uploadLogo:    { ar: 'رفع الليتر هيد',           en: 'Upload Letterhead'        },
+  brandingNote:  { ar: 'ارفع هيدر وفوتر شركتك (بانرات جاهزة بالشعار وبيانات التواصل) — يظهروا تلقائيًا أعلى وأسفل كل عرض سعر تطبعه أو ترسله للمقاول', en: 'Upload your company header and footer banners — they appear automatically at the top and bottom of every quote you print or send to the contractor' },
+  headerLabel:   { ar: 'الهيدر (أعلى الصفحة)',    en: 'Header (Top of Page)'     },
+  footerLabel:   { ar: 'الفوتر (أسفل الصفحة)',    en: 'Footer (Bottom of Page)'  },
+  uploadLogo:    { ar: 'رفع الهيدر',               en: 'Upload Header'            },
+  uploadFooter:  { ar: 'رفع الفوتر',               en: 'Upload Footer'            },
   replaceLogo:   { ar: 'استبدال',                 en: 'Replace'                  },
   removeLogo:    { ar: 'حذف',                     en: 'Remove'                   },
   logoTooBig:    { ar: 'حجم الصورة كبير جداً (الحد الأقصى 800 كيلوبايت)', en: 'Image too large (max 800KB)' },
-  logoSaved:     { ar: 'تم حفظ الليتر هيد ✓',      en: 'Letterhead saved ✓'       },
+  logoSaved:     { ar: 'تم حفظ الهيدر ✓',          en: 'Header saved ✓'           },
+  footerSaved:   { ar: 'تم حفظ الفوتر ✓',          en: 'Footer saved ✓'           },
 };
 
 function t(key: keyof typeof T, lang: Lang): string {
@@ -111,6 +115,7 @@ export default function ProfilePage() {
 
   // branding
   const [letterhead, setLetterhead] = useState<string | null>(null);
+  const [letterheadFooter, setLetterheadFooter] = useState<string | null>(null);
 
   // password form
   const [currentPass, setCurrentPass]   = useState('');
@@ -133,6 +138,7 @@ export default function ProfilePage() {
     setPhone(u.phone || '');
     setCity(u.city || u.location || '');
     setLetterhead(u.letterhead || null);
+    setLetterheadFooter(u.letterheadFooter || null);
   }, [router]);
 
   const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
@@ -169,6 +175,31 @@ export default function ProfilePage() {
   const handleRemoveLetterhead = () => {
     setLetterhead(null);
     const updated = persistUserUpdate({ letterhead: undefined });
+    setUser(updated);
+  };
+
+  const handleFooterUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > MAX_LETTERHEAD_BYTES) {
+      showToast(t('logoTooBig', lang), 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setLetterheadFooter(dataUrl);
+      const updated = persistUserUpdate({ letterheadFooter: dataUrl });
+      setUser(updated);
+      showToast(t('footerSaved', lang));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveFooter = () => {
+    setLetterheadFooter(null);
+    const updated = persistUserUpdate({ letterheadFooter: undefined });
     setUser(updated);
   };
 
@@ -276,32 +307,64 @@ export default function ProfilePage() {
         {/* BRANDING / LETTERHEAD (suppliers only) */}
         {user.userType === 'supplier' && (
           <SectionCard title={t('branding', lang)}>
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-4">
               <p className="text-xs text-stone-500">{t('brandingNote', lang)}</p>
               <HelpTooltip lang={lang}
-                textAr="ليتر هيدك سيظهر تلقائيًا كبانر عريض أعلى كل عرض سعر تطبعه، بدل هيدر المنصة"
-                textEn="Your letterhead appears automatically as a wide banner at the top of every quote you print, replacing the platform header" />
+                textAr="الهيدر والفوتر بيظهروا تلقائيًا كبانرات عريضة أعلى وأسفل كل عرض سعر — سواء وقت الطباعة أو لما العرض يوصل للمقاول"
+                textEn="The header and footer appear automatically as wide banners at the top and bottom of every quote — both when printing and when the quote reaches the contractor" />
             </div>
-            {letterhead ? (
-              <div className="flex flex-col gap-3">
-                <img src={letterhead} alt="letterhead" className="w-full max-w-md h-24 object-contain border border-[#E8DFD3] rounded-xl bg-[#FAF7F2]" />
-                <div className="flex gap-2">
-                  <label className="cursor-pointer text-xs font-semibold px-4 py-2 bg-stone-100 text-stone-700 rounded-lg hover:bg-stone-200">
-                    {t('replaceLogo', lang)}
+
+            <div className="space-y-5">
+              {/* HEADER */}
+              <div>
+                <p className="text-xs font-semibold text-stone-700 mb-2">{t('headerLabel', lang)}</p>
+                {letterhead ? (
+                  <div className="flex flex-col gap-3">
+                    <img src={letterhead} alt="header" className="w-full max-w-md h-24 object-contain border border-[#E8DFD3] rounded-xl bg-[#FAF7F2]" />
+                    <div className="flex gap-2">
+                      <label className="cursor-pointer text-xs font-semibold px-4 py-2 bg-stone-100 text-stone-700 rounded-lg hover:bg-stone-200">
+                        {t('replaceLogo', lang)}
+                        <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLetterheadUpload} className="hidden" />
+                      </label>
+                      <button onClick={handleRemoveLetterhead}
+                        className="text-xs font-semibold px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100">
+                        {t('removeLogo', lang)}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer inline-block text-xs font-semibold px-4 py-2.5 bg-[#C0603E] text-white rounded-xl hover:bg-[#9C4C31]">
+                    {t('uploadLogo', lang)}
                     <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLetterheadUpload} className="hidden" />
                   </label>
-                  <button onClick={handleRemoveLetterhead}
-                    className="text-xs font-semibold px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100">
-                    {t('removeLogo', lang)}
-                  </button>
-                </div>
+                )}
               </div>
-            ) : (
-              <label className="cursor-pointer inline-block text-xs font-semibold px-4 py-2.5 bg-[#C0603E] text-white rounded-xl hover:bg-[#9C4C31]">
-                {t('uploadLogo', lang)}
-                <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLetterheadUpload} className="hidden" />
-              </label>
-            )}
+
+              {/* FOOTER */}
+              <div className="pt-4 border-t border-[#F1EAE0]">
+                <p className="text-xs font-semibold text-stone-700 mb-2">{t('footerLabel', lang)}</p>
+                {letterheadFooter ? (
+                  <div className="flex flex-col gap-3">
+                    <img src={letterheadFooter} alt="footer" className="w-full max-w-md h-24 object-contain border border-[#E8DFD3] rounded-xl bg-[#FAF7F2]" />
+                    <div className="flex gap-2">
+                      <label className="cursor-pointer text-xs font-semibold px-4 py-2 bg-stone-100 text-stone-700 rounded-lg hover:bg-stone-200">
+                        {t('replaceLogo', lang)}
+                        <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFooterUpload} className="hidden" />
+                      </label>
+                      <button onClick={handleRemoveFooter}
+                        className="text-xs font-semibold px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100">
+                        {t('removeLogo', lang)}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer inline-block text-xs font-semibold px-4 py-2.5 bg-[#C0603E] text-white rounded-xl hover:bg-[#9C4C31]">
+                    {t('uploadFooter', lang)}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFooterUpload} className="hidden" />
+                  </label>
+                )}
+              </div>
+            </div>
           </SectionCard>
         )}
 

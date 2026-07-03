@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Quote, QuoteLineItem } from '../../../lib/requestHelpers';
 import { currencyLabel, resolveOther, lineSubtotal, VAT_RATE } from '../../../lib/materialOptions';
 
 type Lang = 'ar' | 'en';
+type PrintMode = 'single' | 'multi';
 
 interface Request { id: number; contractorId: string; projectName?: string; materials?: any[]; ceramic: number; porcelain: number; marble: number; granite: number; terrazzo: number; location: string; deadline: string; }
 
@@ -18,6 +19,9 @@ export default function PrintQuote() {
   const [contractor, setContractor] = useState<any>(null);
   const [supplier, setSupplier]     = useState<any>(null);
   const [ready, setReady] = useState(false);
+  const [printMode, setPrintMode] = useState<PrintMode>('multi');
+  const [singlePageHeightMm, setSinglePageHeightMm] = useState<number | null>(null);
+  const printAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
@@ -61,8 +65,25 @@ export default function PrintQuote() {
   }, [params.id, isPreview]);
 
   useEffect(() => {
-    if (ready && quote) setTimeout(() => window.print(), 600);
-  }, [ready, quote]);
+    if (printMode !== 'single' || !ready || !quote) { setSinglePageHeightMm(null); return; }
+    const t = setTimeout(() => {
+      const el = printAreaRef.current;
+      if (el) {
+        const heightMm = Math.ceil(el.scrollHeight * 25.4 / 96) + 20;
+        setSinglePageHeightMm(heightMm);
+      }
+    }, 50);
+    return () => clearTimeout(t);
+  }, [printMode, ready, quote]);
+
+  const hasAutoPrintedRef = useRef(false);
+  useEffect(() => {
+    if (!ready || !quote || hasAutoPrintedRef.current) return;
+    if (printMode === 'single' && singlePageHeightMm === null) return;
+    hasAutoPrintedRef.current = true;
+    const t = setTimeout(() => window.print(), 600);
+    return () => clearTimeout(t);
+  }, [ready, quote, printMode, singlePageHeightMm]);
 
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
@@ -109,16 +130,35 @@ export default function PrintQuote() {
 
   return (
     <>
-      <div className="no-print" style={{ display: 'flex', padding: '10px 16px', background: '#C0603E', gap: 12, alignItems: 'center' }}>
+      {printMode === 'single' && singlePageHeightMm && (
+        <style>{`@media print { @page { size: 297mm ${singlePageHeightMm}mm; margin: 10mm 12mm; } }`}</style>
+      )}
+
+      <div className="no-print" style={{ display: 'flex', padding: '10px 16px', background: '#C0603E', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
         <button onClick={() => window.history.back()} style={{ color: '#fff', background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: 13 }}>
           {lang === 'ar' ? '← رجوع' : '← Back'}
         </button>
         <button onClick={() => window.print()} style={{ color: '#fff', background: '#8A7B6C', border: 'none', borderRadius: 8, padding: '6px 18px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: 13 }}>
           🖨 {lang === 'ar' ? 'طباعة' : 'Print'}
         </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.12)', borderRadius: 8, padding: '4px 6px', marginInlineStart: 'auto' }}>
+          <span style={{ color: '#fff', fontSize: 12, opacity: 0.8, paddingInlineStart: 6 }}>
+            {lang === 'ar' ? 'الطباعة في:' : 'Print as:'}
+          </span>
+          <button onClick={() => setPrintMode('single')}
+            style={{ color: '#fff', background: printMode === 'single' ? '#C0603E' : 'transparent', border: 'none', borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: 12, fontWeight: printMode === 'single' ? 700 : 400 }}>
+            {lang === 'ar' ? 'صفحة واحدة' : 'One Page'}
+          </button>
+          <button onClick={() => setPrintMode('multi')}
+            style={{ color: '#fff', background: printMode === 'multi' ? '#C0603E' : 'transparent', border: 'none', borderRadius: 6, padding: '5px 12px', cursor: 'pointer', fontFamily: 'Cairo, sans-serif', fontSize: 12, fontWeight: printMode === 'multi' ? 700 : 400 }}>
+            {lang === 'ar' ? 'عدة صفحات' : 'Multiple Pages'}
+          </button>
+        </div>
       </div>
 
-      <div className="print-area" dir={dir} style={{ padding: '24px 28px', maxWidth: 820, margin: '0 auto', fontFamily: 'Cairo, sans-serif', background: '#ffffff', minHeight: '100vh' }}>
+      <div className="print-area" ref={printAreaRef} dir={dir}
+        style={{ padding: '24px 28px', paddingBottom: supplier?.letterheadFooter ? 170 : 24, maxWidth: 820, margin: '0 auto', fontFamily: 'Cairo, sans-serif', background: '#ffffff', minHeight: '100vh' }}>
 
         {/* HEADER */}
         {supplier?.letterhead && (
@@ -340,6 +380,11 @@ export default function PrintQuote() {
             </tr></tbody>
           </table>
         </div>
+
+        {supplier?.letterheadFooter && (
+          <img src={supplier.letterheadFooter} alt="footer" className="print-quote-footer-fixed"
+            style={{ width: '100%', maxHeight: 140, objectFit: 'contain', display: 'block', marginTop: 18 }} />
+        )}
 
         <div style={{ marginTop: 14, textAlign: 'center', fontSize: 10, color: '#A8A29E', borderTop: '1px solid #F1EAE0', paddingTop: 8 }}>
           {lang === 'ar' ? `تم إنشاء هذا العرض عبر منصة BuildPro · ${printDate}` : `Generated via BuildPro platform · ${printDate}`}

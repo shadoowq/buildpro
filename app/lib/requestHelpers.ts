@@ -5,7 +5,7 @@ export const arToEn: Record<string, string> = {
   'جرانيت': 'Granite', 'تيرازو': 'Terrazzo', 'حجر طبيعي': 'Natural Stone',
   'أرضيات': 'Flooring', 'جدران': 'Walls', 'وزر': 'Skirting',
   'درج': 'Stairs', 'مغاسل': 'Sinks', 'واجهات': 'Facades', 'أسطح': 'Surfaces',
-  'بوليش': 'Polished', 'مات': 'Matte', 'ساتان': 'Satin',
+  'مصقول': 'Polished', 'مطفي': 'Matte', 'ساتان': 'Satin',
   'بوشهامر': 'Bush-hammered', 'لابراتو': 'Labradorite', 'أنتيك': 'Antique',
   'أبيض': 'White', 'كريمي': 'Cream', 'رمادي فاتح': 'Light Gray',
   'رمادي غامق': 'Dark Gray', 'أسود': 'Black', 'بيج': 'Beige',

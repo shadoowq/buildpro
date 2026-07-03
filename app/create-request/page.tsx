@@ -599,7 +599,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       {tx.finish}
                       <HelpTooltip lang={language}
-                        textAr="طريقة تشطيب سطح المادة (بوليش، مات، ساتان...)"
+                        textAr="طريقة تشطيب سطح المادة (مصقول، مطفي، ساتان...)"
                         textEn="The surface finish of the material (polished, matte, satin...)" />
                     </span>
                   </th>
