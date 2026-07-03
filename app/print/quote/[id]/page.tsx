@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { Quote, QuoteLineItem } from '../../../lib/requestHelpers';
+import { currencyLabel, resolveOther, lineSubtotal, VAT_RATE } from '../../../lib/materialOptions';
 
 type Lang = 'ar' | 'en';
 
-interface Quote { id: number; requestId: number; supplierId: string; supplierName: string; supplierCompany: string; totalPrice: number; deliveryDays: number; description: string; status: 'pending' | 'accepted' | 'rejected' | 'revision'; revisionNote?: string; createdAt: string; }
 interface Request { id: number; contractorId: string; projectName?: string; materials?: any[]; ceramic: number; porcelain: number; marble: number; granite: number; terrazzo: number; location: string; deadline: string; }
 
 export default function PrintQuote() {
   const params = useParams();
-  const id = Number(params.id);
+  const isPreview = params.id === 'preview';
   const [lang, setLang]         = useState<Lang>('ar');
   const [quote, setQuote]       = useState<Quote | null>(null);
   const [req, setReq]           = useState<Request | null>(null);
@@ -26,26 +27,38 @@ export default function PrintQuote() {
       const cu = localStorage.getItem('currentUser');
       const currentUser = cu ? JSON.parse(cu) : null;
 
-      const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
-      const found = allQuotes.find(q => q.id === id);
+      let found: Quote | null = null;
+      if (isPreview) {
+        const previewRaw = localStorage.getItem('quotePreview');
+        found = previewRaw ? JSON.parse(previewRaw) : null;
+      } else {
+        const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+        found = allQuotes.find(q => q.id === Number(params.id)) || null;
+      }
 
       const allReqs: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
       const foundReq = found ? allReqs.find(r => r.id === found.requestId) : undefined;
-      const owned = found && foundReq && currentUser && foundReq.contractorId === currentUser.email;
 
-      setQuote(owned ? found! : null);
+      const isContractor = !!(found && foundReq && currentUser && foundReq.contractorId === currentUser.email);
+      const isSupplier = !!(found && currentUser && found.supplierId === currentUser.email);
+      const owned = isPreview ? !!found : (isContractor || isSupplier);
 
-      if (owned) {
+      setQuote(owned ? found : null);
+
+      if (owned && found) {
         setReq(foundReq || null);
-        if (currentUser.email === foundReq!.contractorId) setContractor(currentUser);
-        const supStored = localStorage.getItem(`user_${found!.supplierId}`);
-        setSupplier(supStored ? JSON.parse(supStored) : { name: found!.supplierName, company: found!.supplierCompany, email: found!.supplierId });
+        if (foundReq) {
+          const contractorStored = localStorage.getItem(`user_${foundReq.contractorId}`);
+          setContractor(contractorStored ? JSON.parse(contractorStored) : null);
+        }
+        const supStored = localStorage.getItem(`user_${found.supplierId}`);
+        setSupplier(supStored ? JSON.parse(supStored) : { name: found.supplierName, company: found.supplierCompany, email: found.supplierId });
       }
     } catch {
       setQuote(null);
     }
     setReady(true);
-  }, [id]);
+  }, [params.id, isPreview]);
 
   useEffect(() => {
     if (ready && quote) setTimeout(() => window.print(), 600);
@@ -85,6 +98,9 @@ export default function PrintQuote() {
   };
   const matCols   = lang === 'ar' ? ['#', 'المادة', 'الاستخدام', 'الكمية', 'المقاس', 'الفنش', 'اللون', 'الصناعة'] : ['#', 'Material', 'Usage', 'Qty', 'Size', 'Finish', 'Color', 'Origin'];
   const matFields = ['type', 'usage', 'quantity', 'size', 'finish', 'color', 'origin'];
+  const liCols = lang === 'ar'
+    ? ['#', 'المادة', 'المقاس', 'الفنش', 'اللون', 'الكمية', 'الوحدة', 'سعر الوحدة', 'الخصم', 'قبل الضريبة', 'الضريبة', 'الإجمالي']
+    : ['#', 'Material', 'Size', 'Finish', 'Color', 'Qty', 'Unit', 'Unit Price', 'Discount', 'Before Tax', 'Tax', 'Total'];
   const matVal = (m: any, f: string) => {
     if (f === 'quantity') return m.quantity ? `${m.quantity} ${m.unit || 'م²'}` : '—';
     if (f === 'type')     return m.type || m.typePending || '—';
@@ -105,17 +121,26 @@ export default function PrintQuote() {
       <div className="print-area" dir={dir} style={{ padding: '24px 28px', maxWidth: 820, margin: '0 auto', fontFamily: 'Cairo, sans-serif', background: '#ffffff', minHeight: '100vh' }}>
 
         {/* HEADER */}
+        {supplier?.letterhead && (
+          <img src={supplier.letterhead} alt="letterhead"
+            style={{ width: '100%', maxHeight: 160, objectFit: 'contain', display: 'block', marginBottom: 12 }} />
+        )}
         <table style={{ width: '100%', marginBottom: 14, borderCollapse: 'collapse' }}>
           <tbody><tr>
-            <td style={{ verticalAlign: 'top' }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#C0603E' }}>Build<span style={{ color: '#8A7B6C' }}>Pro</span></div>
-              <div style={{ fontSize: 11, color: '#A8A29E', marginTop: 2 }}>{lang === 'ar' ? 'منصة تسعير مواد البناء' : 'Construction Materials Pricing Platform'}</div>
-            </td>
-            <td style={{ textAlign: lang === 'ar' ? 'left' : 'right', verticalAlign: 'top' }}>
+            {!supplier?.letterhead && (
+              <td style={{ verticalAlign: 'top' }}>
+                <div style={{ fontSize: 22, fontWeight: 800, color: '#C0603E' }}>Build<span style={{ color: '#8A7B6C' }}>Pro</span></div>
+                <div style={{ fontSize: 11, color: '#A8A29E', marginTop: 2 }}>{quote.supplierCompany || (lang === 'ar' ? 'منصة تسعير مواد البناء' : 'Construction Materials Pricing Platform')}</div>
+              </td>
+            )}
+            <td style={{ textAlign: supplier?.letterhead ? (lang === 'ar' ? 'right' : 'left') : (lang === 'ar' ? 'left' : 'right'), verticalAlign: 'top' }}>
               <div style={{ fontSize: 18, fontWeight: 800, color: '#C0603E' }}>{lang === 'ar' ? 'عرض سعر' : 'QUOTATION'}</div>
-              <div style={{ fontSize: 11, color: '#78716C', marginTop: 3 }}>{lang === 'ar' ? 'رقم العرض:' : 'Quote No:'} <strong style={{ color: '#C0603E' }}>#{quote.id}</strong></div>
+              <div style={{ fontSize: 11, color: '#78716C', marginTop: 3 }}>{lang === 'ar' ? 'رقم العرض:' : 'Quote No:'} <strong style={{ color: '#C0603E' }}>{quote.quoteNumber || `#${quote.id}`}</strong></div>
               <div style={{ fontSize: 11, color: '#78716C' }}>{lang === 'ar' ? 'تاريخ العرض:' : 'Quote Date:'} {quoteDate}</div>
               <div style={{ fontSize: 11, color: '#78716C' }}>{lang === 'ar' ? 'تاريخ الطباعة:' : 'Printed:'} {printDate}</div>
+              {quote.validUntil && (
+                <div style={{ fontSize: 11, color: '#78716C' }}>{lang === 'ar' ? 'صالح حتى:' : 'Valid Until:'} {quote.validUntil}</div>
+              )}
               <div style={{ marginTop: 6, display: 'inline-block', background: `${statusInfo.color}18`, border: `1px solid ${statusInfo.color}50`, borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: statusInfo.color }}>
                 {lang === 'ar' ? statusInfo.ar : statusInfo.en}
               </div>
@@ -164,7 +189,7 @@ export default function PrintQuote() {
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: 10, opacity: 0.7, marginBottom: 4 }}>{lang === 'ar' ? 'إجمالي العرض' : 'TOTAL PRICE'}</div>
             <div style={{ fontSize: 28, fontWeight: 800 }}>{Number(quote.totalPrice).toLocaleString()}</div>
-            <div style={{ fontSize: 12, opacity: 0.8 }}>{lang === 'ar' ? 'ريال سعودي' : 'SAR'}</div>
+            <div style={{ fontSize: 12, opacity: 0.8 }}>{quote.currency ? currencyLabel(quote.currency, lang) : (lang === 'ar' ? 'ريال سعودي' : 'SAR')}</div>
           </div>
           <div style={{ width: 1, height: 50, background: 'rgba(255,255,255,0.2)' }} />
           <div style={{ textAlign: 'center' }}>
@@ -183,7 +208,70 @@ export default function PrintQuote() {
         </div>
 
         {/* MATERIALS */}
-        {materials.length > 0 && (
+        {quote.lineItems && quote.lineItems.length > 0 ? (
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#C0603E', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'بنود العرض' : 'QUOTE LINE ITEMS'}</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>{liCols.map((c, i) => <th key={i} style={S.th}>{c}</th>)}</tr>
+              </thead>
+              <tbody>
+                {quote.lineItems.map((li: QuoteLineItem, i: number) => {
+                  const td = i % 2 === 0 ? S.tdE : S.tdO;
+                  const subtotal = lineSubtotal(li);
+                  const tax = subtotal * VAT_RATE;
+                  const lineTotal = subtotal + tax;
+                  return (
+                    <tr key={li.id}>
+                      <td style={{ ...td, textAlign: 'center', fontWeight: 700, color: '#C0603E' }}>{i + 1}</td>
+                      <td style={td}>
+                        {resolveOther(li.type, li.typeOther) || '—'}
+                        {li.description && <div style={{ fontSize: 9, color: '#A8A29E', fontStyle: 'italic', marginTop: 2 }}>{li.description}</div>}
+                      </td>
+                      <td style={td}>{resolveOther(li.size, li.sizeOther) || '—'}</td>
+                      <td style={td}>{resolveOther(li.finish, li.finishOther) || '—'}</td>
+                      <td style={td}>{resolveOther(li.color, li.colorOther) || '—'}</td>
+                      <td style={td}>{li.quantity || '—'}</td>
+                      <td style={td}>{resolveOther(li.unit, li.unitOther) || '—'}</td>
+                      <td style={td}>{Number(li.unitPrice).toLocaleString()} {currencyLabel(quote.currency || 'ر.س', lang)}</td>
+                      <td style={td}>{li.discount ? Number(li.discount).toLocaleString() : '—'}</td>
+                      <td style={td}>{subtotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                      <td style={td}>{tax.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                      <td style={{ ...td, fontWeight: 700 }}>{lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {quote.subtotalBeforeTax !== undefined && (
+              <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
+                <table style={{ width: 260, borderCollapse: 'collapse' }}>
+                  <tbody>
+                    {!!quote.overallDiscount && (
+                      <tr>
+                        <td style={{ padding: '4px 8px', fontSize: 11, color: '#78716C' }}>{lang === 'ar' ? 'خصم على الإجمالي' : 'Discount on Total'}</td>
+                        <td style={{ padding: '4px 8px', fontSize: 11, color: '#44403C', textAlign: 'end', fontWeight: 600 }}>-{Number(quote.overallDiscount).toLocaleString()}</td>
+                      </tr>
+                    )}
+                    <tr>
+                      <td style={{ padding: '4px 8px', fontSize: 11, color: '#78716C' }}>{lang === 'ar' ? 'الإجمالي قبل الضريبة' : 'Subtotal Before Tax'}</td>
+                      <td style={{ padding: '4px 8px', fontSize: 11, color: '#44403C', textAlign: 'end', fontWeight: 600 }}>{quote.subtotalBeforeTax!.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(quote.currency || 'ر.س', lang)}</td>
+                    </tr>
+                    <tr>
+                      <td style={{ padding: '4px 8px', fontSize: 11, color: '#78716C' }}>{lang === 'ar' ? 'إجمالي الضريبة (15%)' : 'Total Tax (15%)'}</td>
+                      <td style={{ padding: '4px 8px', fontSize: 11, color: '#44403C', textAlign: 'end', fontWeight: 600 }}>{(quote.taxAmount ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(quote.currency || 'ر.س', lang)}</td>
+                    </tr>
+                    <tr>
+                      <td style={{ padding: '6px 8px', fontSize: 12, color: '#C0603E', fontWeight: 800, borderTop: '1px solid #E8DFD3' }}>{lang === 'ar' ? 'الإجمالي مع الضريبة' : 'Total (incl. Tax)'}</td>
+                      <td style={{ padding: '6px 8px', fontSize: 12, color: '#C0603E', textAlign: 'end', fontWeight: 800, borderTop: '1px solid #E8DFD3' }}>{Number(quote.totalPrice).toLocaleString()} {currencyLabel(quote.currency || 'ر.س', lang)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        ) : materials.length > 0 ? (
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#C0603E', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'المواد المعروضة' : 'QUOTED MATERIALS'}</div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -202,6 +290,26 @@ export default function PrintQuote() {
                 })}
               </tbody>
             </table>
+          </div>
+        ) : null}
+
+        {/* PAYMENT TERMS */}
+        {quote.paymentTerms && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#C0603E', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'شروط الدفع' : 'PAYMENT TERMS'}</div>
+            <div style={{ background: '#FAF7F2', border: '1px solid #E8DFD3', borderRadius: 6, padding: '10px 14px', fontSize: 12, color: '#44403C' }}>{quote.paymentTerms}</div>
+          </div>
+        )}
+
+        {/* ATTACHMENTS */}
+        {quote.attachments && quote.attachments.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#C0603E', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'المرفقات' : 'ATTACHMENTS'}</div>
+            <div style={{ background: '#F3EAE0', border: '1px solid #E8DFD3', borderRadius: 6, padding: '10px 14px' }}>
+              {quote.attachments.map((f, i) => (
+                <div key={i} style={{ fontSize: 12, color: '#44403C', marginBottom: i < quote.attachments!.length - 1 ? 4 : 0 }}>📎 {f.name}</div>
+              ))}
+            </div>
           </div>
         )}
 

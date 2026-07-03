@@ -2,10 +2,10 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import SupplierNav from '../components/SupplierNav';
 import { displayVal, getDeadlineUrgency } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
-import { useEscapeKey } from '../components/useEscapeKey';
 import { useToast } from '../components/Toast';
 
 type Lang = 'ar' | 'en';
@@ -41,18 +41,8 @@ const T = {
   location:     { ar: 'الموقع:',             en: 'Location:'  },
   deadline:     { ar: 'الموعد:',             en: 'Deadline:'  },
   submitQuote:  { ar: 'تقديم عرض سعر',       en: 'Submit Quote' },
+  continueDraft:{ ar: 'متابعة العرض (مسودة محفوظة)', en: 'Continue Quote (Draft Saved)' },
   quoteSubmitted:{ ar: '✓ تم تقديم عرض السعر', en: '✓ Quote Submitted' },
-  modalTitle:   { ar: 'تقديم عرض سعر',       en: 'Submit Quote' },
-  reqLabel:     { ar: 'طلب #',               en: 'Request #'  },
-  totalPrice:   { ar: 'السعر الإجمالي (ريال)', en: 'Total Price (SAR)' },
-  totalPricePh: { ar: 'أدخل السعر الإجمالي', en: 'Enter total price' },
-  deliveryDays: { ar: 'مدة التوريد (أيام)',   en: 'Delivery Days' },
-  deliveryDaysPh:{ ar: 'عدد الأيام',          en: 'Number of days' },
-  notes:        { ar: 'ملاحظات إضافية (اختياري)', en: 'Additional Notes (Optional)' },
-  notesPh:      { ar: 'أي تفاصيل إضافية...', en: 'Any additional details...' },
-  submit:       { ar: 'إرسال العرض',         en: 'Submit Quote' },
-  alreadyQuoted:{ ar: 'لقد قدمت عرض سعر لهذا الطلب من قبل', en: 'You already submitted a quote for this request' },
-  submitted:    { ar: 'تم إرسال عرض السعر بنجاح!', en: 'Quote submitted successfully!' },
 };
 
 function tStr(key: keyof typeof T, lang: Lang): string {
@@ -75,15 +65,10 @@ export default function SupplierRequests() {
   const [allQuotes, setAllQuotes] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterTab>('all');
-  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
-  const [quoteForm, setQuoteForm] = useState({ totalPrice: '', deliveryDays: '', description: '' });
-  const [showQuoteForm, setShowQuoteForm] = useState(false);
   const [pendingReqId, setPendingReqId] = useState<number | null>(null);
   const router = useRouter();
   const showToast = useToast();
   const dir = language === 'ar' ? 'rtl' : 'ltr';
-
-  useEscapeKey(() => { if (showQuoteForm) { setShowQuoteForm(false); setSelectedRequest(null); } });
 
   useEffect(() => {
     const userData = localStorage.getItem('currentUser');
@@ -114,6 +99,10 @@ export default function SupplierRequests() {
   }, [pendingReqId, requests]);
 
   const hasQuoted = (requestId: number) => allQuotes.some((q: any) => q.requestId === requestId && q.supplierId === user?.email);
+  const hasDraft = (requestId: number) => {
+    if (typeof window === 'undefined') return false;
+    return !!localStorage.getItem(`quoteDraft_${requestId}`);
+  };
 
   const getReqName = (r: Request) => {
     if (r.projectName?.trim()) return r.projectName.trim();
@@ -137,40 +126,6 @@ export default function SupplierRequests() {
     if (r.granite > 0) lines.push(`${language === 'ar' ? 'جرانيت' : 'Granite'}: ${r.granite} m²`);
     if (r.terrazzo > 0) lines.push(`${language === 'ar' ? 'تيرازو' : 'Terrazzo'}: ${r.terrazzo} m²`);
     return lines;
-  };
-
-  const handleSubmitQuote = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedRequest) return;
-
-    const allQ = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const alreadyQuoted = allQ.find((q: any) => q.requestId === selectedRequest.id && q.supplierId === user.email);
-    if (alreadyQuoted) {
-      showToast(tStr('alreadyQuoted', language), 'error');
-      return;
-    }
-
-    const quote = {
-      id: Date.now(),
-      requestId: selectedRequest.id,
-      supplierId: user.email,
-      supplierName: user.name,
-      supplierCompany: user.company,
-      totalPrice: parseFloat(quoteForm.totalPrice),
-      deliveryDays: parseInt(quoteForm.deliveryDays),
-      description: quoteForm.description,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
-
-    const updated = [...allQ, quote];
-    localStorage.setItem('quotes', JSON.stringify(updated));
-    setAllQuotes(updated);
-
-    showToast(tStr('submitted', language));
-    setShowQuoteForm(false);
-    setSelectedRequest(null);
-    setQuoteForm({ totalPrice: '', deliveryDays: '', description: '' });
   };
 
   if (!user) return (
@@ -293,12 +248,16 @@ export default function SupplierRequests() {
                     <div className="w-full py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-center font-bold text-xs">
                       {tStr('quoteSubmitted', language)}
                     </div>
+                  ) : hasDraft(request.id) ? (
+                    <Link href={`/supplier-requests/quote/${request.id}`}
+                      className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs transition-colors text-center block">
+                      📝 {tStr('continueDraft', language)}
+                    </Link>
                   ) : (
-                    <button
-                      onClick={() => { setSelectedRequest(request); setShowQuoteForm(true); }}
-                      className="w-full py-2.5 bg-[#C0603E] hover:bg-[#9C4C31] text-white rounded-xl font-bold text-xs transition-colors">
+                    <Link href={`/supplier-requests/quote/${request.id}`}
+                      className="w-full py-2.5 bg-[#C0603E] hover:bg-[#9C4C31] text-white rounded-xl font-bold text-xs transition-colors text-center block">
                       {tStr('submitQuote', language)}
-                    </button>
+                    </Link>
                   )}
                 </div>
               );
@@ -307,54 +266,6 @@ export default function SupplierRequests() {
         )}
       </div>
 
-      {/* QUOTE MODAL */}
-      {selectedRequest && showQuoteForm && (
-        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4"
-          onClick={() => { setShowQuoteForm(false); setSelectedRequest(null); }}>
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full" dir={dir} role="dialog" aria-modal="true"
-            onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-bold text-stone-900">{tStr('modalTitle', language)}</h2>
-              <button onClick={() => { setShowQuoteForm(false); setSelectedRequest(null); }}
-                aria-label={language === 'ar' ? 'إغلاق' : 'Close'}
-                className="w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-500 flex items-center justify-center transition-colors">✕</button>
-            </div>
-
-            <div className="bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-3 mb-4">
-              <p className="text-xs font-bold text-stone-800 mb-0.5">{tStr('reqLabel', language)}{String(selectedRequest.id).slice(-6)}</p>
-              <p className="text-[11px] text-stone-500">{tStr('location', language)} {getCityName(selectedRequest.location, language)}</p>
-            </div>
-
-            <form onSubmit={handleSubmitQuote} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">{tStr('totalPrice', language)}</label>
-                <input type="number" value={quoteForm.totalPrice} required
-                  onChange={e => setQuoteForm(prev => ({ ...prev, totalPrice: e.target.value }))}
-                  placeholder={tStr('totalPricePh', language)}
-                  className="w-full text-sm border border-[#E8DFD3] rounded-xl px-4 py-2.5 outline-none font-cairo bg-white text-stone-800 placeholder-stone-300 focus:border-[#8A7B6C] focus:ring-2 focus:ring-[#8A7B6C]/10 transition-all" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">{tStr('deliveryDays', language)}</label>
-                <input type="number" value={quoteForm.deliveryDays} required
-                  onChange={e => setQuoteForm(prev => ({ ...prev, deliveryDays: e.target.value }))}
-                  placeholder={tStr('deliveryDaysPh', language)}
-                  className="w-full text-sm border border-[#E8DFD3] rounded-xl px-4 py-2.5 outline-none font-cairo bg-white text-stone-800 placeholder-stone-300 focus:border-[#8A7B6C] focus:ring-2 focus:ring-[#8A7B6C]/10 transition-all" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1.5">{tStr('notes', language)}</label>
-                <textarea value={quoteForm.description} rows={3}
-                  onChange={e => setQuoteForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder={tStr('notesPh', language)}
-                  className="w-full text-sm border border-[#E8DFD3] rounded-xl px-4 py-2.5 outline-none font-cairo bg-white text-stone-800 placeholder-stone-300 focus:border-[#8A7B6C] focus:ring-2 focus:ring-[#8A7B6C]/10 transition-all resize-none" />
-              </div>
-              <button type="submit"
-                className="w-full py-2.5 bg-[#C0603E] hover:bg-[#9C4C31] text-white rounded-xl font-bold text-sm transition-colors">
-                {tStr('submit', language)}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import ContractorNav from '../components/ContractorNav';
 import SupplierNav from '../components/SupplierNav';
 import { saudiCities, getCityName } from '../lib/translations';
+import { persistUserUpdate } from '../lib/requestHelpers';
+import { useToast } from '../components/Toast';
+import HelpTooltip from '../components/HelpTooltip';
 
 type Lang = 'ar' | 'en';
 
@@ -42,6 +45,13 @@ const T = {
   namePlaceholder:   { ar: 'مثال: محمد العتيبي',  en: 'Ex: Mohammed Al-Otaibi'  },
   companyPlaceholder:{ ar: 'مثال: شركة المستقبل', en: 'Ex: Future Company'       },
   phonePlaceholder:  { ar: 'مثال: 0512345678',    en: 'Ex: 0512345678'           },
+  branding:      { ar: 'الهوية البصرية / الورق الرسمي', en: 'Branding / Letterhead' },
+  brandingNote:  { ar: 'ارفع ليتر هيد شركتك (بانر عريض جاهز بالشعار وبيانات التواصل) — يظهر تلقائيًا أعلى كل عرض سعر تطبعه بدل هيدر المنصة', en: 'Upload your company letterhead (a wide ready-made banner with your logo and contact details) — it appears automatically at the top of every quote you print, replacing the platform header' },
+  uploadLogo:    { ar: 'رفع الليتر هيد',           en: 'Upload Letterhead'        },
+  replaceLogo:   { ar: 'استبدال',                 en: 'Replace'                  },
+  removeLogo:    { ar: 'حذف',                     en: 'Remove'                   },
+  logoTooBig:    { ar: 'حجم الصورة كبير جداً (الحد الأقصى 800 كيلوبايت)', en: 'Image too large (max 800KB)' },
+  logoSaved:     { ar: 'تم حفظ الليتر هيد ✓',      en: 'Letterhead saved ✓'       },
 };
 
 function t(key: keyof typeof T, lang: Lang): string {
@@ -88,6 +98,7 @@ const readonlyCls = 'w-full text-sm border border-[#E8DFD3] rounded-xl px-4 py-2
 
 export default function ProfilePage() {
   const router = useRouter();
+  const showToast = useToast();
   const [lang, setLang] = useState<Lang>('ar');
   const [user, setUser] = useState<any>(null);
 
@@ -97,6 +108,9 @@ export default function ProfilePage() {
   const [phone, setPhone]     = useState('');
   const [city, setCity]       = useState('');
   const [infoSaved, setInfoSaved] = useState(false);
+
+  // branding
+  const [letterhead, setLetterhead] = useState<string | null>(null);
 
   // password form
   const [currentPass, setCurrentPass]   = useState('');
@@ -118,33 +132,44 @@ export default function ProfilePage() {
     setCompany(u.company || '');
     setPhone(u.phone || '');
     setCity(u.city || u.location || '');
+    setLetterhead(u.letterhead || null);
   }, [router]);
 
   const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
 
   const handleSaveInfo = () => {
     if (!user) return;
-    const updated = { ...user, name, company, phone, city };
-    localStorage.setItem('currentUser', JSON.stringify(updated));
-
-    // also update in users array
-    const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
-    const updatedUsers = allUsers.map((u: any) => u.email === user.email ? { ...u, name, company, phone, city } : u);
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
-
-    // also update user_ key if it exists
-    const userKey = `user_${user.email}`;
-    const keyData = localStorage.getItem(userKey);
-    if (keyData) {
-      try {
-        const kd = JSON.parse(keyData);
-        localStorage.setItem(userKey, JSON.stringify({ ...kd, name, company, phone, city }));
-      } catch {}
-    }
-
+    const updated = persistUserUpdate({ name, company, phone, city });
     setUser(updated);
     setInfoSaved(true);
     setTimeout(() => setInfoSaved(false), 2500);
+  };
+
+  const MAX_LETTERHEAD_BYTES = 800 * 1024;
+
+  const handleLetterheadUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    if (file.size > MAX_LETTERHEAD_BYTES) {
+      showToast(t('logoTooBig', lang), 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setLetterhead(dataUrl);
+      const updated = persistUserUpdate({ letterhead: dataUrl });
+      setUser(updated);
+      showToast(t('logoSaved', lang));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveLetterhead = () => {
+    setLetterhead(null);
+    const updated = persistUserUpdate({ letterhead: undefined });
+    setUser(updated);
   };
 
   const handleChangePassword = () => {
@@ -247,6 +272,38 @@ export default function ProfilePage() {
             </button>
           </div>
         </SectionCard>
+
+        {/* BRANDING / LETTERHEAD (suppliers only) */}
+        {user.userType === 'supplier' && (
+          <SectionCard title={t('branding', lang)}>
+            <div className="flex items-center gap-2 mb-3">
+              <p className="text-xs text-stone-500">{t('brandingNote', lang)}</p>
+              <HelpTooltip lang={lang}
+                textAr="ليتر هيدك سيظهر تلقائيًا كبانر عريض أعلى كل عرض سعر تطبعه، بدل هيدر المنصة"
+                textEn="Your letterhead appears automatically as a wide banner at the top of every quote you print, replacing the platform header" />
+            </div>
+            {letterhead ? (
+              <div className="flex flex-col gap-3">
+                <img src={letterhead} alt="letterhead" className="w-full max-w-md h-24 object-contain border border-[#E8DFD3] rounded-xl bg-[#FAF7F2]" />
+                <div className="flex gap-2">
+                  <label className="cursor-pointer text-xs font-semibold px-4 py-2 bg-stone-100 text-stone-700 rounded-lg hover:bg-stone-200">
+                    {t('replaceLogo', lang)}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLetterheadUpload} className="hidden" />
+                  </label>
+                  <button onClick={handleRemoveLetterhead}
+                    className="text-xs font-semibold px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100">
+                    {t('removeLogo', lang)}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="cursor-pointer inline-block text-xs font-semibold px-4 py-2.5 bg-[#C0603E] text-white rounded-xl hover:bg-[#9C4C31]">
+                {t('uploadLogo', lang)}
+                <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLetterheadUpload} className="hidden" />
+              </label>
+            )}
+          </SectionCard>
+        )}
 
         {/* SECURITY */}
         <SectionCard title={t('security', lang)}>

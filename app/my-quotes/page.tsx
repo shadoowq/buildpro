@@ -7,7 +7,7 @@ import ContractorNav from '../components/ContractorNav';
 import SupplierNav from '../components/SupplierNav';
 import StatusBadge from '../components/StatusBadge';
 import QuoteCompareTable from '../components/QuoteCompareTable';
-import { formatDate, appendActivityLog, setQuoteStatus, displayVal, withdrawQuote, resubmitQuote } from '../lib/requestHelpers';
+import { formatDate, appendActivityLog, setQuoteStatus, displayVal, withdrawQuote } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
 import { useConfirm } from '../components/ConfirmDialog';
 import HelpTooltip from '../components/HelpTooltip';
@@ -89,8 +89,7 @@ const T = {
   withdrawBtn:  { ar: 'سحب العرض',           en: 'Withdraw'              },
   editResubmitBtn:{ ar: 'تعديل وإعادة الإرسال', en: 'Edit & Resubmit'    },
   confirmWithdraw:{ ar: 'هل أنت متأكد من سحب هذا العرض؟', en: 'Withdraw this quote?' },
-  saveResubmit: { ar: 'حفظ وإعادة الإرسال',   en: 'Save & Resubmit'       },
-  editingQuote: { ar: 'تعديل العرض',         en: 'Edit Quote'            },
+  print:        { ar: 'طباعة',                en: 'Print'                 },
 };
 
 function tFn(key: keyof typeof T, lang: Lang, n?: number): string {
@@ -447,8 +446,6 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [filter, setFilter] = useState<FilterTab>('all');
   const [pendingReqId, setPendingReqId] = useState<number | null>(null);
-  const [editingQuoteId, setEditingQuoteId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState({ totalPrice: '', deliveryDays: '', description: '' });
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
@@ -492,24 +489,6 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
     const user = userData ? JSON.parse(userData) : null;
     setQuotes(user ? updated.filter((q: Quote) => q.supplierId === user.email) : updated);
     appendActivityLog(requestId, `تم سحب عرض المورد`, `Supplier withdrew their quote`);
-  };
-
-  const startEdit = (q: Quote) => {
-    setEditingQuoteId(q.id);
-    setEditForm({ totalPrice: String(q.totalPrice), deliveryDays: String(q.deliveryDays), description: q.description || '' });
-  };
-
-  const handleResubmit = (quoteId: number, requestId: number) => {
-    const { quotes: updated } = resubmitQuote(quoteId, {
-      totalPrice: parseFloat(editForm.totalPrice) || 0,
-      deliveryDays: parseInt(editForm.deliveryDays) || 0,
-      description: editForm.description,
-    });
-    const userData = localStorage.getItem('currentUser');
-    const user = userData ? JSON.parse(userData) : null;
-    setQuotes(user ? updated.filter((q: Quote) => q.supplierId === user.email) : updated);
-    appendActivityLog(requestId, `أعاد المورد تقديم عرضه بعد التعديل`, `Supplier resubmitted their quote after revision`);
-    setEditingQuoteId(null);
   };
 
   const filteredQuotes = filter === 'all' ? quotes : quotes.filter(q => q.status === filter);
@@ -571,7 +550,6 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
         ) : (
           filteredQuotes.map(q => {
             const req = getRequest(q.requestId);
-            const isEditing = editingQuoteId === q.id;
             return (
               <div key={q.id} id={`supp-quote-${q.requestId}`} className={`bg-white border rounded-2xl p-5 transition-shadow ${q.status === 'accepted' ? 'border-emerald-200 bg-emerald-50/20' : q.status === 'rejected' ? 'border-red-200 bg-red-50/20' : q.status === 'revision' ? 'border-amber-200 bg-amber-50/20' : 'border-[#E8DFD3]'}`}>
                 <div className="flex items-start justify-between mb-3">
@@ -582,82 +560,46 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                   <StatusBadge status={q.status} lang={lang} />
                 </div>
 
-                {!isEditing && (
-                  <>
-                    <div className="flex gap-6">
-                      <div>
-                        <p className="text-[10px] text-stone-400">{tFn('yourPrice', lang)}</p>
-                        <p className="text-xl font-bold text-stone-900">{Number(q.totalPrice).toLocaleString()} <span className="text-sm font-medium text-stone-500">{tFn('sar', lang)}</span></p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-stone-400">{tFn('delivery', lang)}</p>
-                        <p className="text-sm font-semibold text-stone-700">{q.deliveryDays} {tFn('days', lang)}</p>
-                      </div>
-                    </div>
-                    {q.description && <p className="text-xs text-stone-500 mt-2">{q.description}</p>}
-                  </>
-                )}
+                <div className="flex gap-6">
+                  <div>
+                    <p className="text-[10px] text-stone-400">{tFn('yourPrice', lang)}</p>
+                    <p className="text-xl font-bold text-stone-900">{Number(q.totalPrice).toLocaleString()} <span className="text-sm font-medium text-stone-500">{tFn('sar', lang)}</span></p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-stone-400">{tFn('delivery', lang)}</p>
+                    <p className="text-sm font-semibold text-stone-700">{q.deliveryDays} {tFn('days', lang)}</p>
+                  </div>
+                </div>
+                {q.description && <p className="text-xs text-stone-500 mt-2">{q.description}</p>}
 
-                {q.status === 'revision' && q.revisionNote && !isEditing && (
+                {q.status === 'revision' && q.revisionNote && (
                   <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                     <p className="text-xs font-bold text-amber-800">{tFn('revNote', lang)}</p>
                     <p className="text-xs text-amber-700 mt-0.5">{q.revisionNote}</p>
                   </div>
                 )}
 
-                {isEditing && (
-                  <div className="mt-2 bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-4 space-y-3">
-                    <p className="text-xs font-bold text-stone-700">{tFn('editingQuote', lang)}</p>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-stone-600 mb-1">{tFn('yourPrice', lang)}</label>
-                      <input type="number" value={editForm.totalPrice}
-                        onChange={e => setEditForm(p => ({ ...p, totalPrice: e.target.value }))}
-                        className="w-full text-sm border border-[#E8DFD3] rounded-lg px-3 py-2 outline-none font-cairo bg-white text-stone-800 focus:border-[#8A7B6C]" />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-stone-600 mb-1">{tFn('delivery', lang)}</label>
-                      <input type="number" value={editForm.deliveryDays}
-                        onChange={e => setEditForm(p => ({ ...p, deliveryDays: e.target.value }))}
-                        className="w-full text-sm border border-[#E8DFD3] rounded-lg px-3 py-2 outline-none font-cairo bg-white text-stone-800 focus:border-[#8A7B6C]" />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-semibold text-stone-600 mb-1">{tFn('notes', lang) || (lang === 'ar' ? 'ملاحظات' : 'Notes')}</label>
-                      <textarea value={editForm.description} rows={2}
-                        onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
-                        className="w-full text-sm border border-[#E8DFD3] rounded-lg px-3 py-2 outline-none font-cairo bg-white text-stone-800 focus:border-[#8A7B6C] resize-none" />
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => handleResubmit(q.id, q.requestId)}
-                        className="text-xs font-semibold px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
-                        {tFn('saveResubmit', lang)}
+                <div className="flex items-center justify-between mt-3">
+                  <p className="text-[10px] text-stone-400">{tFn('submittedOn', lang)} {formatDate(q.createdAt, lang)}</p>
+                  <div className="flex gap-2">
+                    {q.status === 'pending' && (
+                      <button onClick={() => handleWithdraw(q.id, q.requestId)}
+                        className="text-[11px] font-semibold px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors">
+                        {tFn('withdrawBtn', lang)}
                       </button>
-                      <button onClick={() => setEditingQuoteId(null)}
-                        className="text-xs font-semibold px-4 py-2 bg-white border border-stone-200 text-stone-600 rounded-lg hover:bg-stone-50 transition-colors">
-                        {tFn('cancel', lang)}
-                      </button>
-                    </div>
+                    )}
+                    {q.status === 'revision' && (
+                      <Link href={`/supplier-requests/quote/${q.requestId}?editQuoteId=${q.id}`}
+                        className="text-[11px] font-semibold px-3 py-1.5 bg-amber-400 text-white rounded-lg hover:bg-amber-500 transition-colors inline-block text-center">
+                        {tFn('editResubmitBtn', lang)}
+                      </Link>
+                    )}
+                    <a href={`/print/quote/${q.id}`} target="_blank" title={tFn('print', lang)}
+                      className="text-[11px] font-semibold px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors">
+                      🖨 {tFn('print', lang)}
+                    </a>
                   </div>
-                )}
-
-                {!isEditing && (
-                  <div className="flex items-center justify-between mt-3">
-                    <p className="text-[10px] text-stone-400">{tFn('submittedOn', lang)} {formatDate(q.createdAt, lang)}</p>
-                    <div className="flex gap-2">
-                      {q.status === 'pending' && (
-                        <button onClick={() => handleWithdraw(q.id, q.requestId)}
-                          className="text-[11px] font-semibold px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors">
-                          {tFn('withdrawBtn', lang)}
-                        </button>
-                      )}
-                      {q.status === 'revision' && (
-                        <button onClick={() => startEdit(q)}
-                          className="text-[11px] font-semibold px-3 py-1.5 bg-amber-400 text-white rounded-lg hover:bg-amber-500 transition-colors">
-                          {tFn('editResubmitBtn', lang)}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             );
           })

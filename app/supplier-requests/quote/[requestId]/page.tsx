@@ -1,0 +1,769 @@
+'use client';
+
+import { useState, useEffect, useRef } from 'react';
+import { useRouter, useParams } from 'next/navigation';
+import SupplierNav from '../../../components/SupplierNav';
+import { useToast } from '../../../components/Toast';
+import { useEscapeKey } from '../../../components/useEscapeKey';
+import { saudiCities, getCityName } from '../../../lib/translations';
+import {
+  MATERIAL_OPTIONS, CURRENCY_OPTIONS, PAYMENT_TERMS_OPTIONS, currencyLabel, OTHER_VALUE, resolveOther,
+  VAT_RATE, lineSubtotal, computeQuoteTotals,
+} from '../../../lib/materialOptions';
+import {
+  appendActivityLog, getSupplierData, generateQuoteNumber, resubmitQuote,
+  Quote, QuoteLineItem, QuoteAttachment,
+} from '../../../lib/requestHelpers';
+
+type Lang = 'ar' | 'en';
+const OTHER = OTHER_VALUE;
+
+interface FormLineItem {
+  id: number;
+  type: string; typeOther: string;
+  size: string; sizeOther: string;
+  finish: string; finishOther: string;
+  color: string; colorOther: string;
+  quantity: string;
+  unit: string; unitOther: string;
+  unitPrice: string;
+  discount: string;
+  description: string;
+  targetPriceHint?: string;
+}
+
+const emptyLineItem = (): FormLineItem => ({
+  id: Date.now() + Math.random(),
+  type: '', typeOther: '',
+  size: '', sizeOther: '',
+  finish: '', finishOther: '',
+  color: '', colorOther: '',
+  quantity: '', unit: MATERIAL_OPTIONS.units[0], unitOther: '',
+  unitPrice: '', discount: '', description: '',
+});
+
+function legacyMaterialRows(request: any): any[] {
+  const rows: any[] = [];
+  const map = [
+    { key: 'ceramic', ar: 'سيراميك' }, { key: 'porcelain', ar: 'بورسلان' },
+    { key: 'marble', ar: 'رخام' }, { key: 'granite', ar: 'جرانيت' }, { key: 'terrazzo', ar: 'تيرازو' },
+  ];
+  map.forEach(t => { if (request[t.key] > 0) rows.push({ type: t.ar, quantity: request[t.key], unit: 'م²' }); });
+  return rows;
+}
+
+function pickField(val: string, options: string[]): { value: string; other: string } {
+  if (!val) return { value: '', other: '' };
+  return options.includes(val) ? { value: val, other: '' } : { value: OTHER, other: val };
+}
+
+function prefillFromRequest(request: any): FormLineItem[] {
+  const materials = request.materials?.length ? request.materials : legacyMaterialRows(request);
+  if (!materials.length) return [emptyLineItem()];
+  return materials.map((m: any) => {
+    const type = pickField(m.type || m.typePending || '', MATERIAL_OPTIONS.types);
+    const size = pickField(m.size || m.sizePending || '', MATERIAL_OPTIONS.sizes);
+    const finish = pickField(m.finish || m.finishPending || '', MATERIAL_OPTIONS.finishes);
+    const color = pickField(m.color || m.colorPending || '', MATERIAL_OPTIONS.colors);
+    const unit = pickField(m.unit || '', MATERIAL_OPTIONS.units);
+    return {
+      id: Date.now() + Math.random(),
+      type: type.value, typeOther: type.other,
+      size: size.value, sizeOther: size.other,
+      finish: finish.value, finishOther: finish.other,
+      color: color.value, colorOther: color.other,
+      quantity: m.quantity != null ? String(m.quantity) : '',
+      unit: unit.value || MATERIAL_OPTIONS.units[0], unitOther: unit.other,
+      unitPrice: '', discount: '', description: '',
+      targetPriceHint: m.targetPrice ? `${m.targetPrice} ${m.currency || 'ر.س'}` : '',
+    };
+  });
+}
+
+function defaultValidUntil(): string {
+  const d = new Date();
+  d.setDate(d.getDate() + 30);
+  return d.toISOString().slice(0, 10);
+}
+
+const T = {
+  title:        { ar: 'تقديم عرض سعر',          en: 'Submit Price Quote' },
+  editTitle:    { ar: 'تعديل عرض السعر',        en: 'Edit Price Quote' },
+  back:         { ar: '← رجوع',                 en: '← Back' },
+  quoteNumber:  { ar: 'رقم العرض',              en: 'Quote Number' },
+  refCard:      { ar: 'مرجع الطلب',             en: 'Request Reference' },
+  project:      { ar: 'المشروع',                en: 'Project' },
+  city:         { ar: 'المدينة',                en: 'City' },
+  deadline:     { ar: 'الموعد النهائي',          en: 'Deadline' },
+  requestedMaterials: { ar: 'المواد المطلوبة',   en: 'Requested Materials' },
+  quoteDetails: { ar: 'تفاصيل العرض',            en: 'Quote Details' },
+  clientName:   { ar: 'اسم العميل',              en: 'Client Name' },
+  location:     { ar: 'الموقع',                 en: 'Location' },
+  selectCity:   { ar: 'اختر مدينة...',           en: 'Select a city...' },
+  deliveryDays: { ar: 'مدة التوريد (أيام)',      en: 'Delivery Time (days)' },
+  currency:     { ar: 'العملة',                 en: 'Currency' },
+  paymentTerms: { ar: 'شروط الدفع',              en: 'Payment Terms' },
+  selectOption: { ar: 'اختر...',                en: 'Select...' },
+  otherOption:  { ar: 'أخرى...',                en: 'Other...' },
+  specify:      { ar: 'حدد...',                 en: 'Specify...' },
+  validUntil:   { ar: 'صالح حتى',                en: 'Valid Until' },
+  lineItems:    { ar: 'بنود العرض',              en: 'Quote Line Items' },
+  material:     { ar: 'المادة',                  en: 'Material' },
+  size:         { ar: 'المقاس',                  en: 'Size' },
+  finish:       { ar: 'الفنش',                   en: 'Finish' },
+  color:        { ar: 'اللون',                   en: 'Color' },
+  qty:          { ar: 'الكمية',                  en: 'Qty' },
+  unit:         { ar: 'الوحدة',                  en: 'Unit' },
+  unitPrice:    { ar: 'سعر الوحدة',              en: 'Unit Price' },
+  itemDiscount: { ar: 'الخصم',                   en: 'Discount' },
+  beforeTax:    { ar: 'قبل الضريبة',             en: 'Before Tax' },
+  taxCol:       { ar: 'الضريبة (15%)',           en: 'Tax (15%)' },
+  lineTotal:    { ar: 'الإجمالي',                en: 'Total' },
+  itemNote:     { ar: 'وصف البند',               en: 'Item Description' },
+  targetHint:   { ar: 'سعر المقاول المستهدف',    en: 'Contractor target' },
+  addItem:      { ar: '+ إضافة بند',             en: '+ Add Item' },
+  removeItem:   { ar: 'حذف',                     en: 'Remove' },
+  overallDiscount: { ar: 'خصم على الإجمالي',     en: 'Discount on Total' },
+  subtotalBeforeTax: { ar: 'الإجمالي قبل الضريبة', en: 'Subtotal Before Tax' },
+  totalTax:     { ar: 'إجمالي الضريبة (15%)',    en: 'Total Tax (15%)' },
+  grandTotal:   { ar: 'الإجمالي مع الضريبة',     en: 'Total (incl. Tax)' },
+  attachments:  { ar: 'مرفقات (كتالوج، عينات، شهادات...)', en: 'Attachments (Catalog, Samples, Certificates...)' },
+  uploadFiles:  { ar: 'رفع ملفات',               en: 'Upload Files' },
+  notes:        { ar: 'ملاحظات عامة (اختياري)',  en: 'General Notes (Optional)' },
+  notesPh:      { ar: 'أي تفاصيل إضافية...',     en: 'Any additional details...' },
+  reviewBtn:    { ar: 'مراجعة العرض',            en: 'Review Quote' },
+  submitBtn:    { ar: 'إرسال العرض',             en: 'Submit Quote' },
+  updateBtn:    { ar: 'حفظ التعديلات',           en: 'Save Changes' },
+  saveDraftBtn: { ar: 'حفظ كمسودة',              en: 'Save as Draft' },
+  printPreview: { ar: 'معاينة الطباعة',          en: 'Print Preview' },
+  draftSaved:   { ar: 'تم حفظ المسودة — يمكنك إكمالها لاحقًا من نفس الطلب', en: 'Draft saved — you can continue it later from the same request' },
+  previewTitle: { ar: 'مراجعة العرض قبل الإرسال', en: 'Review Quote Before Sending' },
+  confirm:      { ar: 'تأكيد وإرسال العرض',      en: 'Confirm & Submit Quote' },
+  editBack:     { ar: 'رجوع للتعديل',            en: 'Back to Edit' },
+  noValue:      { ar: '—',                       en: '—' },
+  legacyToast:  { ar: 'هذا عرض قديم — الرجاء إعادة إدخال أسعار البنود', en: 'This is a legacy quote — please re-enter item prices' },
+  cannotEdit:   { ar: 'لا يمكن تعديل هذا العرض',  en: 'This quote cannot be edited' },
+  notAvailable: { ar: 'الطلب غير متاح',          en: 'Request not available' },
+  alreadyQuoted:{ ar: 'لقد قدمت عرض سعر لهذا الطلب من قبل', en: 'You already submitted a quote for this request' },
+  needItem:     { ar: 'أضف بندًا واحدًا على الأقل مع سعر', en: 'Add at least one priced line item' },
+  needDelivery: { ar: 'أدخل مدة التوريد',        en: 'Enter delivery time' },
+  needClient:   { ar: 'أدخل اسم العميل',         en: 'Enter client name' },
+  needLocation: { ar: 'اختر الموقع',             en: 'Select a location' },
+  needTerms:    { ar: 'أدخل شروط الدفع',         en: 'Enter payment terms' },
+  updated:      { ar: 'تم تحديث العرض بنجاح!',   en: 'Quote updated successfully!' },
+  submitted:    { ar: 'تم إرسال عرض السعر بنجاح!', en: 'Quote submitted successfully!' },
+};
+function tx(key: keyof typeof T, lang: Lang): string { return T[key][lang]; }
+
+function SelectOther({ value, other, onValue, onOther, options, lang }: {
+  value: string; other: string; onValue: (v: string) => void; onOther: (v: string) => void;
+  options: string[]; lang: Lang;
+}) {
+  return (
+    <div className="flex flex-col gap-1 min-w-[110px]">
+      <select value={value} onChange={e => onValue(e.target.value)}
+        className="text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 bg-white text-stone-700 outline-none focus:border-[#8A7B6C]">
+        <option value="">{tx('selectOption', lang)}</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+        <option value={OTHER}>{tx('otherOption', lang)}</option>
+      </select>
+      {value === OTHER && (
+        <input value={other} onChange={e => onOther(e.target.value)} placeholder={tx('specify', lang)}
+          className="text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 bg-white text-stone-700 outline-none focus:border-[#8A7B6C]" />
+      )}
+    </div>
+  );
+}
+
+export default function SupplierQuoteBuilder() {
+  const router = useRouter();
+  const params = useParams();
+  const requestId = Number(params.requestId);
+  const showToast = useToast();
+
+  const [language, setLanguage] = useState<Lang>('ar');
+  const [user, setUser] = useState<any>(null);
+  const [request, setRequest] = useState<any>(null);
+  const [ready, setReady] = useState(false);
+  const [editQuoteId, setEditQuoteId] = useState<number | null>(null);
+
+  const [quoteNumber, setQuoteNumber] = useState('');
+  const [clientName, setClientName] = useState('');
+  const [location, setLocation] = useState('');
+  const [deliveryDays, setDeliveryDays] = useState('');
+  const [paymentTerms, setPaymentTerms] = useState('');
+  const [paymentTermsOther, setPaymentTermsOther] = useState('');
+  const [validUntil, setValidUntil] = useState('');
+  const [currency, setCurrency] = useState('ر.س');
+  const [overallDiscount, setOverallDiscount] = useState('');
+  const [lineItems, setLineItems] = useState<FormLineItem[]>([]);
+  const [attachments, setAttachments] = useState<QuoteAttachment[]>([]);
+  const [description, setDescription] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
+  const skipSaveRef = useRef(false);
+
+  const dir = language === 'ar' ? 'rtl' : 'ltr';
+
+  useEscapeKey(() => { if (showPreview) setShowPreview(false); });
+
+  useEffect(() => {
+    const userData = localStorage.getItem('currentUser');
+    if (!userData) { router.push('/login'); return; }
+    const parsedUser = JSON.parse(userData);
+    if (parsedUser.userType !== 'supplier') { router.push('/dashboard'); return; }
+    setUser(parsedUser);
+
+    const savedLang = (localStorage.getItem('language') as Lang) || 'ar';
+    setLanguage(savedLang);
+
+    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const req = allRequests.find((r: any) => r.id === requestId);
+    if (!req || !req.selectedSuppliers?.includes(parsedUser.email)) {
+      showToast(tx('notAvailable', savedLang), 'error');
+      router.push('/supplier-requests');
+      return;
+    }
+    setRequest(req);
+
+    const contractor = getSupplierData(req.contractorId);
+    const searchParams = new URLSearchParams(window.location.search);
+    const editIdParam = searchParams.get('editQuoteId');
+    const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+
+    if (editIdParam) {
+      const existing = allQuotes.find(q => q.id === Number(editIdParam) && q.supplierId === parsedUser.email && q.status === 'revision');
+      if (!existing) {
+        showToast(tx('cannotEdit', savedLang), 'error');
+        router.push('/my-quotes');
+        return;
+      }
+      skipSaveRef.current = true;
+      setEditQuoteId(existing.id);
+      setQuoteNumber(existing.quoteNumber || generateQuoteNumber(parsedUser.email));
+      setClientName(existing.clientName || contractor?.name || '');
+      setLocation(existing.location || req.location || '');
+      setDeliveryDays(String(existing.deliveryDays ?? ''));
+      setValidUntil(existing.validUntil || defaultValidUntil());
+      setCurrency(existing.currency || 'ر.س');
+      setOverallDiscount(existing.overallDiscount ? String(existing.overallDiscount) : '');
+      setDescription(existing.description || '');
+      if (existing.paymentTerms && PAYMENT_TERMS_OPTIONS.includes(existing.paymentTerms)) {
+        setPaymentTerms(existing.paymentTerms); setPaymentTermsOther('');
+      } else if (existing.paymentTerms) {
+        setPaymentTerms(OTHER); setPaymentTermsOther(existing.paymentTerms);
+      }
+      if (existing.lineItems?.length) {
+        setLineItems(existing.lineItems.map(li => ({
+          ...li, quantity: String(li.quantity), unitPrice: String(li.unitPrice), discount: li.discount ? String(li.discount) : '',
+        })));
+      } else {
+        setLineItems(prefillFromRequest(req));
+        showToast(tx('legacyToast', savedLang));
+      }
+      setAttachments(existing.attachments || []);
+    } else {
+      const alreadyQuoted = allQuotes.some(q => q.requestId === requestId && q.supplierId === parsedUser.email);
+      if (alreadyQuoted) {
+        showToast(tx('alreadyQuoted', savedLang), 'error');
+        router.push('/supplier-requests');
+        return;
+      }
+      let draft: any = null;
+      try { draft = JSON.parse(localStorage.getItem(`quoteDraft_${requestId}`) || 'null'); } catch {}
+      setQuoteNumber(generateQuoteNumber(parsedUser.email));
+      setClientName(draft?.clientName ?? contractor?.name ?? '');
+      setLocation(draft?.location ?? req.location ?? '');
+      setDeliveryDays(draft?.deliveryDays ?? '');
+      setPaymentTerms(draft?.paymentTerms ?? '');
+      setPaymentTermsOther(draft?.paymentTermsOther ?? '');
+      setValidUntil(draft?.validUntil ?? defaultValidUntil());
+      setCurrency(draft?.currency ?? 'ر.س');
+      setOverallDiscount(draft?.overallDiscount ?? '');
+      setDescription(draft?.description ?? '');
+      setLineItems(draft?.lineItems?.length ? draft.lineItems : prefillFromRequest(req));
+    }
+
+    setReady(true);
+  }, [requestId, router]);
+
+  useEffect(() => {
+    if (skipSaveRef.current || !ready) return;
+    localStorage.setItem(`quoteDraft_${requestId}`, JSON.stringify({
+      clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount,
+      lineItems, description, savedAt: new Date().toISOString(),
+    }));
+  }, [ready, requestId, clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount, lineItems, description]);
+
+  const handleLangChange = (l: Lang) => { setLanguage(l); localStorage.setItem('language', l); };
+
+  const updateRow = (id: number, field: keyof FormLineItem, value: string) => {
+    setLineItems(prev => prev.map(r => (r.id === id ? { ...r, [field]: value } : r)));
+  };
+  const addRow = () => setLineItems(prev => [...prev, emptyLineItem()]);
+  const removeRow = (id: number) => setLineItems(prev => (prev.length > 1 ? prev.filter(r => r.id !== id) : prev));
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    Array.from(e.target.files || []).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => setAttachments(prev => [...prev, { name: file.name, type: file.type, data: reader.result as string }]);
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+  const removeAttachment = (index: number) => setAttachments(prev => prev.filter((_, i) => i !== index));
+
+  const rowSubtotal = (li: FormLineItem) => lineSubtotal(li);
+  const rowTax = (li: FormLineItem) => rowSubtotal(li) * VAT_RATE;
+  const rowTotal = (li: FormLineItem) => rowSubtotal(li) + rowTax(li);
+  const totals = computeQuoteTotals(lineItems, overallDiscount);
+
+  const validate = (): boolean => {
+    const valid = lineItems.filter(li => resolveOther(li.type, li.typeOther).trim() && Number(li.unitPrice) > 0);
+    if (valid.length === 0) { showToast(tx('needItem', language), 'error'); return false; }
+    if (!deliveryDays || Number(deliveryDays) <= 0) { showToast(tx('needDelivery', language), 'error'); return false; }
+    if (!clientName.trim()) { showToast(tx('needClient', language), 'error'); return false; }
+    if (!location) { showToast(tx('needLocation', language), 'error'); return false; }
+    if (paymentTerms === OTHER && !paymentTermsOther.trim()) { showToast(tx('needTerms', language), 'error'); return false; }
+    return true;
+  };
+
+  const handleReview = () => { if (validate()) setShowPreview(true); };
+
+  const buildQuotePayload = () => {
+    const resolvedItems: QuoteLineItem[] = lineItems
+      .filter(li => resolveOther(li.type, li.typeOther).trim() && Number(li.unitPrice) > 0)
+      .map(li => ({
+        id: li.id, type: li.type, typeOther: li.typeOther,
+        size: li.size, sizeOther: li.sizeOther,
+        finish: li.finish, finishOther: li.finishOther,
+        color: li.color, colorOther: li.colorOther,
+        quantity: Number(li.quantity) || 0,
+        unit: li.unit, unitOther: li.unitOther,
+        unitPrice: Number(li.unitPrice) || 0,
+        discount: Number(li.discount) || 0,
+        description: li.description,
+      }));
+    const finalTotals = computeQuoteTotals(resolvedItems, overallDiscount);
+    const finalPaymentTerms = paymentTerms === OTHER ? paymentTermsOther : paymentTerms;
+    return {
+      totalPrice: finalTotals.grandTotal, deliveryDays: parseInt(deliveryDays) || 0, description,
+      quoteNumber, clientName, location, paymentTerms: finalPaymentTerms, validUntil, currency,
+      lineItems: resolvedItems, attachments,
+      overallDiscount: Number(overallDiscount) || 0,
+      subtotalBeforeTax: finalTotals.subtotalBeforeTax, taxAmount: finalTotals.taxAmount,
+    };
+  };
+
+  const handlePrintPreview = () => {
+    const previewQuote: Quote = {
+      id: 0, requestId, supplierId: user.email,
+      supplierName: user.name, supplierCompany: user.company,
+      status: 'pending', createdAt: new Date().toISOString(),
+      ...buildQuotePayload(),
+    };
+    localStorage.setItem('quotePreview', JSON.stringify(previewQuote));
+    window.open('/print/quote/preview', '_blank');
+  };
+
+  const handleConfirmSubmit = () => {
+    const commonFields = buildQuotePayload();
+
+    if (editQuoteId) {
+      resubmitQuote(editQuoteId, commonFields);
+      appendActivityLog(requestId, 'تم تعديل عرض السعر', 'Quote edited');
+      localStorage.removeItem(`quoteDraft_${requestId}`);
+      showToast(tx('updated', language));
+      router.push('/my-quotes');
+      return;
+    }
+
+    const newQuote: Quote = {
+      id: Date.now(), requestId, supplierId: user.email,
+      supplierName: user.name, supplierCompany: user.company,
+      status: 'pending', createdAt: new Date().toISOString(),
+      ...commonFields,
+    };
+    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+    localStorage.setItem('quotes', JSON.stringify([...allQuotes, newQuote]));
+    appendActivityLog(requestId, 'تم تقديم عرض سعر', 'Quote submitted');
+    localStorage.removeItem(`quoteDraft_${requestId}`);
+    showToast(tx('submitted', language));
+    router.push('/supplier-requests');
+  };
+
+  const handleSaveDraft = () => {
+    localStorage.setItem(`quoteDraft_${requestId}`, JSON.stringify({
+      clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount,
+      lineItems, description, savedAt: new Date().toISOString(),
+    }));
+    showToast(tx('draftSaved', language));
+    router.push('/supplier-requests');
+  };
+
+  if (!ready || !request || !user) return (
+    <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center font-cairo">
+      <div className="text-stone-400 text-sm">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
+    </div>
+  );
+
+  const reqName = request.projectName?.trim() || `#${String(request.id).slice(-6)}`;
+  const reqMaterialLines: string[] = (request.materials?.length ? request.materials : legacyMaterialRows(request))
+    .map((m: any) => `${m.type || m.typePending || ''} — ${m.quantity ?? 0} ${m.unit || 'م²'}`);
+
+  const inputCls = 'w-full text-sm border border-[#E8DFD3] rounded-xl px-4 py-2.5 outline-none font-cairo bg-white text-stone-800 placeholder-stone-300 focus:border-[#8A7B6C] focus:ring-2 focus:ring-[#8A7B6C]/10 transition-all';
+  const labelCls = 'block text-xs font-semibold text-stone-600 mb-1.5';
+  const th = 'px-3 py-2 text-[11px] font-semibold text-stone-500 whitespace-nowrap text-center bg-[#FAF7F2] border-b border-[#F1EAE0]';
+  const td = 'px-2 py-2 align-top border-b border-[#F1EAE0]';
+
+  return (
+    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+      <SupplierNav lang={language} setLang={handleLangChange} userName={user.name || ''} active="/supplier-requests" />
+
+      {/* HERO */}
+      <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-6">
+        <button onClick={() => router.push('/supplier-requests')} className="text-white/70 hover:text-white text-xs mb-2">
+          {tx('back', language)}
+        </button>
+        <div className="flex items-end justify-between flex-wrap gap-3">
+          <h1 className="text-white text-xl font-bold">{editQuoteId ? tx('editTitle', language) : tx('title', language)}</h1>
+          <div className="bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 text-white text-xs font-semibold">
+            {tx('quoteNumber', language)}: {quoteNumber}
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 md:px-7 py-6 max-w-5xl mx-auto space-y-5">
+
+        {/* REQUEST REFERENCE */}
+        <div className="bg-white border border-[#E8DFD3] rounded-2xl p-5">
+          <h2 className="text-sm font-bold text-stone-900 mb-3">{tx('refCard', language)}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+            <p className="text-xs text-stone-600"><span className="font-semibold text-stone-700">{tx('project', language)}:</span> {reqName}</p>
+            <p className="text-xs text-stone-600"><span className="font-semibold text-stone-700">{tx('city', language)}:</span> {getCityName(request.location, language)}</p>
+            <p className="text-xs text-stone-600"><span className="font-semibold text-stone-700">{tx('deadline', language)}:</span> {request.deadline || tx('noValue', language)}</p>
+          </div>
+          {reqMaterialLines.length > 0 && (
+            <div className="bg-[#FAF7F2] rounded-lg p-3">
+              <p className="text-[11px] font-semibold text-stone-500 mb-1">{tx('requestedMaterials', language)}</p>
+              {reqMaterialLines.map((line, i) => <p key={i} className="text-xs text-stone-700 my-0.5">• {line}</p>)}
+            </div>
+          )}
+        </div>
+
+        {/* QUOTE META */}
+        <div className="bg-white border border-[#E8DFD3] rounded-2xl p-5">
+          <h2 className="text-sm font-bold text-stone-900 mb-4">{tx('quoteDetails', language)}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>{tx('clientName', language)}</label>
+              <input type="text" value={clientName} onChange={e => setClientName(e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>{tx('location', language)}</label>
+              <select value={location} onChange={e => setLocation(e.target.value)} className={inputCls}>
+                <option value="">{tx('selectCity', language)}</option>
+                {saudiCities.map(c => <option key={c} value={c}>{getCityName(c, language)}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>{tx('deliveryDays', language)}</label>
+              <input type="number" min="0" value={deliveryDays} onChange={e => setDeliveryDays(e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>{tx('paymentTerms', language)}</label>
+              <select value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} className={inputCls}>
+                <option value="">{tx('selectOption', language)}</option>
+                {PAYMENT_TERMS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                <option value={OTHER}>{tx('otherOption', language)}</option>
+              </select>
+              {paymentTerms === OTHER && (
+                <input type="text" value={paymentTermsOther} onChange={e => setPaymentTermsOther(e.target.value)}
+                  placeholder={tx('specify', language)} className={`${inputCls} mt-2`} />
+              )}
+            </div>
+            <div>
+              <label className={labelCls}>{tx('validUntil', language)}</label>
+              <input type="date" value={validUntil} onChange={e => setValidUntil(e.target.value)} className={inputCls} />
+            </div>
+          </div>
+        </div>
+
+        {/* LINE ITEMS */}
+        <div className="bg-white border border-[#E8DFD3] rounded-2xl p-5">
+          <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+            <h2 className="text-sm font-bold text-stone-900">{tx('lineItems', language)}</h2>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-semibold text-stone-600">{tx('currency', language)}</label>
+              <select value={currency} onChange={e => setCurrency(e.target.value)}
+                className="text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 bg-white text-stone-700 outline-none focus:border-[#8A7B6C]">
+                {CURRENCY_OPTIONS.map(c => <option key={c.value} value={c.value}>{currencyLabel(c.value, language)}</option>)}
+              </select>
+            </div>
+          </div>
+          <div className="overflow-x-auto border border-[#E8DFD3] rounded-xl">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className={th}>{tx('material', language)}</th>
+                  <th className={th}>{tx('size', language)}</th>
+                  <th className={th}>{tx('finish', language)}</th>
+                  <th className={th}>{tx('color', language)}</th>
+                  <th className={th} style={{ minWidth: 70 }}>{tx('qty', language)}</th>
+                  <th className={th}>{tx('unit', language)}</th>
+                  <th className={th} style={{ minWidth: 110 }}>{tx('unitPrice', language)}</th>
+                  <th className={th} style={{ minWidth: 90 }}>{tx('itemDiscount', language)}</th>
+                  <th className={th} style={{ minWidth: 100 }}>{tx('beforeTax', language)}</th>
+                  <th className={th} style={{ minWidth: 90 }}>{tx('taxCol', language)}</th>
+                  <th className={th} style={{ minWidth: 100 }}>{tx('lineTotal', language)}</th>
+                  <th className={th} style={{ minWidth: 140 }}>{tx('itemNote', language)}</th>
+                  <th className={th}>✕</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lineItems.map(row => (
+                  <tr key={row.id}>
+                    <td className={td}>
+                      <SelectOther value={row.type} other={row.typeOther}
+                        onValue={v => updateRow(row.id, 'type', v)} onOther={v => updateRow(row.id, 'typeOther', v)}
+                        options={MATERIAL_OPTIONS.types} lang={language} />
+                    </td>
+                    <td className={td}>
+                      <SelectOther value={row.size} other={row.sizeOther}
+                        onValue={v => updateRow(row.id, 'size', v)} onOther={v => updateRow(row.id, 'sizeOther', v)}
+                        options={MATERIAL_OPTIONS.sizes} lang={language} />
+                    </td>
+                    <td className={td}>
+                      <SelectOther value={row.finish} other={row.finishOther}
+                        onValue={v => updateRow(row.id, 'finish', v)} onOther={v => updateRow(row.id, 'finishOther', v)}
+                        options={MATERIAL_OPTIONS.finishes} lang={language} />
+                    </td>
+                    <td className={td}>
+                      <SelectOther value={row.color} other={row.colorOther}
+                        onValue={v => updateRow(row.id, 'color', v)} onOther={v => updateRow(row.id, 'colorOther', v)}
+                        options={MATERIAL_OPTIONS.colors} lang={language} />
+                    </td>
+                    <td className={td} style={{ minWidth: 70 }}>
+                      <input type="number" min="0" value={row.quantity} onChange={e => updateRow(row.id, 'quantity', e.target.value)}
+                        className="w-full text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 outline-none" />
+                    </td>
+                    <td className={td}>
+                      <SelectOther value={row.unit} other={row.unitOther}
+                        onValue={v => updateRow(row.id, 'unit', v)} onOther={v => updateRow(row.id, 'unitOther', v)}
+                        options={MATERIAL_OPTIONS.units} lang={language} />
+                    </td>
+                    <td className={td} style={{ minWidth: 110 }}>
+                      <input type="number" min="0" value={row.unitPrice} onChange={e => updateRow(row.id, 'unitPrice', e.target.value)}
+                        className="w-full text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 outline-none" />
+                      {row.targetPriceHint && (
+                        <p className="text-[9px] text-stone-400 mt-0.5">{tx('targetHint', language)}: {row.targetPriceHint}</p>
+                      )}
+                    </td>
+                    <td className={td} style={{ minWidth: 90 }}>
+                      <input type="number" min="0" value={row.discount} onChange={e => updateRow(row.id, 'discount', e.target.value)}
+                        className="w-full text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 outline-none" />
+                    </td>
+                    <td className={td} style={{ minWidth: 100 }}>
+                      <span className="text-xs font-semibold text-stone-700">{rowSubtotal(row).toLocaleString()}</span>
+                    </td>
+                    <td className={td} style={{ minWidth: 90 }}>
+                      <span className="text-xs text-stone-500">{rowTax(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    </td>
+                    <td className={td} style={{ minWidth: 100 }}>
+                      <span className="text-xs font-bold text-[#C0603E]">{rowTotal(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                    </td>
+                    <td className={td} style={{ minWidth: 140 }}>
+                      <textarea value={row.description} onChange={e => updateRow(row.id, 'description', e.target.value)}
+                        rows={2} className="w-full text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 outline-none resize-none" />
+                    </td>
+                    <td className={td} style={{ textAlign: 'center' }}>
+                      <button type="button" onClick={() => removeRow(row.id)}
+                        className="w-6 h-6 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs">✕</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="flex items-center justify-between mt-3 mb-4">
+            <button type="button" onClick={addRow}
+              className="text-xs font-semibold px-4 py-2 bg-[#8A7B6C] hover:bg-[#6F6255] text-white rounded-lg transition-colors">
+              {tx('addItem', language)}
+            </button>
+          </div>
+
+          {/* TOTALS SUMMARY */}
+          <div className="bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-4 flex flex-col gap-2 max-w-sm ms-auto">
+            <div className="flex items-center justify-between gap-3">
+              <label className="text-xs font-semibold text-stone-600">{tx('overallDiscount', language)}</label>
+              <input type="number" min="0" value={overallDiscount} onChange={e => setOverallDiscount(e.target.value)}
+                className="w-28 text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 bg-white outline-none text-end" />
+            </div>
+            <div className="flex items-center justify-between text-xs text-stone-600">
+              <span>{tx('subtotalBeforeTax', language)}</span>
+              <span className="font-semibold">{totals.subtotalBeforeTax.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(currency, language)}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-stone-600">
+              <span>{tx('totalTax', language)}</span>
+              <span className="font-semibold">{totals.taxAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(currency, language)}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm font-bold text-stone-900 pt-2 border-t border-[#E8DFD3]">
+              <span>{tx('grandTotal', language)}</span>
+              <span className="text-[#C0603E]">{totals.grandTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(currency, language)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ATTACHMENTS */}
+        <div className="bg-white border border-[#E8DFD3] rounded-2xl p-5">
+          <label className={labelCls}>{tx('attachments', language)}</label>
+          <label className="inline-block cursor-pointer text-xs font-semibold px-4 py-2.5 bg-[#8A7B6C] hover:bg-[#6F6255] text-white rounded-xl transition-colors">
+            {tx('uploadFiles', language)}
+            <input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileUpload} />
+          </label>
+          {attachments.length > 0 && (
+            <div className="mt-3 border border-[#E8DFD3] rounded-xl overflow-hidden">
+              {attachments.map((f, i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-2.5 border-b border-[#F1EAE0] last:border-0">
+                  <span className="text-xs text-stone-700">📎 {f.name}</span>
+                  <button type="button" onClick={() => removeAttachment(i)} className="text-red-500 hover:text-red-600 text-xs font-semibold">✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* NOTES */}
+        <div className="bg-white border border-[#E8DFD3] rounded-2xl p-5">
+          <label className={labelCls}>{tx('notes', language)}</label>
+          <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
+            placeholder={tx('notesPh', language)} className={`${inputCls} resize-none`} />
+        </div>
+
+        {/* ACTIONS */}
+        <div className="flex gap-3">
+          {!editQuoteId && (
+            <button type="button" onClick={handleSaveDraft}
+              className="px-6 py-3 bg-transparent text-[#8A7B6C] border border-[#E8DFD3] rounded-xl font-bold text-sm hover:bg-[#FAF7F2] transition-colors">
+              {tx('saveDraftBtn', language)}
+            </button>
+          )}
+          <button type="button" onClick={handlePrintPreview}
+            className="px-6 py-3 bg-transparent text-stone-500 border border-[#E8DFD3] rounded-xl font-bold text-sm hover:bg-[#FAF7F2] transition-colors">
+            🖨 {tx('printPreview', language)}
+          </button>
+          <button type="button" onClick={handleReview}
+            className="px-6 py-3 bg-white text-[#C0603E] border-2 border-[#C0603E] rounded-xl font-bold text-sm hover:bg-[#FFFDF9] transition-colors">
+            {tx('reviewBtn', language)}
+          </button>
+          <button type="button" onClick={() => { if (validate()) handleConfirmSubmit(); }}
+            className="flex-1 py-3 bg-[#C0603E] hover:bg-[#9C4C31] text-white rounded-xl font-bold text-sm transition-colors">
+            {editQuoteId ? tx('updateBtn', language) : tx('submitBtn', language)}
+          </button>
+        </div>
+      </div>
+
+      {/* REVIEW MODAL */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4" onClick={() => setShowPreview(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto" dir={dir} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-bold text-stone-900">{tx('previewTitle', language)}</h2>
+              <button onClick={() => setShowPreview(false)} className="w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-500">✕</button>
+            </div>
+
+            <div className="bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-4 mb-4 grid grid-cols-2 gap-2 text-xs text-stone-700">
+              <p><strong>{tx('quoteNumber', language)}:</strong> {quoteNumber}</p>
+              <p><strong>{tx('clientName', language)}:</strong> {clientName}</p>
+              <p><strong>{tx('location', language)}:</strong> {getCityName(location, language)}</p>
+              <p><strong>{tx('deliveryDays', language)}:</strong> {deliveryDays}</p>
+              <p><strong>{tx('paymentTerms', language)}:</strong> {paymentTerms === OTHER ? paymentTermsOther : paymentTerms || tx('noValue', language)}</p>
+              <p><strong>{tx('validUntil', language)}:</strong> {validUntil || tx('noValue', language)}</p>
+            </div>
+
+            <div className="overflow-x-auto border border-[#E8DFD3] rounded-xl mb-4">
+              <table className="w-full border-collapse text-xs">
+                <thead>
+                  <tr>
+                    <th className={th}>#</th>
+                    <th className={th}>{tx('material', language)}</th>
+                    <th className={th}>{tx('size', language)}</th>
+                    <th className={th}>{tx('finish', language)}</th>
+                    <th className={th}>{tx('color', language)}</th>
+                    <th className={th}>{tx('qty', language)}</th>
+                    <th className={th}>{tx('unit', language)}</th>
+                    <th className={th}>{tx('unitPrice', language)}</th>
+                    <th className={th}>{tx('itemDiscount', language)}</th>
+                    <th className={th}>{tx('beforeTax', language)}</th>
+                    <th className={th}>{tx('taxCol', language)}</th>
+                    <th className={th}>{tx('lineTotal', language)}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lineItems.filter(li => resolveOther(li.type, li.typeOther).trim() && Number(li.unitPrice) > 0).map((li, i) => (
+                    <tr key={li.id}>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0] font-bold text-[#C0603E]">{i + 1}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{resolveOther(li.type, li.typeOther)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{resolveOther(li.size, li.sizeOther) || tx('noValue', language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{resolveOther(li.finish, li.finishOther) || tx('noValue', language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{resolveOther(li.color, li.colorOther) || tx('noValue', language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{li.quantity || tx('noValue', language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{resolveOther(li.unit, li.unitOther)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{li.unitPrice} {currencyLabel(currency, language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{Number(li.discount) || 0}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{rowSubtotal(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{rowTax(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0] font-bold">{rowTotal(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-4 flex flex-col gap-2 max-w-sm ms-auto mb-4">
+              {Number(overallDiscount) > 0 && (
+                <div className="flex items-center justify-between text-xs text-stone-600">
+                  <span>{tx('overallDiscount', language)}</span>
+                  <span className="font-semibold">{Number(overallDiscount).toLocaleString()} {currencyLabel(currency, language)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-xs text-stone-600">
+                <span>{tx('subtotalBeforeTax', language)}</span>
+                <span className="font-semibold">{totals.subtotalBeforeTax.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(currency, language)}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-stone-600">
+                <span>{tx('totalTax', language)}</span>
+                <span className="font-semibold">{totals.taxAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(currency, language)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm font-bold text-stone-900 pt-2 border-t border-[#E8DFD3]">
+                <span>{tx('grandTotal', language)}</span>
+                <span className="text-[#C0603E]">{totals.grandTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(currency, language)}</span>
+              </div>
+            </div>
+
+            {attachments.length > 0 && (
+              <div className="mb-4 bg-[#FAF7F2] rounded-lg p-3">
+                <p className="text-xs font-bold text-stone-700 mb-1">{tx('attachments', language)}:</p>
+                {attachments.map((f, i) => <p key={i} className="text-xs text-stone-600">📎 {f.name}</p>)}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button onClick={handleConfirmSubmit}
+                className="flex-[2] py-3 bg-[#C0603E] hover:bg-[#9C4C31] text-white rounded-xl font-bold text-sm transition-colors">
+                {tx('confirm', language)}
+              </button>
+              <button onClick={handlePrintPreview}
+                className="flex-1 py-3 bg-white text-stone-500 border border-[#E8DFD3] rounded-xl font-bold text-sm hover:bg-[#FAF7F2] transition-colors">
+                🖨 {tx('printPreview', language)}
+              </button>
+              <button onClick={() => setShowPreview(false)}
+                className="flex-1 py-3 bg-white text-[#8A7B6C] border-2 border-[#8A7B6C] rounded-xl font-bold text-sm transition-colors">
+                {tx('editBack', language)}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -16,12 +16,31 @@ export const arToEn: Record<string, string> = {
   'م²': 'm²', 'م طولي': 'Linear m', 'قطعة': 'Piece', 'حبة': 'Unit',
 };
 
+export interface QuoteLineItem {
+  id: number;
+  type: string; typeOther: string;
+  size: string; sizeOther: string;
+  finish: string; finishOther: string;
+  color: string; colorOther: string;
+  quantity: number;
+  unit: string; unitOther: string;
+  unitPrice: number;
+  discount: number;
+  description: string;
+}
+
+export interface QuoteAttachment { name: string; type: string; data: string; }
+
 export interface Quote {
   id: number; requestId: number; supplierId: string;
   supplierName: string; supplierCompany: string;
   totalPrice: number; deliveryDays: number; description: string;
   status: 'pending' | 'accepted' | 'rejected' | 'revision';
   revisionNote?: string; createdAt: string;
+  quoteNumber?: string; clientName?: string; location?: string;
+  paymentTerms?: string; validUntil?: string; currency?: string;
+  lineItems?: QuoteLineItem[]; attachments?: QuoteAttachment[];
+  overallDiscount?: number; subtotalBeforeTax?: number; taxAmount?: number;
 }
 
 export interface ActivityLog { id: number; requestId: number; action: string; actionEn: string; timestamp: string; }
@@ -90,7 +109,7 @@ export function withdrawQuote(quoteId: number): { quotes: Quote[]; quote: Quote 
 
 export function resubmitQuote(
   quoteId: number,
-  updates: { totalPrice: number; deliveryDays: number; description: string }
+  updates: Partial<Omit<Quote, 'id' | 'requestId' | 'supplierId' | 'createdAt'>>
 ): { quotes: Quote[]; quote: Quote | undefined } {
   const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
   const quote = allQuotes.find((q: Quote) => q.id === quoteId);
@@ -100,6 +119,36 @@ export function resubmitQuote(
   localStorage.setItem('quotes', JSON.stringify(updated));
   return { quotes: updated, quote };
 }
+
+/** Merges `updates` into the current user and writes all three localStorage copies (currentUser, users[], user_<email>) in lockstep. Returns the merged user, or null if no user is logged in. */
+export function persistUserUpdate(updates: Record<string, any>): any {
+  const curRaw = localStorage.getItem('currentUser');
+  const cur = curRaw ? JSON.parse(curRaw) : null;
+  if (!cur) return null;
+  const merged = { ...cur, ...updates };
+  localStorage.setItem('currentUser', JSON.stringify(merged));
+
+  const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+  localStorage.setItem('users', JSON.stringify(
+    allUsers.map((u: any) => u.email === cur.email ? { ...u, ...updates } : u)
+  ));
+
+  const userKey = `user_${cur.email}`;
+  const keyData = localStorage.getItem(userKey);
+  if (keyData) {
+    try { localStorage.setItem(userKey, JSON.stringify({ ...JSON.parse(keyData), ...updates })); } catch {}
+  }
+  return merged;
+}
+
+/** Sequential-looking quote number, e.g. QT-2026-0007. Purely client-side/localStorage-derived. */
+export function generateQuoteNumber(supplierId: string): string {
+  const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+  const count = allQuotes.filter(q => q.supplierId === supplierId).length;
+  const seq = String(count + 1).padStart(4, '0');
+  return `QT-${new Date().getFullYear()}-${seq}`;
+}
+
 
 /* ── trash (soft-delete) ── */
 

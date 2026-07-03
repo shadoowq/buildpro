@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { saudiCities, getCityName } from '@/app/lib/translations';
 import ContractorNav from '../components/ContractorNav';
 import { appendActivityLog, arToEn } from '../lib/requestHelpers';
+import { MATERIAL_OPTIONS as OPTIONS } from '../lib/materialOptions';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
 import HelpTooltip from '../components/HelpTooltip';
@@ -444,17 +445,6 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     } catch {
       showToast(language === 'ar' ? 'حجم الملفات كبير جداً' : 'Files too large', 'error');
     }
-  };
-
-  const OPTIONS = {
-    types: ['سيراميك', 'بورسلان', 'رخام', 'جرانيت', 'تيرازو', 'حجر طبيعي'],
-    usages: ['أرضيات', 'جدران', 'وزر', 'درج', 'مغاسل', 'واجهات', 'أسطح'],
-    sizes: ['30×30', '40×40', '60×60', '60×120', '80×80', '80×160', '100×100', '120×120', '120×240', '20×60', '25×75', '30×60'],
-    thicknesses: ['6mm', '8mm', '10mm', '12mm', '15mm', '18mm', '20mm'],
-    finishes: ['بوليش', 'مات', 'ساتان', 'بوشهامر', 'لابراتو', 'أنتيك'],
-    colors: ['أبيض', 'كريمي', 'رمادي فاتح', 'رمادي غامق', 'أسود', 'بيج', 'بني', 'خشبي', 'أزرق', 'أخضر'],
-    units: ['م²', 'م طولي', 'قطعة', 'حبة'],
-    origins: ['وطني', 'صيني', 'أوروبي', 'إيطالي', 'إسباني', 'تركي', 'عماني', 'إماراتي', 'مصري', 'هندي'],
   };
 
   const tx = language === 'ar' ? {
