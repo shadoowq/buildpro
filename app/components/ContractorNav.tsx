@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { buildNotifications, notifIconMap, timeAgo, notifHref, NotifItem } from '../lib/notifications';
 import { purgeExpiredTrash } from '../lib/requestHelpers';
+import NotificationAlertBar from './NotificationAlertBar';
 
 type Lang = 'ar' | 'en';
 
@@ -31,31 +32,41 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
   const [notifs, setNotifs] = useState<NotifItem[]>([]);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const [trashCount, setTrashCount] = useState(0);
+  const [userEmail, setUserEmail] = useState('');
   const bellRef = useRef<HTMLDivElement>(null);
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) return;
-    const user = JSON.parse(userData);
+    const fetchNotifs = () => {
+      const userData = localStorage.getItem('currentUser');
+      if (!userData) return;
+      const user = JSON.parse(userData);
+      setUserEmail(user.email);
 
-    const seen: string[] = JSON.parse(localStorage.getItem(`notifSeen_${user.email}`) || '[]');
-    setSeenIds(new Set(seen));
+      const seen: string[] = JSON.parse(localStorage.getItem(`notifSeen_${user.email}`) || '[]');
+      setSeenIds(new Set(seen));
 
-    const allReqs = (JSON.parse(localStorage.getItem('requests') || '[]') as any[])
-      .filter(r => r.contractorId === user.email);
-    const reqIds = allReqs.map(r => r.id);
+      const allReqs = (JSON.parse(localStorage.getItem('requests') || '[]') as any[])
+        .filter(r => r.contractorId === user.email);
+      const reqIds = allReqs.map(r => r.id);
 
-    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const allLogs   = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-    setNotifs(buildNotifications(allQuotes, allLogs, reqIds, { limit: 10 }));
+      const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+      const allLogs   = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+      setNotifs(buildNotifications(allQuotes, allLogs, reqIds, { limit: 10 }));
 
-    purgeExpiredTrash();
-    const deletedRequests = (JSON.parse(localStorage.getItem('deletedRequests') || '[]') as any[])
-      .filter(r => r.contractorId === user.email);
-    const deletedDrafts = (JSON.parse(localStorage.getItem('deletedDrafts') || '[]') as any[])
-      .filter(d => d.contractorId === user.email);
-    setTrashCount(deletedRequests.length + deletedDrafts.length);
+      purgeExpiredTrash();
+      const deletedRequests = (JSON.parse(localStorage.getItem('deletedRequests') || '[]') as any[])
+        .filter(r => r.contractorId === user.email);
+      const deletedDrafts = (JSON.parse(localStorage.getItem('deletedDrafts') || '[]') as any[])
+        .filter(d => d.contractorId === user.email);
+      setTrashCount(deletedRequests.length + deletedDrafts.length);
+    };
+
+    fetchNotifs();
+    const onStorage = () => fetchNotifs();
+    window.addEventListener('storage', onStorage);
+    const interval = setInterval(fetchNotifs, 8000);
+    return () => { window.removeEventListener('storage', onStorage); clearInterval(interval); };
   }, []);
 
   useEffect(() => {
@@ -84,6 +95,7 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
 
   return (
     <>
+      {userEmail && <NotificationAlertBar notifs={notifs} lang={lang} storageKey={`notifAlerted_${userEmail}`} />}
       <nav className="bg-white border-b border-[#E8DFD3] px-4 md:px-7 flex items-center justify-between h-14 sticky top-0 z-30" dir={dir}>
 
         {/* logo */}

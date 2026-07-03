@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { Quote, QuoteLineItem } from '../../../lib/requestHelpers';
+import { Quote, QuoteLineItem, displayVal } from '../../../lib/requestHelpers';
 import { currencyLabel, resolveOther, lineSubtotal, VAT_RATE } from '../../../lib/materialOptions';
 
 type Lang = 'ar' | 'en';
@@ -120,12 +120,12 @@ export default function PrintQuote() {
   const matCols   = lang === 'ar' ? ['#', 'المادة', 'الاستخدام', 'الكمية', 'المقاس', 'الفنش', 'اللون', 'الصناعة'] : ['#', 'Material', 'Usage', 'Qty', 'Size', 'Finish', 'Color', 'Origin'];
   const matFields = ['type', 'usage', 'quantity', 'size', 'finish', 'color', 'origin'];
   const liCols = lang === 'ar'
-    ? ['#', 'المادة', 'المقاس', 'الفنش', 'اللون', 'الكمية', 'الوحدة', 'سعر الوحدة', 'الخصم', 'قبل الضريبة', 'الضريبة', 'الإجمالي']
-    : ['#', 'Material', 'Size', 'Finish', 'Color', 'Qty', 'Unit', 'Unit Price', 'Discount', 'Before Tax', 'Tax', 'Total'];
+    ? ['#', 'المادة', 'المقاس', 'السماكة', 'الفنش', 'اللون', 'الكمية', 'الوحدة', 'سعر الوحدة', 'الخصم', 'قبل الضريبة', 'الضريبة', 'الإجمالي', 'صورة']
+    : ['#', 'Material', 'Size', 'Thickness', 'Finish', 'Color', 'Qty', 'Unit', 'Unit Price', 'Discount', 'Before Tax', 'Tax', 'Total', 'Image'];
   const matVal = (m: any, f: string) => {
-    if (f === 'quantity') return m.quantity ? `${m.quantity} ${m.unit || 'م²'}` : '—';
-    if (f === 'type')     return m.type || m.typePending || '—';
-    return m[f] || '—';
+    if (f === 'quantity') return m.quantity ? `${m.quantity} ${displayVal(m.unit, lang) !== '—' ? displayVal(m.unit, lang) : 'm²'}` : '—';
+    if (f === 'type')     return displayVal(m.type || m.typePending, lang);
+    return displayVal(m[f], lang);
   };
 
   return (
@@ -157,7 +157,7 @@ export default function PrintQuote() {
         </div>
       </div>
 
-      <div className="print-area" ref={printAreaRef} dir={dir}
+      <div className="print-area quote-print-area" ref={printAreaRef} dir={dir}
         style={{ padding: '24px 28px', paddingBottom: supplier?.letterheadFooter ? 170 : 24, maxWidth: 820, margin: '0 auto', fontFamily: 'Cairo, sans-serif', background: '#ffffff', minHeight: '100vh' }}>
 
         {/* HEADER */}
@@ -265,19 +265,29 @@ export default function PrintQuote() {
                     <tr key={li.id}>
                       <td style={{ ...td, textAlign: 'center', fontWeight: 700, color: '#C0603E' }}>{i + 1}</td>
                       <td style={td}>
-                        {resolveOther(li.type, li.typeOther) || '—'}
+                        {displayVal(resolveOther(li.type, li.typeOther), lang)}
                         {li.description && <div style={{ fontSize: 9, color: '#A8A29E', fontStyle: 'italic', marginTop: 2 }}>{li.description}</div>}
                       </td>
                       <td style={td}>{resolveOther(li.size, li.sizeOther) || '—'}</td>
-                      <td style={td}>{resolveOther(li.finish, li.finishOther) || '—'}</td>
-                      <td style={td}>{resolveOther(li.color, li.colorOther) || '—'}</td>
+                      <td style={td}>{resolveOther(li.thickness, li.thicknessOther) || '—'}</td>
+                      <td style={td}>{displayVal(resolveOther(li.finish, li.finishOther), lang)}</td>
+                      <td style={td}>{displayVal(resolveOther(li.color, li.colorOther), lang)}</td>
                       <td style={td}>{li.quantity || '—'}</td>
-                      <td style={td}>{resolveOther(li.unit, li.unitOther) || '—'}</td>
+                      <td style={td}>{displayVal(resolveOther(li.unit, li.unitOther), lang)}</td>
                       <td style={td}>{Number(li.unitPrice).toLocaleString()} {currencyLabel(quote.currency || 'ر.س', lang)}</td>
                       <td style={td}>{li.discount ? Number(li.discount).toLocaleString() : '—'}</td>
                       <td style={td}>{subtotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                       <td style={td}>{tax.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                       <td style={{ ...td, fontWeight: 700 }}>{lineTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                      <td style={{ ...td, textAlign: 'center' }}>
+                        {li.images && li.images.length > 0 ? (
+                          <div style={{ display: 'flex', gap: 3, justifyContent: 'center' }}>
+                            {li.images.map((img, imgI) => (
+                              <img key={imgI} src={img} alt="" className="li-thumb" style={{ width: 30, height: 30, objectFit: 'cover', borderRadius: 4, border: '1px solid #E8DFD3' }} />
+                            ))}
+                          </div>
+                        ) : '—'}
+                      </td>
                     </tr>
                   );
                 })}

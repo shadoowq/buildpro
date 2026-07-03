@@ -20,6 +20,7 @@ export interface QuoteLineItem {
   id: number;
   type: string; typeOther: string;
   size: string; sizeOther: string;
+  thickness: string; thicknessOther: string;
   finish: string; finishOther: string;
   color: string; colorOther: string;
   quantity: number;
@@ -27,6 +28,7 @@ export interface QuoteLineItem {
   unitPrice: number;
   discount: number;
   description: string;
+  images: string[];
 }
 
 export interface QuoteAttachment { name: string; type: string; data: string; }
@@ -41,6 +43,7 @@ export interface Quote {
   paymentTerms?: string; validUntil?: string; currency?: string;
   lineItems?: QuoteLineItem[]; attachments?: QuoteAttachment[];
   overallDiscount?: number; subtotalBeforeTax?: number; taxAmount?: number;
+  deletedAt?: string;
 }
 
 export interface ActivityLog { id: number; requestId: number; action: string; actionEn: string; timestamp: string; }
@@ -99,12 +102,35 @@ export function setQuoteStatus(quoteId: number, status: Quote['status'], revisio
   return { quotes: updated, quote };
 }
 
+/** Soft-deletes: moves the quote into `deletedQuotes` (recoverable trash) instead of erasing it. */
 export function withdrawQuote(quoteId: number): { quotes: Quote[]; quote: Quote | undefined } {
-  const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-  const quote = allQuotes.find((q: Quote) => q.id === quoteId);
-  const updated = allQuotes.filter((q: Quote) => q.id !== quoteId);
+  const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+  const quote = allQuotes.find(q => q.id === quoteId);
+  const updated = allQuotes.filter(q => q.id !== quoteId);
   localStorage.setItem('quotes', JSON.stringify(updated));
+  if (quote) {
+    const deletedQuotes: Quote[] = JSON.parse(localStorage.getItem('deletedQuotes') || '[]');
+    localStorage.setItem('deletedQuotes', JSON.stringify([...deletedQuotes, { ...quote, deletedAt: new Date().toISOString() }]));
+  }
   return { quotes: updated, quote };
+}
+
+export function restoreQuote(quoteId: number): { quotes: Quote[]; deleted: Quote[] } {
+  const deletedQuotes: Quote[] = JSON.parse(localStorage.getItem('deletedQuotes') || '[]');
+  const found = deletedQuotes.find(q => q.id === quoteId);
+  const remainingDeleted = deletedQuotes.filter(q => q.id !== quoteId);
+  const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+  const restored = found ? [...allQuotes, { ...found, deletedAt: undefined }] : allQuotes;
+  localStorage.setItem('quotes', JSON.stringify(restored));
+  localStorage.setItem('deletedQuotes', JSON.stringify(remainingDeleted));
+  return { quotes: restored, deleted: remainingDeleted };
+}
+
+export function permanentlyDeleteQuote(quoteId: number): { deleted: Quote[] } {
+  const deletedQuotes: Quote[] = JSON.parse(localStorage.getItem('deletedQuotes') || '[]');
+  const remaining = deletedQuotes.filter(q => q.id !== quoteId);
+  localStorage.setItem('deletedQuotes', JSON.stringify(remaining));
+  return { deleted: remaining };
 }
 
 export function resubmitQuote(
@@ -212,6 +238,12 @@ export function purgeExpiredTrash(days = 30): void {
   const keptDrafts = deletedDrafts.filter(d => !d.deletedAt || new Date(d.deletedAt).getTime() > cutoff);
   if (keptDrafts.length !== deletedDrafts.length) {
     localStorage.setItem('deletedDrafts', JSON.stringify(keptDrafts));
+  }
+
+  const deletedQuotes: Quote[] = JSON.parse(localStorage.getItem('deletedQuotes') || '[]');
+  const keptQuotes = deletedQuotes.filter(q => !q.deletedAt || new Date(q.deletedAt).getTime() > cutoff);
+  if (keptQuotes.length !== deletedQuotes.length) {
+    localStorage.setItem('deletedQuotes', JSON.stringify(keptQuotes));
   }
 }
 

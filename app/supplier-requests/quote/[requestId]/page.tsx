@@ -11,7 +11,7 @@ import {
   VAT_RATE, lineSubtotal, computeQuoteTotals,
 } from '../../../lib/materialOptions';
 import {
-  appendActivityLog, getSupplierData, generateQuoteNumber, resubmitQuote,
+  appendActivityLog, getSupplierData, generateQuoteNumber, resubmitQuote, displayVal,
   Quote, QuoteLineItem, QuoteAttachment,
 } from '../../../lib/requestHelpers';
 
@@ -22,6 +22,7 @@ interface FormLineItem {
   id: number;
   type: string; typeOther: string;
   size: string; sizeOther: string;
+  thickness: string; thicknessOther: string;
   finish: string; finishOther: string;
   color: string; colorOther: string;
   quantity: string;
@@ -29,6 +30,7 @@ interface FormLineItem {
   unitPrice: string;
   discount: string;
   description: string;
+  images: string[];
   targetPriceHint?: string;
 }
 
@@ -36,10 +38,11 @@ const emptyLineItem = (): FormLineItem => ({
   id: Date.now() + Math.random(),
   type: '', typeOther: '',
   size: '', sizeOther: '',
+  thickness: '', thicknessOther: '',
   finish: '', finishOther: '',
   color: '', colorOther: '',
   quantity: '', unit: MATERIAL_OPTIONS.units[0], unitOther: '',
-  unitPrice: '', discount: '', description: '',
+  unitPrice: '', discount: '', description: '', images: [],
 });
 
 function legacyMaterialRows(request: any): any[] {
@@ -63,6 +66,7 @@ function prefillFromRequest(request: any): FormLineItem[] {
   return materials.map((m: any) => {
     const type = pickField(m.type || m.typePending || '', MATERIAL_OPTIONS.types);
     const size = pickField(m.size || m.sizePending || '', MATERIAL_OPTIONS.sizes);
+    const thickness = pickField(m.thickness || m.thicknessPending || '', MATERIAL_OPTIONS.thicknesses);
     const finish = pickField(m.finish || m.finishPending || '', MATERIAL_OPTIONS.finishes);
     const color = pickField(m.color || m.colorPending || '', MATERIAL_OPTIONS.colors);
     const unit = pickField(m.unit || '', MATERIAL_OPTIONS.units);
@@ -70,11 +74,12 @@ function prefillFromRequest(request: any): FormLineItem[] {
       id: Date.now() + Math.random(),
       type: type.value, typeOther: type.other,
       size: size.value, sizeOther: size.other,
+      thickness: thickness.value, thicknessOther: thickness.other,
       finish: finish.value, finishOther: finish.other,
       color: color.value, colorOther: color.other,
       quantity: m.quantity != null ? String(m.quantity) : '',
       unit: unit.value || MATERIAL_OPTIONS.units[0], unitOther: unit.other,
-      unitPrice: '', discount: '', description: '',
+      unitPrice: '', discount: '', description: '', images: [],
       targetPriceHint: m.targetPrice ? `${m.targetPrice} ${m.currency || 'ر.س'}` : '',
     };
   });
@@ -110,6 +115,7 @@ const T = {
   lineItems:    { ar: 'بنود العرض',              en: 'Quote Line Items' },
   material:     { ar: 'المادة',                  en: 'Material' },
   size:         { ar: 'المقاس',                  en: 'Size' },
+  thickness:    { ar: 'السماكة',                 en: 'Thickness' },
   finish:       { ar: 'الفنش',                   en: 'Finish' },
   color:        { ar: 'اللون',                   en: 'Color' },
   qty:          { ar: 'الكمية',                  en: 'Qty' },
@@ -121,6 +127,13 @@ const T = {
   lineTotal:    { ar: 'الإجمالي',                en: 'Total' },
   itemNote:     { ar: 'وصف البند',               en: 'Item Description' },
   targetHint:   { ar: 'سعر المقاول المستهدف',    en: 'Contractor target' },
+  image:        { ar: 'صورة',                   en: 'Image' },
+  uploadImage:  { ar: '+ صورة',                  en: '+ Image' },
+  maxImages:    { ar: 'وصلت للحد الأقصى (صورتين)', en: 'Max 2 images reached' },
+  zoomReset:    { ar: 'إعادة ضبط',               en: 'Reset' },
+  download:     { ar: 'تحميل',                   en: 'Download' },
+  close:        { ar: 'إغلاق',                   en: 'Close' },
+  zoomHint:     { ar: 'استخدم عجلة الفأرة للتكبير والتصغير', en: 'Use mouse wheel to zoom in/out' },
   addItem:      { ar: '+ إضافة بند',             en: '+ Add Item' },
   removeItem:   { ar: 'حذف',                     en: 'Remove' },
   overallDiscount: { ar: 'خصم على الإجمالي',     en: 'Discount on Total' },
@@ -152,6 +165,7 @@ const T = {
   needTerms:    { ar: 'أدخل شروط الدفع',         en: 'Enter payment terms' },
   updated:      { ar: 'تم تحديث العرض بنجاح!',   en: 'Quote updated successfully!' },
   submitted:    { ar: 'تم إرسال عرض السعر بنجاح!', en: 'Quote submitted successfully!' },
+  tooLarge:     { ar: 'حجم المرفقات كبير جداً — احذف بعضها وحاول مرة أخرى', en: 'Attachments are too large — remove some and try again' },
 };
 function tx(key: keyof typeof T, lang: Lang): string { return T[key][lang]; }
 
@@ -164,7 +178,7 @@ function SelectOther({ value, other, onValue, onOther, options, lang }: {
       <select value={value} onChange={e => onValue(e.target.value)}
         className="text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 bg-white text-stone-700 outline-none focus:border-[#8A7B6C]">
         <option value="">{tx('selectOption', lang)}</option>
-        {options.map(o => <option key={o} value={o}>{o}</option>)}
+        {options.map(o => <option key={o} value={o}>{displayVal(o, lang)}</option>)}
         <option value={OTHER}>{tx('otherOption', lang)}</option>
       </select>
       {value === OTHER && (
@@ -200,11 +214,16 @@ export default function SupplierQuoteBuilder() {
   const [attachments, setAttachments] = useState<QuoteAttachment[]>([]);
   const [description, setDescription] = useState('');
   const [showPreview, setShowPreview] = useState(false);
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const skipSaveRef = useRef(false);
 
   const dir = language === 'ar' ? 'rtl' : 'ltr';
 
-  useEscapeKey(() => { if (showPreview) setShowPreview(false); });
+  useEscapeKey(() => {
+    if (lightboxImg) { setLightboxImg(null); setZoomLevel(1); return; }
+    if (showPreview) setShowPreview(false);
+  });
 
   useEffect(() => {
     const userData = localStorage.getItem('currentUser');
@@ -255,6 +274,7 @@ export default function SupplierQuoteBuilder() {
       if (existing.lineItems?.length) {
         setLineItems(existing.lineItems.map(li => ({
           ...li, quantity: String(li.quantity), unitPrice: String(li.unitPrice), discount: li.discount ? String(li.discount) : '',
+          thickness: li.thickness || '', thicknessOther: li.thicknessOther || '', images: li.images || [],
         })));
       } else {
         setLineItems(prefillFromRequest(req));
@@ -288,10 +308,13 @@ export default function SupplierQuoteBuilder() {
 
   useEffect(() => {
     if (skipSaveRef.current || !ready) return;
-    localStorage.setItem(`quoteDraft_${requestId}`, JSON.stringify({
-      clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount,
-      lineItems, description, savedAt: new Date().toISOString(),
-    }));
+    try {
+      const lightLineItems = lineItems.map(li => ({ ...li, images: [] }));
+      localStorage.setItem(`quoteDraft_${requestId}`, JSON.stringify({
+        clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount,
+        lineItems: lightLineItems, description, savedAt: new Date().toISOString(),
+      }));
+    } catch { /* draft autosave is best-effort; ignore quota errors silently */ }
   }, [ready, requestId, clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount, lineItems, description]);
 
   const handleLangChange = (l: Lang) => { setLanguage(l); localStorage.setItem('language', l); };
@@ -301,6 +324,25 @@ export default function SupplierQuoteBuilder() {
   };
   const addRow = () => setLineItems(prev => [...prev, emptyLineItem()]);
   const removeRow = (id: number) => setLineItems(prev => (prev.length > 1 ? prev.filter(r => r.id !== id) : prev));
+
+  const handleRowImageUpload = (id: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const row = lineItems.find(r => r.id === id);
+    if (!row) return;
+    const remaining = 2 - row.images.length;
+    files.slice(0, remaining).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setLineItems(prev => prev.map(r => (r.id === id && r.images.length < 2) ? { ...r, images: [...r.images, result] } : r));
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+  const removeRowImage = (id: number, index: number) => {
+    setLineItems(prev => prev.map(r => (r.id === id ? { ...r, images: r.images.filter((_, i) => i !== index) } : r)));
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     Array.from(e.target.files || []).forEach(file => {
@@ -317,8 +359,11 @@ export default function SupplierQuoteBuilder() {
   const rowTotal = (li: FormLineItem) => rowSubtotal(li) + rowTax(li);
   const totals = computeQuoteTotals(lineItems, overallDiscount);
 
+  const isValidLineItem = (li: FormLineItem) =>
+    resolveOther(li.type, li.typeOther).trim() && Number(li.unitPrice) > 0 && Number(li.quantity) > 0;
+
   const validate = (): boolean => {
-    const valid = lineItems.filter(li => resolveOther(li.type, li.typeOther).trim() && Number(li.unitPrice) > 0);
+    const valid = lineItems.filter(isValidLineItem);
     if (valid.length === 0) { showToast(tx('needItem', language), 'error'); return false; }
     if (!deliveryDays || Number(deliveryDays) <= 0) { showToast(tx('needDelivery', language), 'error'); return false; }
     if (!clientName.trim()) { showToast(tx('needClient', language), 'error'); return false; }
@@ -331,10 +376,11 @@ export default function SupplierQuoteBuilder() {
 
   const buildQuotePayload = () => {
     const resolvedItems: QuoteLineItem[] = lineItems
-      .filter(li => resolveOther(li.type, li.typeOther).trim() && Number(li.unitPrice) > 0)
+      .filter(isValidLineItem)
       .map(li => ({
         id: li.id, type: li.type, typeOther: li.typeOther,
         size: li.size, sizeOther: li.sizeOther,
+        thickness: li.thickness, thicknessOther: li.thicknessOther,
         finish: li.finish, finishOther: li.finishOther,
         color: li.color, colorOther: li.colorOther,
         quantity: Number(li.quantity) || 0,
@@ -342,6 +388,7 @@ export default function SupplierQuoteBuilder() {
         unitPrice: Number(li.unitPrice) || 0,
         discount: Number(li.discount) || 0,
         description: li.description,
+        images: li.images,
       }));
     const finalTotals = computeQuoteTotals(resolvedItems, overallDiscount);
     const finalPaymentTerms = paymentTerms === OTHER ? paymentTermsOther : paymentTerms;
@@ -369,7 +416,12 @@ export default function SupplierQuoteBuilder() {
     const commonFields = buildQuotePayload();
 
     if (editQuoteId) {
-      resubmitQuote(editQuoteId, commonFields);
+      try {
+        resubmitQuote(editQuoteId, commonFields);
+      } catch {
+        showToast(tx('tooLarge', language), 'error');
+        return;
+      }
       appendActivityLog(requestId, 'تم تعديل عرض السعر', 'Quote edited');
       localStorage.removeItem(`quoteDraft_${requestId}`);
       showToast(tx('updated', language));
@@ -383,8 +435,13 @@ export default function SupplierQuoteBuilder() {
       status: 'pending', createdAt: new Date().toISOString(),
       ...commonFields,
     };
-    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-    localStorage.setItem('quotes', JSON.stringify([...allQuotes, newQuote]));
+    try {
+      const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+      localStorage.setItem('quotes', JSON.stringify([...allQuotes, newQuote]));
+    } catch {
+      showToast(tx('tooLarge', language), 'error');
+      return;
+    }
     appendActivityLog(requestId, 'تم تقديم عرض سعر', 'Quote submitted');
     localStorage.removeItem(`quoteDraft_${requestId}`);
     showToast(tx('submitted', language));
@@ -392,10 +449,16 @@ export default function SupplierQuoteBuilder() {
   };
 
   const handleSaveDraft = () => {
-    localStorage.setItem(`quoteDraft_${requestId}`, JSON.stringify({
-      clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount,
-      lineItems, description, savedAt: new Date().toISOString(),
-    }));
+    try {
+      const lightLineItems = lineItems.map(li => ({ ...li, images: [] }));
+      localStorage.setItem(`quoteDraft_${requestId}`, JSON.stringify({
+        clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount,
+        lineItems: lightLineItems, description, savedAt: new Date().toISOString(),
+      }));
+    } catch {
+      showToast(tx('tooLarge', language), 'error');
+      return;
+    }
     showToast(tx('draftSaved', language));
     router.push('/supplier-requests');
   };
@@ -408,7 +471,7 @@ export default function SupplierQuoteBuilder() {
 
   const reqName = request.projectName?.trim() || `#${String(request.id).slice(-6)}`;
   const reqMaterialLines: string[] = (request.materials?.length ? request.materials : legacyMaterialRows(request))
-    .map((m: any) => `${m.type || m.typePending || ''} — ${m.quantity ?? 0} ${m.unit || 'م²'}`);
+    .map((m: any) => `${displayVal(m.type || m.typePending, language)} — ${m.quantity ?? 0} ${displayVal(m.unit, language) !== '—' ? displayVal(m.unit, language) : 'm²'}`);
 
   const inputCls = 'w-full text-sm border border-[#E8DFD3] rounded-xl px-4 py-2.5 outline-none font-cairo bg-white text-stone-800 placeholder-stone-300 focus:border-[#8A7B6C] focus:ring-2 focus:ring-[#8A7B6C]/10 transition-all';
   const labelCls = 'block text-xs font-semibold text-stone-600 mb-1.5';
@@ -506,6 +569,7 @@ export default function SupplierQuoteBuilder() {
                 <tr>
                   <th className={th}>{tx('material', language)}</th>
                   <th className={th}>{tx('size', language)}</th>
+                  <th className={th}>{tx('thickness', language)}</th>
                   <th className={th}>{tx('finish', language)}</th>
                   <th className={th}>{tx('color', language)}</th>
                   <th className={th} style={{ minWidth: 70 }}>{tx('qty', language)}</th>
@@ -516,6 +580,7 @@ export default function SupplierQuoteBuilder() {
                   <th className={th} style={{ minWidth: 90 }}>{tx('taxCol', language)}</th>
                   <th className={th} style={{ minWidth: 100 }}>{tx('lineTotal', language)}</th>
                   <th className={th} style={{ minWidth: 140 }}>{tx('itemNote', language)}</th>
+                  <th className={th} style={{ minWidth: 110 }}>{tx('image', language)}</th>
                   <th className={th}>✕</th>
                 </tr>
               </thead>
@@ -531,6 +596,11 @@ export default function SupplierQuoteBuilder() {
                       <SelectOther value={row.size} other={row.sizeOther}
                         onValue={v => updateRow(row.id, 'size', v)} onOther={v => updateRow(row.id, 'sizeOther', v)}
                         options={MATERIAL_OPTIONS.sizes} lang={language} />
+                    </td>
+                    <td className={td}>
+                      <SelectOther value={row.thickness} other={row.thicknessOther}
+                        onValue={v => updateRow(row.id, 'thickness', v)} onOther={v => updateRow(row.id, 'thicknessOther', v)}
+                        options={MATERIAL_OPTIONS.thicknesses} lang={language} />
                     </td>
                     <td className={td}>
                       <SelectOther value={row.finish} other={row.finishOther}
@@ -574,6 +644,26 @@ export default function SupplierQuoteBuilder() {
                     <td className={td} style={{ minWidth: 140 }}>
                       <textarea value={row.description} onChange={e => updateRow(row.id, 'description', e.target.value)}
                         rows={2} className="w-full text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 outline-none resize-none" />
+                    </td>
+                    <td className={td} style={{ minWidth: 110 }}>
+                      <div className="flex gap-1 flex-wrap mb-1">
+                        {row.images.map((img, i) => (
+                          <div key={i} className="relative inline-block">
+                            <img src={img} alt="" onClick={() => { setLightboxImg(img); setZoomLevel(1); }}
+                              className="w-9 h-9 object-cover rounded border border-[#E8DFD3] cursor-zoom-in" />
+                            <button type="button" onClick={() => removeRowImage(row.id, i)}
+                              className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white rounded-full text-[8px] flex items-center justify-center leading-none">✕</button>
+                          </div>
+                        ))}
+                      </div>
+                      {row.images.length < 2 ? (
+                        <label className="inline-block px-1.5 py-1 bg-[#8A7B6C] text-white rounded text-[10px] font-bold cursor-pointer">
+                          {tx('uploadImage', language)}
+                          <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={e => handleRowImageUpload(row.id, e)} />
+                        </label>
+                      ) : (
+                        <span className="text-[9px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">{tx('maxImages', language)}</span>
+                      )}
                     </td>
                     <td className={td} style={{ textAlign: 'center' }}>
                       <button type="button" onClick={() => removeRow(row.id)}
@@ -687,6 +777,7 @@ export default function SupplierQuoteBuilder() {
                     <th className={th}>#</th>
                     <th className={th}>{tx('material', language)}</th>
                     <th className={th}>{tx('size', language)}</th>
+                    <th className={th}>{tx('thickness', language)}</th>
                     <th className={th}>{tx('finish', language)}</th>
                     <th className={th}>{tx('color', language)}</th>
                     <th className={th}>{tx('qty', language)}</th>
@@ -696,23 +787,35 @@ export default function SupplierQuoteBuilder() {
                     <th className={th}>{tx('beforeTax', language)}</th>
                     <th className={th}>{tx('taxCol', language)}</th>
                     <th className={th}>{tx('lineTotal', language)}</th>
+                    <th className={th}>{tx('image', language)}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {lineItems.filter(li => resolveOther(li.type, li.typeOther).trim() && Number(li.unitPrice) > 0).map((li, i) => (
+                  {lineItems.filter(isValidLineItem).map((li, i) => (
                     <tr key={li.id}>
                       <td className="px-3 py-2 text-center border-b border-[#F1EAE0] font-bold text-[#C0603E]">{i + 1}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{resolveOther(li.type, li.typeOther)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{displayVal(resolveOther(li.type, li.typeOther), language)}</td>
                       <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{resolveOther(li.size, li.sizeOther) || tx('noValue', language)}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{resolveOther(li.finish, li.finishOther) || tx('noValue', language)}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{resolveOther(li.color, li.colorOther) || tx('noValue', language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{resolveOther(li.thickness, li.thicknessOther) || tx('noValue', language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{displayVal(resolveOther(li.finish, li.finishOther), language) || tx('noValue', language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{displayVal(resolveOther(li.color, li.colorOther), language) || tx('noValue', language)}</td>
                       <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{li.quantity || tx('noValue', language)}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{resolveOther(li.unit, li.unitOther)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{displayVal(resolveOther(li.unit, li.unitOther), language)}</td>
                       <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{li.unitPrice} {currencyLabel(currency, language)}</td>
                       <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{Number(li.discount) || 0}</td>
                       <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{rowSubtotal(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                       <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{rowTax(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
                       <td className="px-3 py-2 text-center border-b border-[#F1EAE0] font-bold">{rowTotal(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">
+                        {li.images.length > 0 ? (
+                          <div className="flex gap-1 justify-center">
+                            {li.images.map((img, imgI) => (
+                              <img key={imgI} src={img} alt="" onClick={() => { setLightboxImg(img); setZoomLevel(1); }}
+                                className="w-8 h-8 object-cover rounded border border-[#E8DFD3] cursor-zoom-in" />
+                            ))}
+                          </div>
+                        ) : tx('noValue', language)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -761,6 +864,34 @@ export default function SupplierQuoteBuilder() {
                 {tx('editBack', language)}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* IMAGE LIGHTBOX */}
+      {lightboxImg && (
+        <div onClick={() => { setLightboxImg(null); setZoomLevel(1); }}
+          onWheel={e => { e.preventDefault(); setZoomLevel(prev => Math.min(Math.max(e.deltaY < 0 ? prev + 0.1 : prev - 0.1, 0.5), 4)); }}
+          className="fixed inset-0 bg-black/90 z-[9999] flex flex-col items-center justify-center">
+          <div onClick={e => e.stopPropagation()} className="flex flex-col items-center gap-4">
+            <div className="overflow-hidden flex items-center justify-center" style={{ maxWidth: '90vw', maxHeight: '75vh' }}>
+              <img src={lightboxImg} alt="" style={{ transform: `scale(${zoomLevel})`, transformOrigin: 'center', transition: 'transform 0.15s ease', maxWidth: '85vw', maxHeight: '72vh' }}
+                className="object-contain rounded-md block" />
+            </div>
+            <div className="flex items-center gap-2.5">
+              <button onClick={e => { e.stopPropagation(); setZoomLevel(prev => Math.max(prev - 0.2, 0.5)); }}
+                className="w-9 h-9 bg-stone-700 text-white rounded-full text-lg font-bold flex items-center justify-center">−</button>
+              <span className="text-white text-xs min-w-[50px] text-center">{Math.round(zoomLevel * 100)}%</span>
+              <button onClick={e => { e.stopPropagation(); setZoomLevel(prev => Math.min(prev + 0.2, 4)); }}
+                className="w-9 h-9 bg-stone-700 text-white rounded-full text-lg font-bold flex items-center justify-center">+</button>
+              <button onClick={e => { e.stopPropagation(); setZoomLevel(1); }}
+                className="px-3 py-1.5 bg-stone-600 text-white rounded-lg text-xs">{tx('zoomReset', language)}</button>
+              <a href={lightboxImg} download="buildpro-image.jpg" onClick={e => e.stopPropagation()}
+                className="px-3.5 py-1.5 bg-[#8A7B6C] text-white rounded-lg text-xs font-bold no-underline">{tx('download', language)}</a>
+              <button onClick={e => { e.stopPropagation(); setLightboxImg(null); setZoomLevel(1); }}
+                className="px-3.5 py-1.5 bg-red-500 text-white rounded-lg text-xs font-bold">{tx('close', language)}</button>
+            </div>
+            <p className="text-stone-400 text-xs">{tx('zoomHint', language)}</p>
           </div>
         </div>
       )}

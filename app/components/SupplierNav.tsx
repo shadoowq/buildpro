@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { buildSupplierNotifications, notifIconMap, timeAgo, notifHref, NotifItem } from '../lib/notifications';
+import NotificationAlertBar from './NotificationAlertBar';
 
 type Lang = 'ar' | 'en';
 
@@ -18,6 +19,8 @@ const NAV_LINKS = [
   { labelAr: 'لوحة التحكم',    labelEn: 'Dashboard',         href: '/supplier-dashboard' },
   { labelAr: 'الطلبات المتاحة', labelEn: 'Available Requests', href: '/supplier-requests'  },
   { labelAr: 'عروضي',          labelEn: 'My Quotes',          href: '/my-quotes'          },
+  { labelAr: 'التقارير',       labelEn: 'Reports',            href: '/supplier-reports'   },
+  { labelAr: 'سلة المهملات',   labelEn: 'Trash',              href: '/supplier-trash'     },
 ];
 
 export default function SupplierNav({ lang, setLang, userName, active }: SupplierNavProps) {
@@ -26,22 +29,32 @@ export default function SupplierNav({ lang, setLang, userName, active }: Supplie
   const [bellOpen, setBellOpen] = useState(false);
   const [notifs, setNotifs] = useState<NotifItem[]>([]);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+  const [userEmail, setUserEmail] = useState('');
   const bellRef = useRef<HTMLDivElement>(null);
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) return;
-    const user = JSON.parse(userData);
+    const fetchNotifs = () => {
+      const userData = localStorage.getItem('currentUser');
+      if (!userData) return;
+      const user = JSON.parse(userData);
+      setUserEmail(user.email);
 
-    const seen: string[] = JSON.parse(localStorage.getItem(`notifSeen_${user.email}`) || '[]');
-    setSeenIds(new Set(seen));
+      const seen: string[] = JSON.parse(localStorage.getItem(`notifSeen_${user.email}`) || '[]');
+      setSeenIds(new Set(seen));
 
-    const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
-    const allRatings = JSON.parse(localStorage.getItem('ratings') || '[]');
-    const allLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-    setNotifs(buildSupplierNotifications(allQuotes, allLogs, allRequests, allRatings, user.email, { limit: 10 }));
+      const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+      const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+      const allRatings = JSON.parse(localStorage.getItem('ratings') || '[]');
+      const allLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+      setNotifs(buildSupplierNotifications(allQuotes, allLogs, allRequests, allRatings, user.email, { limit: 10 }));
+    };
+
+    fetchNotifs();
+    const onStorage = () => fetchNotifs();
+    window.addEventListener('storage', onStorage);
+    const interval = setInterval(fetchNotifs, 8000);
+    return () => { window.removeEventListener('storage', onStorage); clearInterval(interval); };
   }, []);
 
   useEffect(() => {
@@ -70,6 +83,7 @@ export default function SupplierNav({ lang, setLang, userName, active }: Supplie
 
   return (
     <>
+      {userEmail && <NotificationAlertBar notifs={notifs} lang={lang} storageKey={`notifAlerted_${userEmail}`} />}
       <nav className="bg-white border-b border-[#E8DFD3] px-4 md:px-7 flex items-center justify-between h-14 sticky top-0 z-30" dir={dir}>
 
         {/* logo */}

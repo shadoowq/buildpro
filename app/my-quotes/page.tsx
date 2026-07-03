@@ -10,6 +10,7 @@ import QuoteCompareTable from '../components/QuoteCompareTable';
 import { formatDate, appendActivityLog, setQuoteStatus, displayVal, withdrawQuote } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
 import { useConfirm } from '../components/ConfirmDialog';
+import { useToast } from '../components/Toast';
 import HelpTooltip from '../components/HelpTooltip';
 
 type Lang = 'ar' | 'en';
@@ -28,6 +29,7 @@ interface Quote {
   status: QuoteStatus;
   revisionNote?: string;
   createdAt: string;
+  quoteNumber?: string;
 }
 
 interface Request {
@@ -90,6 +92,7 @@ const T = {
   editResubmitBtn:{ ar: 'تعديل وإعادة الإرسال', en: 'Edit & Resubmit'    },
   confirmWithdraw:{ ar: 'هل أنت متأكد من سحب هذا العرض؟', en: 'Withdraw this quote?' },
   print:        { ar: 'طباعة',                en: 'Print'                 },
+  withdrawnToTrash: { ar: 'تم نقل العرض لسلة المهملات', en: 'Quote moved to trash' },
 };
 
 function tFn(key: keyof typeof T, lang: Lang, n?: number): string {
@@ -443,6 +446,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
 /* ══════════════════════ SUPPLIER VIEW ══════════════════════ */
 function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: string; setLang: (l: Lang) => void }) {
   const confirmDialog = useConfirm();
+  const showToast = useToast();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [filter, setFilter] = useState<FilterTab>('all');
   const [pendingReqId, setPendingReqId] = useState<number | null>(null);
@@ -489,6 +493,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
     const user = userData ? JSON.parse(userData) : null;
     setQuotes(user ? updated.filter((q: Quote) => q.supplierId === user.email) : updated);
     appendActivityLog(requestId, `تم سحب عرض المورد`, `Supplier withdrew their quote`);
+    showToast(tFn('withdrawnToTrash', lang));
   };
 
   const filteredQuotes = filter === 'all' ? quotes : quotes.filter(q => q.status === filter);
@@ -554,7 +559,10 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
               <div key={q.id} id={`supp-quote-${q.requestId}`} className={`bg-white border rounded-2xl p-5 transition-shadow ${q.status === 'accepted' ? 'border-emerald-200 bg-emerald-50/20' : q.status === 'rejected' ? 'border-red-200 bg-red-50/20' : q.status === 'revision' ? 'border-amber-200 bg-amber-50/20' : 'border-[#E8DFD3]'}`}>
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <p className="text-sm font-bold text-stone-900">{getReqDisplayName(req, q.requestId)}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-stone-900">{getReqDisplayName(req, q.requestId)}</p>
+                      {q.quoteNumber && <span className="text-[10px] font-mono font-semibold text-[#8A7B6C] bg-[#F3EAE0] px-1.5 py-0.5 rounded">{q.quoteNumber}</span>}
+                    </div>
                     {req && <p className="text-xs text-stone-400 mt-0.5">📍 {getCityName(req.location, lang)} {req.deadline ? `· ⏱ ${req.deadline}` : ''}</p>}
                   </div>
                   <StatusBadge status={q.status} lang={lang} />

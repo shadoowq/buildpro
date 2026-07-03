@@ -78,6 +78,26 @@ body {
     right: 0 !important;
   }
 
+  /* the quote's line-items table has many columns (material, size, thickness,
+     finish, color, qty, unit, price, discount, tax breakdown, image...) — let it
+     use the full page width and shrink text/padding so every column stays visible
+     instead of being clipped at the printer's page edge. */
+  .quote-print-area {
+    max-width: none !important;
+    width: 100% !important;
+  }
+  .quote-print-area table {
+    font-size: 9px !important;
+  }
+  .quote-print-area th,
+  .quote-print-area td {
+    padding: 3px 4px !important;
+  }
+  .quote-print-area .li-thumb {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
   @page {
     margin: 10mm 12mm;
     size: A4 landscape;
