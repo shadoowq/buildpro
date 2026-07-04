@@ -353,7 +353,7 @@ export default function RequestDetailPage() {
               </button>
               {showMoreMenu && (
                 <div className="absolute z-20 top-full mt-1 end-0 w-52 bg-white border border-[#E8DFD3] rounded-xl shadow-lg overflow-hidden" dir={dir}>
-                  <a href={`/print/request/${request.id}`} target="_blank" onClick={() => setShowMoreMenu(false)}
+                  <a href={`/print/request/${request.id}`} target="_blank" rel="noopener noreferrer" onClick={() => setShowMoreMenu(false)}
                     className={`block w-full px-3 py-2 text-xs font-semibold transition-colors hover:bg-stone-100 text-stone-700 ${dir === 'rtl' ? 'text-right' : 'text-left'}`}>
                     🖨 {t('print', lang)}
                   </a>
@@ -559,7 +559,7 @@ export default function RequestDetailPage() {
                           {t('undo', lang)}
                         </button>
                       )}
-                      <a href={`/print/quote/${q.id}?autoprint=1`} target="_blank"
+                      <a href={`/print/quote/${q.id}?autoprint=1`} target="_blank" rel="noopener noreferrer"
                         className="text-[11px] font-semibold px-3 py-1.5 bg-stone-50 text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors">
                         🖨
                       </a>

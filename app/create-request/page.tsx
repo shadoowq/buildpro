@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { saudiCities, getCityName } from '@/app/lib/translations';
 import ContractorNav from '../components/ContractorNav';
 import { appendActivityLog, arToEn } from '../lib/requestHelpers';
+import { isValidImageFile, isValidAttachmentFile } from '../lib/auth';
 import { MATERIAL_OPTIONS as OPTIONS } from '../lib/materialOptions';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -247,8 +248,12 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     const files = Array.from(e.target.files || []);
     const row = materials.find(r => r.id === id);
     if (!row) return;
+    const valid = files.filter(isValidImageFile);
+    if (valid.length < files.length) {
+      showToast(language === 'ar' ? 'صور PNG/JPG/WebP فقط وبحد أقصى 1.5MB للصورة' : 'PNG/JPG/WebP images only, max 1.5MB each', 'error');
+    }
     const remaining = 2 - row.images.length;
-    const filesToProcess = files.slice(0, remaining);
+    const filesToProcess = valid.slice(0, remaining);
     filesToProcess.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (event) => {
@@ -269,7 +274,12 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    Array.from(e.target.files || []).forEach(file => {
+    const files = Array.from(e.target.files || []);
+    const valid = files.filter(isValidAttachmentFile);
+    if (valid.length < files.length) {
+      showToast(language === 'ar' ? 'الحد الأقصى لحجم المرفق 3MB' : 'Attachments are limited to 3MB each', 'error');
+    }
+    valid.forEach(file => {
       const reader = new FileReader();
       reader.onload = () => setAttachedFiles(prev => [...prev, { name: file.name, type: file.type, data: reader.result as string }]);
       reader.readAsDataURL(file);

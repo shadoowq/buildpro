@@ -280,7 +280,7 @@ export default function Drafts() {
                           className="text-xs font-semibold px-4 py-2 bg-[#C0603E] text-white rounded-xl hover:bg-[#9C4C31] transition-colors">
                           {t('استكمال', 'Continue', lang)}
                         </button>
-                        <Link href={`/print/draft/${draft.id}`} target="_blank"
+                        <Link href={`/print/draft/${draft.id}`} target="_blank" rel="noopener noreferrer"
                           className="text-xs font-semibold px-3 py-2 bg-stone-50 text-stone-600 border border-stone-200 rounded-xl hover:bg-stone-100 transition-colors">
                           🖨
                         </Link>

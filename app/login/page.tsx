@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { verifyPassword, verifyAdmin, setSessionUser, ADMIN_EMAIL } from '../lib/auth';
 
 type Lang = 'ar' | 'en';
 
@@ -29,22 +30,26 @@ export default function LoginPage() {
 
   const switchLang = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError('');
     /* admin */
-    if (email === 'admin@buildpro.sa' && password === 'Admin@2025') {
-      localStorage.setItem('currentUser', JSON.stringify({ id: 'admin-001', name: 'Admin', email: 'admin@buildpro.sa', userType: 'admin' }));
-      router.push('/admin');
+    if (email === ADMIN_EMAIL) {
+      if (await verifyAdmin(email, password)) {
+        setSessionUser({ id: 'admin-001', name: 'Admin', email: ADMIN_EMAIL, userType: 'admin' });
+        router.push('/admin');
+        return;
+      }
+      setError(lang === 'ar' ? 'البريد الإلكتروني أو كلمة المرور غلط' : 'Incorrect email or password');
       return;
     }
     /* normal users */
     const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user  = users.find((u: any) => u.email === email && u.password === password);
-    if (!user) {
+    const user  = users.find((u: any) => u.email === email);
+    if (!user || !(await verifyPassword(user, password))) {
       setError(lang === 'ar' ? 'البريد الإلكتروني أو كلمة المرور غلط' : 'Incorrect email or password');
       return;
     }
-    localStorage.setItem('currentUser', JSON.stringify(user));
+    setSessionUser(user);
     router.push(user.userType === 'contractor' ? '/dashboard' : '/supplier-requests');
   };
 

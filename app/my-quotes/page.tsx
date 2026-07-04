@@ -433,11 +433,11 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                                 {tFn('undo', lang)}
                               </button>
                             )}
-                            <a href={`/print/quote/${q.id}`} target="_blank"
+                            <a href={`/print/quote/${q.id}`} target="_blank" rel="noopener noreferrer"
                               className="text-[11px] font-semibold px-3 py-1.5 bg-[#F3EAE0] text-[#C0603E] rounded-lg hover:bg-[#EADFCF] transition-colors text-center">
                               👁 {tFn('view', lang)}
                             </a>
-                            <a href={`/print/quote/${q.id}?autoprint=1`} target="_blank"
+                            <a href={`/print/quote/${q.id}?autoprint=1`} target="_blank" rel="noopener noreferrer"
                               className="text-[11px] font-semibold px-3 py-1.5 bg-stone-50 text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors text-center">
                               🖨 {lang === 'ar' ? 'طباعة' : 'Print'}
                             </a>
@@ -690,11 +690,11 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                         {tFn('requestEditBtn', lang)}
                       </button>
                     )}
-                    <a href={`/print/quote/${q.id}`} target="_blank" title={tFn('view', lang)}
+                    <a href={`/print/quote/${q.id}`} target="_blank" rel="noopener noreferrer" title={tFn('view', lang)}
                       className="text-[11px] font-semibold px-3 py-1.5 bg-[#F3EAE0] text-[#C0603E] rounded-lg hover:bg-[#EADFCF] transition-colors">
                       👁 {tFn('view', lang)}
                     </a>
-                    <a href={`/print/quote/${q.id}?autoprint=1`} target="_blank" title={tFn('print', lang)}
+                    <a href={`/print/quote/${q.id}?autoprint=1`} target="_blank" rel="noopener noreferrer" title={tFn('print', lang)}
                       className="text-[11px] font-semibold px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors">
                       🖨 {tFn('print', lang)}
                     </a>

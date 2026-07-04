@@ -213,7 +213,7 @@ export default function SupplierRequests() {
             {tStr('quoteSubmitted', language)}
           </div>
           {myQuoteFor(request.id) && (
-            <a href={`/print/quote/${myQuoteFor(request.id).id}`} target="_blank" onClick={e => e.stopPropagation()}
+            <a href={`/print/quote/${myQuoteFor(request.id).id}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
               className="py-2.5 px-3 bg-white text-[#C0603E] border border-[#C0603E] rounded-xl font-bold text-xs hover:bg-[#FFFDF9] transition-colors text-center">
               {tStr('viewQuote', language)}
             </a>

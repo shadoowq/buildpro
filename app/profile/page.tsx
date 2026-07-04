@@ -6,6 +6,7 @@ import ContractorNav from '../components/ContractorNav';
 import SupplierNav from '../components/SupplierNav';
 import { saudiCities, getCityName } from '../lib/translations';
 import { persistUserUpdate } from '../lib/requestHelpers';
+import { verifyPassword, setUserPassword, ALLOWED_IMAGE_TYPES } from '../lib/auth';
 import { useToast } from '../components/Toast';
 import HelpTooltip from '../components/HelpTooltip';
 
@@ -157,7 +158,7 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    if (file.size > MAX_LETTERHEAD_BYTES) {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type) || file.size > MAX_LETTERHEAD_BYTES) {
       showToast(t('logoTooBig', lang), 'error');
       return;
     }
@@ -182,7 +183,7 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    if (file.size > MAX_LETTERHEAD_BYTES) {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type) || file.size > MAX_LETTERHEAD_BYTES) {
       showToast(t('logoTooBig', lang), 'error');
       return;
     }
@@ -203,7 +204,7 @@ export default function ProfilePage() {
     setUser(updated);
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     setPassMsg(null);
     if (!user) return;
     if (newPass.length < 6) { setPassMsg({ type: 'err', text: t('passShort', lang) }); return; }
@@ -212,17 +213,13 @@ export default function ProfilePage() {
     // check current password — always required
     const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
     const dbUser = allUsers.find((u: any) => u.email === user.email);
-    if (!currentPass || !dbUser || dbUser.password !== currentPass) {
+    if (!currentPass || !dbUser || !(await verifyPassword(dbUser, currentPass))) {
       setPassMsg({ type: 'err', text: t('passWrong', lang) });
       return;
     }
 
-    // update password
-    const updatedUsers = allUsers.map((u: any) => u.email === user.email ? { ...u, password: newPass } : u);
-    localStorage.setItem('users', JSON.stringify(updatedUsers));
-    const updatedUser = { ...user, password: newPass };
-    localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-    setUser(updatedUser);
+    // store the new salted hash; the session copy never carries credentials
+    await setUserPassword(user.email, newPass);
     setCurrentPass(''); setNewPass(''); setConfirmPass('');
     setPassMsg({ type: 'ok', text: t('passSaved', lang) });
     setTimeout(() => setPassMsg(null), 3000);

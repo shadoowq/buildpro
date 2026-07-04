@@ -15,6 +15,7 @@ import {
   appendActivityLog, getSupplierData, generateQuoteNumber, resubmitQuote, updateQuoteFields, displayVal,
   Quote, QuoteLineItem, QuoteAttachment,
 } from '../../../lib/requestHelpers';
+import { isValidImageFile, isValidAttachmentFile } from '../../../lib/auth';
 
 type Lang = 'ar' | 'en';
 const OTHER = OTHER_VALUE;
@@ -336,8 +337,12 @@ export default function SupplierQuoteBuilder() {
     const files = Array.from(e.target.files || []);
     const row = lineItems.find(r => r.id === id);
     if (!row) return;
+    const valid = files.filter(isValidImageFile);
+    if (valid.length < files.length) {
+      showToast(language === 'ar' ? 'صور PNG/JPG/WebP فقط وبحد أقصى 1.5MB للصورة' : 'PNG/JPG/WebP images only, max 1.5MB each', 'error');
+    }
     const remaining = 2 - row.images.length;
-    files.slice(0, remaining).forEach(file => {
+    valid.slice(0, remaining).forEach(file => {
       const reader = new FileReader();
       reader.onload = (event) => {
         const result = event.target?.result as string;
@@ -352,7 +357,12 @@ export default function SupplierQuoteBuilder() {
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    Array.from(e.target.files || []).forEach(file => {
+    const files = Array.from(e.target.files || []);
+    const valid = files.filter(isValidAttachmentFile);
+    if (valid.length < files.length) {
+      showToast(language === 'ar' ? 'الحد الأقصى لحجم المرفق 3MB' : 'Attachments are limited to 3MB each', 'error');
+    }
+    valid.forEach(file => {
       const reader = new FileReader();
       reader.onload = () => setAttachments(prev => [...prev, { name: file.name, type: file.type, data: reader.result as string }]);
       reader.readAsDataURL(file);

@@ -838,7 +838,7 @@ export default function MyRequests() {
                                     className="w-full text-right px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-violet-50 text-violet-700">
                                     {lang === 'ar' ? 'نسخ الطلب' : 'Duplicate'}
                                   </button>
-                                  <a href={`/print/request/${req.id}`} target="_blank"
+                                  <a href={`/print/request/${req.id}`} target="_blank" rel="noopener noreferrer"
                                     className="block w-full text-right px-3 py-1.5 text-[11px] font-semibold transition-colors hover:bg-stone-100 text-stone-600">
                                     🖨 {lang === 'ar' ? 'طباعة' : 'Print'}
                                   </a>
@@ -976,7 +976,7 @@ export default function MyRequests() {
                           className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors">
                           {lang === 'ar' ? '⊕ نسخ' : '⊕ Copy'}
                         </button>
-                        <a href={`/print/request/${req.id}`} target="_blank" onClick={e => e.stopPropagation()}
+                        <a href={`/print/request/${req.id}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
                           className="px-3 text-xs font-semibold py-1.5 rounded-lg bg-stone-50 text-stone-600 border border-stone-200 hover:bg-stone-100 transition-colors">
                           🖨
                         </a>

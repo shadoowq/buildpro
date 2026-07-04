@@ -60,8 +60,13 @@ export interface RequestLike {
 
 export function getSupplierData(supplierId: string): any | null {
   const fromKey = localStorage.getItem(`user_${supplierId}`);
-  if (fromKey) return JSON.parse(fromKey);
-  return (JSON.parse(localStorage.getItem('users') || '[]')).find((u: any) => u.email === supplierId) || null;
+  const found = fromKey
+    ? JSON.parse(fromKey)
+    : (JSON.parse(localStorage.getItem('users') || '[]')).find((u: any) => u.email === supplierId) || null;
+  if (!found) return null;
+  // never hand credential fields to display surfaces
+  const { password: _p, passwordHash: _h, passwordSalt: _s, ...safe } = found;
+  return safe;
 }
 
 export function formatDate(ts: string, lang: Lang): string {
@@ -212,7 +217,8 @@ export function persistUserUpdate(updates: Record<string, any>): any {
   const curRaw = localStorage.getItem('currentUser');
   const cur = curRaw ? JSON.parse(curRaw) : null;
   if (!cur) return null;
-  const merged = { ...cur, ...updates };
+  // the session copy must never carry credential fields (legacy sessions may still have them)
+  const { password: _p, passwordHash: _h, passwordSalt: _s, ...merged } = { ...cur, ...updates };
   localStorage.setItem('currentUser', JSON.stringify(merged));
 
   const allUsers = JSON.parse(localStorage.getItem('users') || '[]');

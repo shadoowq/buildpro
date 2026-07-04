@@ -134,7 +134,7 @@ export default function QuoteCompareTable({
                         </button>
                       )}
                       {printHrefBase && (
-                        <a href={`${printHrefBase}${q.id}?autoprint=1`} target="_blank" title={t('print', lang)}
+                        <a href={`${printHrefBase}${q.id}?autoprint=1`} target="_blank" rel="noopener noreferrer" title={t('print', lang)}
                           className="text-stone-300 hover:text-stone-500 text-xs px-1.5 transition-colors">
                           🖨
                         </a>

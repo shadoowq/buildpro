@@ -52,7 +52,7 @@ export default function RequestDetailModal({
             {req.deadline && <span className="text-stone-400 text-sm">⏱ {req.deadline}</span>}
           </div>
           <div className="flex items-center gap-2">
-            <a href={`/print/request/${req.id}`} target="_blank"
+            <a href={`/print/request/${req.id}`} target="_blank" rel="noopener noreferrer"
               className="text-xs font-semibold px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors flex items-center gap-1.5">
               🖨 {tr('طباعة', 'Print')}
             </a>
@@ -168,7 +168,7 @@ export default function RequestDetailModal({
                           <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${quote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : quote.status === 'rejected' ? 'bg-red-100 text-red-700' : quote.status === 'revision' ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-600'}`}>
                             {quote.status === 'accepted' ? tr('مقبول','Accepted') : quote.status === 'rejected' ? tr('مرفوض','Rejected') : quote.status === 'revision' ? tr('طلب تعديل','Revision Requested') : tr('قيد الانتظار','Pending')}
                           </span>
-                          <a href={`/print/quote/${quote.id}`} target="_blank"
+                          <a href={`/print/quote/${quote.id}`} target="_blank" rel="noopener noreferrer"
                             className="text-[11px] font-semibold px-2.5 py-1 bg-stone-100 text-stone-600 rounded-full hover:bg-stone-200 transition-colors whitespace-nowrap">
                             {tr('عرض التفاصيل','View Details')}
                           </a>

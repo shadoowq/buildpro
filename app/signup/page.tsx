@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { hashPassword, makeSalt } from '../lib/auth';
 
 type Lang = 'ar' | 'en';
 type UserType = 'contractor' | 'supplier';
@@ -49,7 +50,7 @@ export default function SignupPage() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     const t = (ar: string, en: string) => lang === 'ar' ? ar : en;
@@ -69,9 +70,12 @@ export default function SignupPage() {
       return;
     }
 
+    const passwordSalt = makeSalt();
+    const passwordHash = await hashPassword(formData.password, passwordSalt);
     const userData = {
       email:     formData.email,
-      password:  formData.password,
+      passwordHash,
+      passwordSalt,
       name:      formData.name,
       company:   formData.company,
       phone:     formData.phone,
