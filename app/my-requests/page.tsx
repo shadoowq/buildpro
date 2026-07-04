@@ -531,14 +531,14 @@ export default function MyRequests() {
   const newQuotesCount = getNewQuotesCount();
 
   /* ── table th/td style ── */
-  const thCls = 'text-[10px] font-semibold uppercase tracking-wider text-stone-400 px-4 py-2.5 text-right bg-[#FFFDF9] border-b border-[#F1EAE0]';
-  const tdCls = 'px-4 py-3 border-b border-[#FAF7F2] text-[13px] text-stone-700';
+  const thCls = 'text-[10px] font-semibold uppercase tracking-wider text-stone-400 px-4 py-2.5 text-right bg-[var(--bg-soft2)] border-b border-[var(--line-soft)]';
+  const tdCls = 'px-4 py-3 border-b border-[var(--line-soft)] text-[13px] text-stone-700';
 
-  if (!user) return <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center"><div className="text-stone-400">Loading...</div></div>;
+  if (!user) return <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center"><div className="text-stone-400">Loading...</div></div>;
 
   /* ════════════════════════════════════════ RENDER ════════════════════════════════════════ */
   return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
 
       <Suspense fallback={null}>
         <ReqIdParamReader onFound={setPendingReqId} />
@@ -547,7 +547,7 @@ export default function MyRequests() {
       <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/my-requests" />
 
       {/* ── HERO ── */}
-      <div className="bg-[#C0603E] px-7 pt-6 pb-0">
+      <div className="bg-[var(--chrome)] px-7 pt-6 pb-0">
         <div className="flex items-end justify-between">
           <div>
             <p className="text-white/50 text-xs mb-1">{new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
@@ -555,7 +555,7 @@ export default function MyRequests() {
             <p className="text-white/50 text-xs">{stats.active} {t('active', lang)} — {stats.quotes} {t('incomingQ', lang)}</p>
           </div>
           <Link href="/create-request"
-            className="mb-4 bg-[#8A7B6C] hover:bg-[#6F6255] text-white text-sm font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors">
+            className="mb-4 bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white text-sm font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors">
             <span className="text-base">+</span> {t('newRequest', lang)}
           </Link>
         </div>
@@ -563,7 +563,7 @@ export default function MyRequests() {
         <div className="flex gap-0 mt-4 border-t border-white/10">
           {([['all', t('filterAll', lang)], ['open', t('filterOpen', lang)], ['closed', t('filterClosed', lang)]] as [FilterMode, string][]).map(([val, label]) => (
             <button key={val} onClick={() => setFilter(val)}
-              className={`text-xs font-medium px-5 py-2.5 border-b-2 transition-colors font-cairo ${filter === val ? 'text-white border-[#8A7B6C]' : 'text-white/40 border-transparent hover:text-white/70'}`}>
+              className={`text-xs font-medium px-5 py-2.5 border-b-2 transition-colors font-cairo ${filter === val ? 'text-white border-[var(--sec)]' : 'text-white/40 border-transparent hover:text-white/70'}`}>
               {label} ({val === 'all' ? requests.length : requests.filter(r => r.status === val).length})
             </button>
           ))}
@@ -575,10 +575,10 @@ export default function MyRequests() {
         {[
           { icon: '📋', bg: 'bg-amber-50',   val: stats.total,  label: t('totalReqs', lang),  badge: null },
           { icon: '🔥', bg: 'bg-emerald-50', val: stats.active, label: t('activeReqs', lang), badge: stats.active > 0 ? t('thisMonth', lang) : null },
-          { icon: '📥', bg: 'bg-[#F3EAE0]',  val: stats.quotes, label: t('incomingQ', lang),  badge: null },
+          { icon: '📥', bg: 'bg-[var(--tint)]',  val: stats.quotes, label: t('incomingQ', lang),  badge: null },
           { icon: '🔒', bg: 'bg-stone-50',   val: stats.closed, label: t('closedReqs', lang), badge: null },
         ].map((s, i) => (
-          <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4 relative">
+          <div key={i} className="bg-white border border-[var(--line)] rounded-xl p-4 relative">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
             <div className="text-2xl font-bold text-stone-900">{s.val}</div>
             <div className="text-[11px] text-stone-500 mt-1">{s.label}</div>
@@ -601,7 +601,7 @@ export default function MyRequests() {
         {projectFilter !== null && (
           <div className="flex items-center gap-2 mb-3">
             <button onClick={() => setProjectFilter(null)}
-              className="text-xs font-semibold text-[#8A7B6C] hover:text-[#C0603E] underline">
+              className="text-xs font-semibold text-[var(--sec)] hover:text-[var(--brand-strong)] underline">
               {t('backToAll', lang)}
             </button>
             <span className="text-stone-300">›</span>
@@ -612,10 +612,10 @@ export default function MyRequests() {
         )}
 
         {/* search + view toggle */}
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden mb-4">
-          <div className="flex items-center gap-3 px-5 py-3 border-b border-[#F1EAE0] flex-wrap">
+        <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden mb-4">
+          <div className="flex items-center gap-3 px-5 py-3 border-b border-[var(--line-soft)] flex-wrap">
             {/* search */}
-            <div className="flex items-center gap-2 bg-[#FAF7F2] border border-[#E8DFD3] rounded-lg px-3 py-1.5 w-56">
+            <div className="flex items-center gap-2 bg-[var(--bg-soft)] border border-[var(--line)] rounded-lg px-3 py-1.5 w-56">
               <span className="text-stone-300 text-sm">🔍</span>
               <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                 placeholder={t('search', lang)}
@@ -628,17 +628,17 @@ export default function MyRequests() {
                 <input type="checkbox"
                   checked={filteredRequests.length > 0 && selectedIds.size === filteredRequests.length}
                   onChange={toggleSelectAll}
-                  className="w-3.5 h-3.5 rounded border-stone-300 accent-[#8A7B6C] cursor-pointer" />
+                  className="w-3.5 h-3.5 rounded border-stone-300 accent-[var(--sec)] cursor-pointer" />
                 <span className="text-xs font-semibold text-stone-600">{t('selectAll', lang)}</span>
               </label>
             )}
 
             {/* filters toggle */}
             <button onClick={() => setShowFilters(p => !p)}
-              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${showFilters ? 'bg-[#F3EAE0] border-[#8A7B6C] text-[#C0603E]' : 'border-[#E8DFD3] text-stone-500 hover:bg-stone-50'}`}>
+              className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${showFilters ? 'bg-[var(--tint)] border-[var(--sec)] text-[var(--brand-strong)]' : 'border-[var(--line)] text-stone-500 hover:bg-stone-50'}`}>
               ⚙ {t('filterLabel', lang)}
               {(cityFilter || quotesFilter !== 'all' || sortBy !== 'newest') && (
-                <span className="w-2 h-2 bg-[#8A7B6C] rounded-full" />
+                <span className="w-2 h-2 bg-[var(--sec)] rounded-full" />
               )}
             </button>
 
@@ -651,7 +651,7 @@ export default function MyRequests() {
                 { mode: 'projects' as ViewMode, icon: '📁', labelAr: 'مشاريع', labelEn: 'Projects' },
               ]).map(v => (
                 <button key={v.mode} onClick={() => { setViewMode(v.mode); setSelectedIds(new Set()); }}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === v.mode ? 'bg-white text-[#C0603E] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === v.mode ? 'bg-white text-[var(--brand-strong)] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
                   <span className="text-sm">{v.icon}</span>
                   {lang === 'ar' ? v.labelAr : v.labelEn}
                 </button>
@@ -666,18 +666,18 @@ export default function MyRequests() {
 
           {/* ── FILTER ROW ── */}
           {showFilters && (
-            <div className="flex items-center gap-4 px-5 py-3 bg-[#FAF7F2] border-b border-[#F1EAE0] flex-wrap">
+            <div className="flex items-center gap-4 px-5 py-3 bg-[var(--bg-soft)] border-b border-[var(--line-soft)] flex-wrap">
               {/* city */}
               <select value={cityFilter} onChange={e => setCityFilter(e.target.value)}
-                className="text-xs font-semibold border border-[#E8DFD3] rounded-lg px-3 py-1.5 bg-white text-stone-700 outline-none cursor-pointer">
+                className="text-xs font-semibold border border-[var(--line)] rounded-lg px-3 py-1.5 bg-white text-stone-700 outline-none cursor-pointer">
                 <option value="">{t('allCities', lang)}</option>
                 {availableCities.map(c => <option key={c} value={c}>{getCityName(c, lang)}</option>)}
               </select>
               {/* quotes */}
-              <div className="flex items-center gap-1 bg-white border border-[#E8DFD3] rounded-lg p-0.5">
+              <div className="flex items-center gap-1 bg-white border border-[var(--line)] rounded-lg p-0.5">
                 {([['all', t('allItems', lang)], ['with', t('withQuotes', lang)], ['without', t('noQuotes2', lang)]] as [QuotesFilter, string][]).map(([v, l]) => (
                   <button key={v} onClick={() => setQuotesFilter(v)}
-                    className={`text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${quotesFilter === v ? 'bg-[#C0603E] text-white' : 'text-stone-500 hover:bg-stone-50'}`}>
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${quotesFilter === v ? 'bg-[var(--brand)] text-white' : 'text-stone-500 hover:bg-stone-50'}`}>
                     {l}
                   </button>
                 ))}
@@ -685,10 +685,10 @@ export default function MyRequests() {
               {/* sort */}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-stone-400 font-semibold">{t('sortLabel', lang)}</span>
-                <div className="flex items-center gap-1 bg-white border border-[#E8DFD3] rounded-lg p-0.5">
+                <div className="flex items-center gap-1 bg-white border border-[var(--line)] rounded-lg p-0.5">
                   {([['newest', t('sortNewest', lang)], ['oldest', t('sortOldest', lang)], ['mostQuotes', t('sortMostQ', lang)]] as [SortBy, string][]).map(([v, l]) => (
                     <button key={v} onClick={() => setSortBy(v)}
-                      className={`text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${sortBy === v ? 'bg-[#8A7B6C] text-white' : 'text-stone-500 hover:bg-stone-50'}`}>
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${sortBy === v ? 'bg-[var(--sec)] text-white' : 'text-stone-500 hover:bg-stone-50'}`}>
                       {l}
                     </button>
                   ))}
@@ -706,8 +706,8 @@ export default function MyRequests() {
 
           {/* ── BULK ACTION BAR ── */}
           {selectedIds.size > 0 && (
-            <div className="flex items-center gap-2 px-5 py-2.5 bg-[#F3EAE0] border-b border-[#D9CFC2] flex-wrap">
-              <span className="text-xs font-bold text-[#C0603E]">{t('selected', lang, selectedIds.size)}</span>
+            <div className="flex items-center gap-2 px-5 py-2.5 bg-[var(--tint)] border-b border-[#D9CFC2] flex-wrap">
+              <span className="text-xs font-bold text-[var(--brand-strong)]">{t('selected', lang, selectedIds.size)}</span>
               <div className="flex gap-1.5 flex-wrap mr-2">
                 <button onClick={handleBulkDelete}
                   className="text-xs font-semibold px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1">
@@ -776,20 +776,20 @@ export default function MyRequests() {
                     const urgency = getDeadlineUrgency(req.deadline, rq.some(q => q.status === 'accepted'));
                     return (
                       <tr key={req.id}
-                        className={`transition-colors cursor-pointer ${isSelected ? 'bg-[#F3EAE0]' : 'hover:bg-[#FFFDF9]'}`}
+                        className={`transition-colors cursor-pointer ${isSelected ? 'bg-[var(--tint)]' : 'hover:bg-[var(--bg-soft)]'}`}
                         onClick={() => openRequest(req)}>
                         <td className={tdCls} style={{ padding: '8px 6px', textAlign: 'center' }} onClick={e => toggleSelect(req.id, e)}>
                           <input type="checkbox" checked={isSelected} onChange={() => {}}
-                            className="w-3.5 h-3.5 rounded border-stone-300 accent-[#8A7B6C] cursor-pointer" />
+                            className="w-3.5 h-3.5 rounded border-stone-300 accent-[var(--sec)] cursor-pointer" />
                         </td>
                         <td className={tdCls}>
-                          <span className="text-[10px] text-[#8A7B6C] font-semibold font-mono">{req.id}</span>
+                          <span className="text-[10px] text-[var(--sec)] font-semibold font-mono">{req.id}</span>
                         </td>
                         <td className={tdCls}>
                           <div className="text-[13px] font-semibold text-stone-900 truncate">{getRequestName(req)}</div>
                           <div className="flex gap-1 mt-1 flex-wrap">
                             {getRequestTags(req).slice(0, 3).map((tg, i) => (
-                              <span key={i} className="text-[10px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded font-medium">{tg}</span>
+                              <span key={i} className="text-[10px] bg-[var(--tint)] text-[var(--brand-strong)] px-1.5 py-0.5 rounded font-medium">{tg}</span>
                             ))}
                           </div>
                         </td>
@@ -809,11 +809,11 @@ export default function MyRequests() {
                         <td className={tdCls} onClick={e => e.stopPropagation()}>
                           <div className="flex gap-1">
                             <button onClick={() => openRequest(req)}
-                              className="flex-1 text-[11px] font-semibold text-[#C0603E] bg-[#F3EAE0] border border-[#E8DFD3] rounded-md px-2 py-1 hover:bg-[#EDE0D2] transition-colors">
+                              className="flex-1 text-[11px] font-semibold text-[var(--brand-strong)] bg-[var(--tint)] border border-[var(--line)] rounded-md px-2 py-1 hover:bg-[var(--tint-hover)] transition-colors">
                               {t('view', lang)}
                             </button>
                             <button onClick={() => router.push(`/create-request?edit=${req.id}`)}
-                              className="flex-1 text-[11px] font-semibold text-[#8A7B6C] bg-stone-100 border border-stone-200 rounded-md px-2 py-1 hover:bg-stone-200 transition-colors">
+                              className="flex-1 text-[11px] font-semibold text-[var(--sec)] bg-stone-100 border border-stone-200 rounded-md px-2 py-1 hover:bg-stone-200 transition-colors">
                               {t('edit', lang)}
                             </button>
                             <div className="relative">
@@ -822,7 +822,7 @@ export default function MyRequests() {
                                 ⋯
                               </button>
                               {moveMenuId === req.id && (
-                                <div className="absolute z-20 top-full mt-1 left-0 w-40 bg-white border border-[#E8DFD3] rounded-xl shadow-lg overflow-hidden" dir={dir}>
+                                <div className="absolute z-20 top-full mt-1 left-0 w-40 bg-white border border-[var(--line)] rounded-xl shadow-lg overflow-hidden" dir={dir}>
                                   <button onClick={() => { toggleRequestStatus(req.id); setMoveMenuId(null); }}
                                     className={`w-full text-right px-3 py-1.5 text-[11px] font-semibold transition-colors ${req.status === 'open' ? 'hover:bg-amber-50 text-amber-700' : 'hover:bg-emerald-50 text-emerald-700'}`}>
                                     {req.status === 'open' ? (lang === 'ar' ? 'إغلاق' : 'Close') : (lang === 'ar' ? 'فتح' : 'Open')}
@@ -878,12 +878,12 @@ export default function MyRequests() {
                   const urgency = getDeadlineUrgency(req.deadline, rq.some(q => q.status === 'accepted'));
                   return (
                     <div key={req.id}
-                      className={`border rounded-2xl p-4 cursor-pointer transition-all hover:shadow-md group relative ${selectedIds.has(req.id) ? 'border-[#8A7B6C] bg-[#F0FAFC]' : isClosed ? 'border-stone-200 bg-stone-50' : nq > 0 ? 'border-emerald-300 bg-white shadow-sm' : 'border-[#E8DFD3] bg-white'}`}
+                      className={`border rounded-2xl p-4 cursor-pointer transition-all hover:shadow-md group relative ${selectedIds.has(req.id) ? 'border-[var(--sec)] bg-[#F0FAFC]' : isClosed ? 'border-stone-200 bg-stone-50' : nq > 0 ? 'border-emerald-300 bg-white shadow-sm' : 'border-[var(--line)] bg-white'}`}
                       onClick={() => openRequest(req)}>
                       {/* select checkbox */}
                       <span className="absolute top-2.5 left-2.5 z-10" onClick={e => toggleSelect(req.id, e)}>
                         <input type="checkbox" checked={selectedIds.has(req.id)} onChange={() => {}}
-                          className="w-3.5 h-3.5 rounded border-stone-300 accent-[#8A7B6C] cursor-pointer" />
+                          className="w-3.5 h-3.5 rounded border-stone-300 accent-[var(--sec)] cursor-pointer" />
                       </span>
                       {nq > 0 && (
                         <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
@@ -893,7 +893,7 @@ export default function MyRequests() {
                       {/* card header */}
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <span className="text-[10px] text-[#8A7B6C] font-semibold font-mono">#{req.id}</span>
+                          <span className="text-[10px] text-[var(--sec)] font-semibold font-mono">#{req.id}</span>
                           <p className="text-[13px] font-bold text-stone-900 mt-0.5 leading-tight line-clamp-2">{getRequestName(req)}</p>
                         </div>
                         <StatusPill status={getEffectiveStatus(req)} lang={lang} />
@@ -901,7 +901,7 @@ export default function MyRequests() {
                       {/* tags */}
                       <div className="flex flex-wrap gap-1 mb-3">
                         {getRequestTags(req).slice(0, 4).map((tg, i) => (
-                          <span key={i} className="text-[10px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded font-medium">{tg}</span>
+                          <span key={i} className="text-[10px] bg-[var(--tint)] text-[var(--brand-strong)] px-1.5 py-0.5 rounded font-medium">{tg}</span>
                         ))}
                       </div>
                       {/* info row */}
@@ -929,11 +929,11 @@ export default function MyRequests() {
                       {/* actions row 1: عرض | تعديل */}
                       <div className="flex gap-1.5 mt-3" onClick={e => e.stopPropagation()}>
                         <button onClick={e => { e.stopPropagation(); openRequest(req); }}
-                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[#F3EAE0] text-[#C0603E] border border-[#E8DFD3] hover:bg-[#EDE0D2] transition-colors">
+                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-[var(--tint)] text-[var(--brand-strong)] border border-[var(--line)] hover:bg-[var(--tint-hover)] transition-colors">
                           {t('view', lang)}
                         </button>
                         <button onClick={e => { e.stopPropagation(); router.push(`/create-request?edit=${req.id}`); }}
-                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-stone-100 text-[#8A7B6C] border border-stone-200 hover:bg-stone-200 transition-colors">
+                          className="flex-1 text-xs font-semibold py-1.5 rounded-lg bg-stone-100 text-[var(--sec)] border border-stone-200 hover:bg-stone-200 transition-colors">
                           {t('edit', lang)}
                         </button>
                       </div>
@@ -961,7 +961,7 @@ export default function MyRequests() {
                           </button>
                         )}
                         {moveMenuId === req.id && (
-                          <div className="absolute z-20 bottom-full mb-1 left-0 bg-white border border-[#E8DFD3] rounded-xl shadow-lg overflow-hidden min-w-[140px]">
+                          <div className="absolute z-20 bottom-full mb-1 left-0 bg-white border border-[var(--line)] rounded-xl shadow-lg overflow-hidden min-w-[140px]">
                             {([
                               { col: 'active'   as KanbanCol, ar: 'نشطة',         en: 'Active',   cls: 'hover:bg-emerald-50 text-emerald-700' },
                               { col: 'awaiting' as KanbanCol, ar: 'بانتظار عروض', en: 'Awaiting', cls: 'hover:bg-orange-50 text-orange-700'  },
@@ -1034,11 +1034,11 @@ export default function MyRequests() {
                     const hasNew = reqs.some(r => getRequestNewQuotes(r.id) > 0);
                     return (
                       <div key={key}
-                        className={`bg-white border rounded-2xl p-5 cursor-pointer hover:shadow-md transition-all relative ${hasNew ? 'border-emerald-300' : 'border-[#E8DFD3]'}`}
+                        className={`bg-white border rounded-2xl p-5 cursor-pointer hover:shadow-md transition-all relative ${hasNew ? 'border-emerald-300' : 'border-[var(--line)]'}`}
                         onClick={() => { setProjectFilter(key); setViewMode('table'); }}>
                         {hasNew && <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">!</span>}
                         <div className="flex items-start gap-3 mb-4">
-                          <div className="w-11 h-11 bg-[#F3EAE0] rounded-xl flex items-center justify-center text-xl shrink-0">📁</div>
+                          <div className="w-11 h-11 bg-[var(--tint)] rounded-xl flex items-center justify-center text-xl shrink-0">📁</div>
                           <div>
                             <p className="text-[13px] font-bold text-stone-900 leading-tight">
                               {key === '__none__' ? t('noProject', lang) : key}
@@ -1060,7 +1060,7 @@ export default function MyRequests() {
                         {/* request name tags */}
                         <div className="flex flex-wrap gap-1 mb-3">
                           {reqs.slice(0, 3).map(r => (
-                            <span key={r.id} className="text-[10px] bg-[#F3EAE0] text-[#C0603E] px-2 py-0.5 rounded font-medium truncate max-w-[100px]">
+                            <span key={r.id} className="text-[10px] bg-[var(--tint)] text-[var(--brand-strong)] px-2 py-0.5 rounded font-medium truncate max-w-[100px]">
                               {getRequestName(r)}
                             </span>
                           ))}
@@ -1078,7 +1078,7 @@ export default function MyRequests() {
                               {closedCount} {lang === 'ar' ? 'مغلق' : 'closed'}
                             </span>
                           )}
-                          <span className="text-[10px] text-[#8A7B6C] font-semibold mr-auto hover:underline">{t('viewProj', lang)} →</span>
+                          <span className="text-[10px] text-[var(--sec)] font-semibold mr-auto hover:underline">{t('viewProj', lang)} →</span>
                         </div>
                       </div>
                     );
@@ -1112,7 +1112,7 @@ export default function MyRequests() {
         <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4" onClick={() => setCompareRequest(null)}>
           <div className="bg-white rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto" dir={dir} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-stone-900">{t('compareTitle', lang)} — <span className="text-[#8A7B6C]">#{compareRequest.id}</span></h2>
+              <h2 className="text-lg font-bold text-stone-900">{t('compareTitle', lang)} — <span className="text-[var(--sec)]">#{compareRequest.id}</span></h2>
               <button onClick={() => setCompareRequest(null)} aria-label={lang === 'ar' ? 'إغلاق' : 'Close'} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center font-bold hover:bg-red-100 text-lg">✕</button>
             </div>
             <QuoteCompareTable quotes={getRequestQuotes(compareRequest.id)} lang={lang} variant="actions"
@@ -1123,9 +1123,9 @@ export default function MyRequests() {
               revisionQuoteId={revisionQuoteId} revisionNote={revisionNote}
               setRevisionQuoteId={setRevisionQuoteId} setRevisionNote={setRevisionNote}
               onRevisionSubmit={handleRevisionSubmit} />
-            <div className="mt-4 bg-[#FAF7F2] rounded-xl px-4 py-3 flex gap-6 flex-wrap">
+            <div className="mt-4 bg-[var(--bg-soft)] rounded-xl px-4 py-3 flex gap-6 flex-wrap">
               <span className="text-emerald-600 text-sm font-semibold">✅ {t('lowestP',lang)} {getLowestPrice(getRequestQuotes(compareRequest.id))?.toLocaleString()} {t('sar',lang)}</span>
-              <span className="text-[#C0603E] text-sm font-semibold">⚡ {t('fastestD',lang)} {getFastestDelivery(getRequestQuotes(compareRequest.id))} {t('days',lang)}</span>
+              <span className="text-[var(--brand-strong)] text-sm font-semibold">⚡ {t('fastestD',lang)} {getFastestDelivery(getRequestQuotes(compareRequest.id))} {t('days',lang)}</span>
               <span className="text-stone-500 text-sm">📊 {t('totalQ',lang)} {getRequestQuotes(compareRequest.id).length}</span>
             </div>
           </div>
@@ -1163,7 +1163,7 @@ function EmptyState({ lang }: { lang: Lang }) {
       <h3 className="text-stone-700 font-bold text-base mb-1">{lang === 'ar' ? 'لا توجد طلبات' : 'No requests'}</h3>
       <p className="text-stone-400 text-sm mb-5">{lang === 'ar' ? 'ابدأ بإنشاء طلب تسعير جديد' : 'Start by creating a new pricing request'}</p>
       <Link href="/create-request"
-        className="bg-[#C0603E] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#9C4C31] transition-colors">
+        className="bg-[var(--brand)] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[var(--brand-hover)] transition-colors">
         {lang === 'ar' ? '+ طلب جديد' : '+ New Request'}
       </Link>
     </div>
@@ -1215,21 +1215,21 @@ function KanbanColumn({ col, title, color, icon, requests, lang, dragOverCol, dr
             draggable
             onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; onDragStart(req.id); }}
             onDragEnd={onDragEnd}
-            className={`bg-white border rounded-xl p-3 cursor-grab active:cursor-grabbing transition-all hover:shadow-sm relative select-none ${isDragging ? 'opacity-40 scale-95' : ''} ${selectedIds?.has(req.id) ? 'border-[#8A7B6C] bg-[#F0FAFC]' : s.card}`}
+            className={`bg-white border rounded-xl p-3 cursor-grab active:cursor-grabbing transition-all hover:shadow-sm relative select-none ${isDragging ? 'opacity-40 scale-95' : ''} ${selectedIds?.has(req.id) ? 'border-[var(--sec)] bg-[#F0FAFC]' : s.card}`}
             onClick={() => !isDragging && onOpen(req)}>
             {/* drag handle + checkbox */}
             <div className="flex items-center justify-between mb-1" onClick={e => e.stopPropagation()}>
               <span className="text-stone-200 text-xs select-none">⠿</span>
               <input type="checkbox" checked={selectedIds?.has(req.id) || false} onChange={() => {}}
                 onClick={e => { e.stopPropagation(); onSelect?.(req.id, e); }}
-                className="w-3 h-3 rounded border-stone-300 accent-[#8A7B6C] cursor-pointer" />
+                className="w-3 h-3 rounded border-stone-300 accent-[var(--sec)] cursor-pointer" />
             </div>
             {nq > 0 && <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">{nq}</span>}
-            <span className="text-[10px] text-[#8A7B6C] font-mono font-semibold">#{req.id}</span>
+            <span className="text-[10px] text-[var(--sec)] font-mono font-semibold">#{req.id}</span>
             <p className="text-xs font-bold text-stone-900 mt-0.5 mb-2 line-clamp-2">{getRequestName(req)}</p>
             <div className="flex flex-wrap gap-1 mb-2">
               {getRequestTags(req).slice(0, 2).map((tg: string, i: number) => (
-                <span key={i} className="text-[9px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded">{tg}</span>
+                <span key={i} className="text-[9px] bg-[var(--tint)] text-[var(--brand-strong)] px-1.5 py-0.5 rounded">{tg}</span>
               ))}
             </div>
             {req.location && <p className="text-[10px] text-stone-400 mb-1">📍 {getCityName(req.location, lang)}</p>}
@@ -1244,11 +1244,11 @@ function KanbanColumn({ col, title, color, icon, requests, lang, dragOverCol, dr
             {/* action buttons */}
             <div className="flex gap-1 flex-wrap" onClick={e => e.stopPropagation()}>
               <button onClick={e => { e.stopPropagation(); onOpen(req); }}
-                className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#F3EAE0] text-[#C0603E] border border-[#E8DFD3] transition-colors hover:bg-[#EDE0D2]">
+                className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[var(--tint)] text-[var(--brand-strong)] border border-[var(--line)] transition-colors hover:bg-[var(--tint-hover)]">
                 {lang === 'ar' ? 'عرض' : 'View'}
               </button>
               <button onClick={e => { e.stopPropagation(); onEdit(req.id); }}
-                className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-stone-100 text-[#8A7B6C] border border-stone-200 transition-colors hover:bg-stone-200">
+                className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-stone-100 text-[var(--sec)] border border-stone-200 transition-colors hover:bg-stone-200">
                 {lang === 'ar' ? 'تعديل' : 'Edit'}
               </button>
               <button onClick={e => { e.stopPropagation(); onToggle(req.id); }}
@@ -1270,7 +1270,7 @@ function KanbanColumn({ col, title, color, icon, requests, lang, dragOverCol, dr
                   {lang === 'ar' ? 'نقل ↕' : 'Move ↕'}
                 </button>
                 {openMoveId === req.id && (
-                  <div className="absolute z-20 bottom-full mb-1 left-0 bg-white border border-[#E8DFD3] rounded-xl shadow-lg overflow-hidden min-w-[140px]">
+                  <div className="absolute z-20 bottom-full mb-1 left-0 bg-white border border-[var(--line)] rounded-xl shadow-lg overflow-hidden min-w-[140px]">
                     {([
                       { c: 'active'   as KanbanCol, ar: 'نشطة',         en: 'Active',   cls: 'hover:bg-emerald-50 text-emerald-700' },
                       { c: 'awaiting' as KanbanCol, ar: 'بانتظار عروض', en: 'Awaiting', cls: 'hover:bg-orange-50 text-orange-700'  },

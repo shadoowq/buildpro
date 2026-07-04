@@ -153,8 +153,8 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
     const el = document.getElementById(`quote-group-${pendingReqId}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('ring-2', 'ring-[#C0603E]');
-      setTimeout(() => el.classList.remove('ring-2', 'ring-[#C0603E]'), 2000);
+      el.classList.add('ring-2', 'ring-[var(--brand)]');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-[var(--brand)]'), 2000);
     }
     setPendingReqId(null);
   }, [pendingReqId, allQuotes]);
@@ -243,7 +243,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
   const lowestPrice = validPrices.length > 0 ? Math.min(...validPrices) : null;
 
   const stats = [
-    { icon: '📥', bg: 'bg-[#F3EAE0]', val: allQuotes.length, label: tFn('totalQ', lang), badge: null },
+    { icon: '📥', bg: 'bg-[var(--tint)]', val: allQuotes.length, label: tFn('totalQ', lang), badge: null },
     { icon: '⏳', bg: 'bg-orange-50', val: allQuotes.filter(q => q.status === 'pending').length, label: tFn('pendingQ', lang), badge: null },
     { icon: '✅', bg: 'bg-emerald-50', val: allQuotes.filter(q => q.status === 'accepted').length, label: tFn('acceptedQ', lang), badge: null },
     { icon: '💰', bg: 'bg-amber-50', val: lowestPrice !== null ? lowestPrice.toLocaleString() : '—', label: tFn('lowestPrice', lang), badge: lowestPrice !== null ? tFn('sar', lang) : null },
@@ -257,7 +257,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
   });
 
   return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
 
       <ContractorNav lang={lang} setLang={setLang} userName={userName} active="/my-quotes" />
 
@@ -266,7 +266,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
       </Suspense>
 
       {/* HERO */}
-      <div className="bg-[#C0603E] px-7 pt-6 pb-0">
+      <div className="bg-[var(--chrome)] px-7 pt-6 pb-0">
         <div className="flex items-end justify-between">
           <div>
             <p className="text-white/70 text-xs mb-1">
@@ -292,7 +292,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
             const label = tFn(tab === 'all' ? 'all' : tab, lang);
             return (
               <button key={tab} onClick={() => setFilter(tab)}
-                className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${filter === tab ? 'text-white border-[#8A7B6C]' : 'text-white/60 border-transparent hover:text-white/70'}`}>
+                className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${filter === tab ? 'text-white border-[var(--sec)]' : 'text-white/60 border-transparent hover:text-white/70'}`}>
                 {label} ({count})
               </button>
             );
@@ -303,7 +303,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
       {/* STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {stats.map((s, i) => (
-          <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4 relative">
+          <div key={i} className="bg-white border border-[var(--line)] rounded-xl p-4 relative">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
             <div className="text-2xl font-bold text-stone-900">{s.val}</div>
             <div className="text-xs text-stone-500 mt-1">{s.label}</div>
@@ -324,11 +324,11 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
 
         {/* empty state */}
         {filteredQuotes.length === 0 ? (
-          <div className="bg-white border border-[#E8DFD3] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
+          <div className="bg-white border border-[var(--line)] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
             <span className="text-4xl">📭</span>
             <p className="text-stone-900 font-bold text-base">{tFn('noQuotes', lang)}</p>
             <p className="text-stone-500 text-sm max-w-xs">{tFn('noQuotesSub', lang)}</p>
-            <Link href="/my-requests" className="mt-2 bg-[#C0603E] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#9C4C31] transition-colors">
+            <Link href="/my-requests" className="mt-2 bg-[var(--brand)] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[var(--brand-hover)] transition-colors">
               {tFn('goRequests', lang)}
             </Link>
           </div>
@@ -343,11 +343,11 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
             const isComparing = compareReqId === reqId;
 
             return (
-              <div key={reqId} id={`quote-group-${reqId}`} className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden transition-shadow">
+              <div key={reqId} id={`quote-group-${reqId}`} className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden transition-shadow">
                 {/* request header */}
-                <div className="flex items-center justify-between px-5 py-3.5 bg-[#FFFDF9] border-b border-[#F1EAE0]">
+                <div className="flex items-center justify-between px-5 py-3.5 bg-[var(--bg-soft2)] border-b border-[var(--line-soft)]">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 bg-[#F3EAE0] rounded-lg flex items-center justify-center text-[#C0603E] text-sm">📋</div>
+                    <div className="w-8 h-8 bg-[var(--tint)] rounded-lg flex items-center justify-center text-[var(--brand-strong)] text-sm">📋</div>
                     <div>
                       <p className="text-sm font-bold text-stone-900">{reqName}</p>
                       <p className="text-[11px] text-stone-500">
@@ -361,12 +361,12 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                     {quotes.length > 1 && (
                       <button
                         onClick={() => { setCompareReqId(isComparing ? null : reqId); markSeen(quotes.map(q => q.id)); }}
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${isComparing ? 'bg-[#C0603E] text-white border-[#C0603E]' : 'bg-white text-[#C0603E] border-[#C0603E] hover:bg-[#F3EAE0]'}`}>
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${isComparing ? 'bg-[var(--brand)] text-white border-[var(--brand-strong)]' : 'bg-white text-[var(--brand-strong)] border-[var(--brand-strong)] hover:bg-[var(--tint)]'}`}>
                         {tFn('compare', lang)} {isComparing ? '✕' : '⇄'}
                       </button>
                     )}
                     <Link href={`/request/${reqId}`}
-                      className="text-xs text-[#8A7B6C] font-semibold hover:underline">
+                      className="text-xs text-[var(--sec)] font-semibold hover:underline">
                       {lang === 'ar' ? 'فتح الطلب' : 'Open Request'} ↗
                     </Link>
                   </div>
@@ -386,16 +386,16 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                   </div>
                 ) : (
                   /* cards view */
-                  <div className="divide-y divide-[#FAF7F2]">
+                  <div className="divide-y divide-[var(--line-soft)]">
                     {quotes.map(q => {
                       const expired = isQuoteExpired(q);
                       const isNew = q.status === 'pending' && !expired && !seenQuotes.includes(q.id);
                       return (
                         <div key={q.id}
-                          className={`flex items-start gap-4 px-5 py-4 hover:bg-[#FFFDF9] transition-colors ${q.status === 'accepted' ? 'bg-emerald-50/30' : q.status === 'rejected' ? 'bg-red-50/30' : ''}`}
+                          className={`flex items-start gap-4 px-5 py-4 hover:bg-[var(--bg-soft)] transition-colors ${q.status === 'accepted' ? 'bg-emerald-50/30' : q.status === 'rejected' ? 'bg-red-50/30' : ''}`}
                           onClick={() => isNew && markSeen([q.id])}>
                           {/* supplier avatar */}
-                          <div className="w-10 h-10 rounded-xl bg-[#F3EAE0] border border-[#E8DFD3] flex items-center justify-center text-[12px] font-bold text-[#C0603E] shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-[var(--tint)] border border-[var(--line)] flex items-center justify-center text-[12px] font-bold text-[var(--brand-strong)] shrink-0">
                             {q.supplierCompany.slice(0, 2).toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -403,9 +403,9 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                               <p className="text-sm font-bold text-stone-900">{q.supplierCompany}</p>
                               <p className="text-xs text-stone-500">{q.supplierName}</p>
                               <StatusBadge status={getEffectiveQuoteStatus(q)} lang={lang} />
-                              {isNew && <span className="text-[10px] bg-[#C0603E] text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
+                              {isNew && <span className="text-[10px] bg-[var(--brand)] text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
                               {q.id === cheapestId && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{tFn('cheapest', lang)}</span>}
-                              {q.id === fastestId && <span className="text-[10px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded-full font-bold">{tFn('fastest', lang)}</span>}
+                              {q.id === fastestId && <span className="text-[10px] bg-[var(--tint)] text-[var(--brand-strong)] px-1.5 py-0.5 rounded-full font-bold">{tFn('fastest', lang)}</span>}
                             </div>
                             <div className="flex gap-4 mt-1.5">
                               <span className="text-base font-bold text-stone-900">{Number(q.totalPrice).toLocaleString()} <span className="text-xs font-medium text-stone-500">{tFn('sar', lang)}</span></span>
@@ -452,7 +452,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                               </button>
                             )}
                             <a href={`/print/quote/${q.id}`} target="_blank" rel="noopener noreferrer"
-                              className="text-xs font-semibold px-3 py-1.5 bg-[#F3EAE0] text-[#C0603E] rounded-lg hover:bg-[#EADFCF] transition-colors text-center">
+                              className="text-xs font-semibold px-3 py-1.5 bg-[var(--tint)] text-[var(--brand-strong)] rounded-lg hover:bg-[var(--tint-hover)] transition-colors text-center">
                               👁 {tFn('view', lang)}
                             </a>
                             <a href={`/print/quote/${q.id}?autoprint=1`} target="_blank" rel="noopener noreferrer"
@@ -522,8 +522,8 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
     const el = document.getElementById(`supp-quote-${pendingReqId}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('ring-2', 'ring-[#C0603E]');
-      setTimeout(() => el.classList.remove('ring-2', 'ring-[#C0603E]'), 2000);
+      el.classList.add('ring-2', 'ring-[var(--brand)]');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-[var(--brand)]'), 2000);
     }
     setPendingReqId(null);
   }, [pendingReqId, quotes]);
@@ -612,21 +612,21 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
   const acceptedValue = quotes.filter(q => q.status === 'accepted').reduce((s, q) => s + (Number(q.totalPrice) || 0), 0);
 
   const stats = [
-    { icon: '📄', bg: 'bg-[#F3EAE0]', val: quotes.length, label: tFn('totalQ', lang) },
+    { icon: '📄', bg: 'bg-[var(--tint)]', val: quotes.length, label: tFn('totalQ', lang) },
     { icon: '⏳', bg: 'bg-orange-50', val: quotes.filter(q => q.status === 'pending').length, label: tFn('pendingQ', lang) },
     { icon: '✅', bg: 'bg-emerald-50', val: quotes.filter(q => q.status === 'accepted').length, label: tFn('acceptedQ', lang) },
     { icon: '💰', bg: 'bg-amber-50', val: acceptedValue.toLocaleString(), label: tFn('acceptedValue', lang) },
   ];
 
   return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
       <SupplierNav lang={lang} setLang={setLang} userName={userName} active="/my-quotes" />
 
       <Suspense fallback={null}>
         <ReqIdParamReader onFound={setPendingReqId} />
       </Suspense>
 
-      <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-0">
+      <div className="bg-[var(--chrome)] px-4 md:px-7 pt-6 pb-0">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-white text-xl font-bold mb-1">{tFn('titleSupp', lang)}</h1>
@@ -644,7 +644,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
             const label = tFn(tab === 'all' ? 'all' : tab, lang);
             return (
               <button key={tab} onClick={() => setFilter(tab)}
-                className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${filter === tab ? 'text-white border-[#8A7B6C]' : 'text-white/60 border-transparent hover:text-white/70'}`}>
+                className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${filter === tab ? 'text-white border-[var(--sec)]' : 'text-white/60 border-transparent hover:text-white/70'}`}>
                 {label} ({count})
               </button>
             );
@@ -655,7 +655,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
       {/* STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {stats.map((s, i) => (
-          <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4">
+          <div key={i} className="bg-white border border-[var(--line)] rounded-xl p-4">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
             <div className="text-2xl font-bold text-stone-900">{s.val}</div>
             <div className="text-xs text-stone-500 mt-1">{s.label}</div>
@@ -665,10 +665,10 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
 
       <div className="px-4 md:px-7 pb-10 space-y-4">
         {filteredQuotes.length === 0 ? (
-          <div className="bg-white border border-[#E8DFD3] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
+          <div className="bg-white border border-[var(--line)] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
             <span className="text-4xl">📭</span>
             <p className="text-stone-900 font-bold">{tFn('noSuppQ', lang)}</p>
-            <Link href="/supplier-requests" className="mt-2 bg-[#C0603E] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#9C4C31] transition-colors">
+            <Link href="/supplier-requests" className="mt-2 bg-[var(--brand)] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[var(--brand-hover)] transition-colors">
               {tFn('browseReqs', lang)}
             </Link>
           </div>
@@ -676,12 +676,12 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
           filteredQuotes.map(q => {
             const req = getRequest(q.requestId);
             return (
-              <div key={q.id} id={`supp-quote-${q.requestId}`} className={`bg-white border rounded-2xl p-5 transition-shadow ${q.status === 'accepted' ? 'border-emerald-200 bg-emerald-50/20' : q.status === 'rejected' ? 'border-red-200 bg-red-50/20' : q.status === 'revision' ? 'border-amber-200 bg-amber-50/20' : 'border-[#E8DFD3]'}`}>
+              <div key={q.id} id={`supp-quote-${q.requestId}`} className={`bg-white border rounded-2xl p-5 transition-shadow ${q.status === 'accepted' ? 'border-emerald-200 bg-emerald-50/20' : q.status === 'rejected' ? 'border-red-200 bg-red-50/20' : q.status === 'revision' ? 'border-amber-200 bg-amber-50/20' : 'border-[var(--line)]'}`}>
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold text-stone-900">{getReqDisplayName(req, q.requestId)}</p>
-                      {q.quoteNumber && <span className="text-[11px] font-mono font-semibold text-[#8A7B6C] bg-[#F3EAE0] px-1.5 py-0.5 rounded">{q.quoteNumber}</span>}
+                      {q.quoteNumber && <span className="text-[11px] font-mono font-semibold text-[var(--sec)] bg-[var(--tint)] px-1.5 py-0.5 rounded">{q.quoteNumber}</span>}
                     </div>
                     {req && <p className="text-xs text-stone-500 mt-0.5">📍 {getCityName(req.location, lang)} {req.deadline ? `· ⏱ ${formatDay(req.deadline, lang)}` : ''}</p>}
                   </div>
@@ -760,7 +760,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                       </button>
                     )}
                     <a href={`/print/quote/${q.id}`} target="_blank" rel="noopener noreferrer" title={tFn('view', lang)}
-                      className="text-xs font-semibold px-3 py-1.5 bg-[#F3EAE0] text-[#C0603E] rounded-lg hover:bg-[#EADFCF] transition-colors">
+                      className="text-xs font-semibold px-3 py-1.5 bg-[var(--tint)] text-[var(--brand-strong)] rounded-lg hover:bg-[var(--tint-hover)] transition-colors">
                       👁 {tFn('view', lang)}
                     </a>
                     <a href={`/print/quote/${q.id}?autoprint=1`} target="_blank" rel="noopener noreferrer" title={tFn('print', lang)}
@@ -815,7 +815,7 @@ export default function MyQuotesPage() {
   const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
 
   if (!userType) return (
-    <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center font-cairo">
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center font-cairo">
       <div className="text-stone-500 text-sm">{lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
     </div>
   );

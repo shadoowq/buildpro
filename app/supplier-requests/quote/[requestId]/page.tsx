@@ -186,14 +186,14 @@ function SelectOther({ value, other, onValue, onOther, options, lang }: {
   return (
     <div className="flex flex-col gap-1 min-w-[110px]">
       <select value={value} onChange={e => onValue(e.target.value)}
-        className="text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 bg-white text-stone-700 outline-none focus:border-[#8A7B6C]">
+        className="text-xs border border-[var(--line)] rounded-lg px-2 py-1.5 bg-white text-stone-700 outline-none focus:border-[var(--sec)]">
         <option value="">{tx('selectOption', lang)}</option>
         {options.map(o => <option key={o} value={o}>{displayVal(o, lang)}</option>)}
         <option value={OTHER}>{tx('otherOption', lang)}</option>
       </select>
       {value === OTHER && (
         <input value={other} onChange={e => onOther(e.target.value)} placeholder={tx('specify', lang)}
-          className="text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 bg-white text-stone-700 outline-none focus:border-[#8A7B6C]" />
+          className="text-xs border border-[var(--line)] rounded-lg px-2 py-1.5 bg-white text-stone-700 outline-none focus:border-[var(--sec)]" />
       )}
     </div>
   );
@@ -500,7 +500,7 @@ export default function SupplierQuoteBuilder() {
   };
 
   if (!ready || !request || !user) return (
-    <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center font-cairo">
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center font-cairo">
       <div className="text-stone-500 text-sm">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
     </div>
   );
@@ -516,14 +516,14 @@ export default function SupplierQuoteBuilder() {
         {row.images.map((img, i) => (
           <div key={i} className="relative inline-block">
             <img src={img} alt="" onClick={() => { setLightboxImg(img); setZoomLevel(1); }}
-              className="w-9 h-9 object-cover rounded border border-[#E8DFD3] cursor-zoom-in" />
+              className="w-9 h-9 object-cover rounded border border-[var(--line)] cursor-zoom-in" />
             <button type="button" onClick={() => removeRowImage(row.id, i)}
               className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white rounded-full text-[8px] flex items-center justify-center leading-none">✕</button>
           </div>
         ))}
       </div>
       {row.images.length < 2 ? (
-        <label className="inline-block px-1.5 py-1 bg-[#8A7B6C] text-white rounded text-[11px] font-bold cursor-pointer">
+        <label className="inline-block px-1.5 py-1 bg-[var(--sec)] text-white rounded text-[11px] font-bold cursor-pointer">
           {tx('uploadImage', language)}
           <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={e => handleRowImageUpload(row.id, e)} />
         </label>
@@ -533,17 +533,17 @@ export default function SupplierQuoteBuilder() {
     </>
   );
 
-  const inputCls = 'w-full text-sm border border-[#E8DFD3] rounded-xl px-4 py-2.5 outline-none font-cairo bg-white text-stone-800 placeholder-stone-300 focus:border-[#8A7B6C] focus:ring-2 focus:ring-[#8A7B6C]/10 transition-all';
+  const inputCls = 'w-full text-sm border border-[var(--line)] rounded-xl px-4 py-2.5 outline-none font-cairo bg-white text-stone-800 placeholder-stone-300 focus:border-[var(--sec)] focus:ring-2 focus:ring-[var(--sec)]/10 transition-all';
   const labelCls = 'block text-xs font-semibold text-stone-600 mb-1.5';
-  const th = 'px-3 py-2 text-xs font-semibold text-stone-500 whitespace-nowrap text-center bg-[#FAF7F2] border-b border-[#F1EAE0]';
-  const td = 'px-2 py-2 align-top border-b border-[#F1EAE0]';
+  const th = 'px-3 py-2 text-xs font-semibold text-stone-500 whitespace-nowrap text-center bg-[var(--bg-soft)] border-b border-[var(--line-soft)]';
+  const td = 'px-2 py-2 align-top border-b border-[var(--line-soft)]';
 
   return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
       <SupplierNav lang={language} setLang={handleLangChange} userName={user.name || ''} active="/supplier-requests" />
 
       {/* HERO */}
-      <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-6">
+      <div className="bg-[var(--chrome)] px-4 md:px-7 pt-6 pb-6">
         <button onClick={() => router.push('/supplier-requests')} className="text-white/70 hover:text-white text-xs mb-2">
           {tx('back', language)}
         </button>
@@ -566,7 +566,7 @@ export default function SupplierQuoteBuilder() {
         )}
 
         {/* REQUEST REFERENCE */}
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl p-5">
+        <div className="bg-white border border-[var(--line)] rounded-2xl p-5">
           <h2 className="text-sm font-bold text-stone-900 mb-3">{tx('refCard', language)}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <p className="text-xs text-stone-600"><span className="font-semibold text-stone-700">{tx('project', language)}:</span> {reqName}</p>
@@ -574,7 +574,7 @@ export default function SupplierQuoteBuilder() {
             <p className="text-xs text-stone-600"><span className="font-semibold text-stone-700">{tx('deadline', language)}:</span> {formatDay(request.deadline, language)}</p>
           </div>
           {reqMaterialLines.length > 0 && (
-            <div className="bg-[#FAF7F2] rounded-lg p-3">
+            <div className="bg-[var(--bg-soft)] rounded-lg p-3">
               <p className="text-xs font-semibold text-stone-500 mb-1">{tx('requestedMaterials', language)}</p>
               {reqMaterialLines.map((line, i) => <p key={i} className="text-xs text-stone-700 my-0.5">• {line}</p>)}
             </div>
@@ -582,7 +582,7 @@ export default function SupplierQuoteBuilder() {
         </div>
 
         {/* QUOTE META */}
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl p-5">
+        <div className="bg-white border border-[var(--line)] rounded-2xl p-5">
           <h2 className="text-sm font-bold text-stone-900 mb-4">{tx('quoteDetails', language)}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -620,14 +620,14 @@ export default function SupplierQuoteBuilder() {
         </div>
 
         {/* LINE ITEMS */}
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl p-5">
+        <div className="bg-white border border-[var(--line)] rounded-2xl p-5">
           <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
             <h2 className="text-sm font-bold text-stone-900">{tx('lineItems', language)}</h2>
             <div className="flex items-center gap-2">
               <label className="text-xs font-semibold text-stone-600">{tx('currency', language)}</label>
               {/* Fixed to SAR for now: the contractor-side comparisons ("cheapest" badge,
                   lowest-price stats) compare raw numbers, so mixed currencies would mislead. */}
-              <span className="text-xs font-semibold text-stone-700 bg-[#FAF7F2] border border-[#E8DFD3] rounded-lg px-3 py-1.5">
+              <span className="text-xs font-semibold text-stone-700 bg-[var(--bg-soft)] border border-[var(--line)] rounded-lg px-3 py-1.5">
                 {currencyLabel(currency, language)}
               </span>
             </div>
@@ -635,9 +635,9 @@ export default function SupplierQuoteBuilder() {
           {/* MOBILE: one card per line item — the 15-column table is unusable on small screens */}
           <div className="md:hidden flex flex-col gap-3">
             {lineItems.map((row, idx) => (
-              <div key={row.id} className="border border-[#E8DFD3] rounded-xl bg-[#FFFDF9] p-3">
+              <div key={row.id} className="border border-[var(--line)] rounded-xl bg-[var(--bg-soft2)] p-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-[#C0603E]">{tx('lineItems', language)} #{idx + 1}</span>
+                  <span className="text-xs font-bold text-[var(--brand-strong)]">{tx('lineItems', language)} #{idx + 1}</span>
                   <button type="button" onClick={() => removeRow(row.id)}
                     className="w-6 h-6 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs">✕</button>
                 </div>
@@ -683,12 +683,12 @@ export default function SupplierQuoteBuilder() {
                   <div>
                     <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('qty', language)}</label>
                     <input type="number" min="0" inputMode="decimal" value={row.quantity} onChange={e => updateRow(row.id, 'quantity', e.target.value)}
-                      className="w-full text-sm border border-[#E8DFD3] rounded-lg px-2 py-2 outline-none bg-white" />
+                      className="w-full text-sm border border-[var(--line)] rounded-lg px-2 py-2 outline-none bg-white" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('unitPrice', language)}</label>
                     <input type="number" min="0" inputMode="decimal" value={row.unitPrice} onChange={e => updateRow(row.id, 'unitPrice', e.target.value)}
-                      className="w-full text-sm border border-[#E8DFD3] rounded-lg px-2 py-2 outline-none bg-white" />
+                      className="w-full text-sm border border-[var(--line)] rounded-lg px-2 py-2 outline-none bg-white" />
                     {row.targetPriceHint && (
                       <p className="text-[11px] text-stone-500 mt-0.5">{tx('targetHint', language)}: {row.targetPriceHint}</p>
                     )}
@@ -696,24 +696,24 @@ export default function SupplierQuoteBuilder() {
                   <div>
                     <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('itemDiscount', language)}</label>
                     <input type="number" min="0" inputMode="decimal" value={row.discount} onChange={e => updateRow(row.id, 'discount', e.target.value)}
-                      className="w-full text-sm border border-[#E8DFD3] rounded-lg px-2 py-2 outline-none bg-white" />
+                      className="w-full text-sm border border-[var(--line)] rounded-lg px-2 py-2 outline-none bg-white" />
                   </div>
                 </div>
-                <div className="flex items-center justify-between gap-2 bg-[#F3EAE0] rounded-lg px-3 py-2 mb-2 text-xs">
+                <div className="flex items-center justify-between gap-2 bg-[var(--tint)] rounded-lg px-3 py-2 mb-2 text-xs">
                   <span className="text-stone-600">{tx('beforeTax', language)}: <b>{rowSubtotal(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</b></span>
                   <span className="text-stone-500">{tx('taxCol', language)}: {rowTax(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                  <span className="font-bold text-[#C0603E]">{tx('lineTotal', language)}: {rowTotal(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                  <span className="font-bold text-[var(--brand-strong)]">{tx('lineTotal', language)}: {rowTotal(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                 </div>
                 <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('itemNote', language)}</label>
                 <textarea value={row.description} onChange={e => updateRow(row.id, 'description', e.target.value)}
-                  rows={2} className="w-full text-sm border border-[#E8DFD3] rounded-lg px-2 py-1.5 outline-none resize-none bg-white mb-2" />
+                  rows={2} className="w-full text-sm border border-[var(--line)] rounded-lg px-2 py-1.5 outline-none resize-none bg-white mb-2" />
                 {renderRowImages(row)}
               </div>
             ))}
           </div>
 
           {/* DESKTOP: full table */}
-          <div className="hidden md:block overflow-x-auto border border-[#E8DFD3] rounded-xl">
+          <div className="hidden md:block overflow-x-auto border border-[var(--line)] rounded-xl">
             <table className="w-full border-collapse">
               <thead>
                 <tr>
@@ -764,7 +764,7 @@ export default function SupplierQuoteBuilder() {
                     </td>
                     <td className={td} style={{ minWidth: 70 }}>
                       <input type="number" min="0" value={row.quantity} onChange={e => updateRow(row.id, 'quantity', e.target.value)}
-                        className="w-full text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 outline-none" />
+                        className="w-full text-xs border border-[var(--line)] rounded-lg px-2 py-1.5 outline-none" />
                     </td>
                     <td className={td}>
                       <SelectOther value={row.unit} other={row.unitOther}
@@ -773,14 +773,14 @@ export default function SupplierQuoteBuilder() {
                     </td>
                     <td className={td} style={{ minWidth: 110 }}>
                       <input type="number" min="0" value={row.unitPrice} onChange={e => updateRow(row.id, 'unitPrice', e.target.value)}
-                        className="w-full text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 outline-none" />
+                        className="w-full text-xs border border-[var(--line)] rounded-lg px-2 py-1.5 outline-none" />
                       {row.targetPriceHint && (
                         <p className="text-[10px] text-stone-500 mt-0.5">{tx('targetHint', language)}: {row.targetPriceHint}</p>
                       )}
                     </td>
                     <td className={td} style={{ minWidth: 90 }}>
                       <input type="number" min="0" value={row.discount} onChange={e => updateRow(row.id, 'discount', e.target.value)}
-                        className="w-full text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 outline-none" />
+                        className="w-full text-xs border border-[var(--line)] rounded-lg px-2 py-1.5 outline-none" />
                     </td>
                     <td className={td} style={{ minWidth: 100 }}>
                       <span className="text-xs font-semibold text-stone-700">{rowSubtotal(row).toLocaleString()}</span>
@@ -789,11 +789,11 @@ export default function SupplierQuoteBuilder() {
                       <span className="text-xs text-stone-500">{rowTax(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                     </td>
                     <td className={td} style={{ minWidth: 100 }}>
-                      <span className="text-xs font-bold text-[#C0603E]">{rowTotal(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                      <span className="text-xs font-bold text-[var(--brand-strong)]">{rowTotal(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                     </td>
                     <td className={td} style={{ minWidth: 140 }}>
                       <textarea value={row.description} onChange={e => updateRow(row.id, 'description', e.target.value)}
-                        rows={2} className="w-full text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 outline-none resize-none" />
+                        rows={2} className="w-full text-xs border border-[var(--line)] rounded-lg px-2 py-1.5 outline-none resize-none" />
                     </td>
                     <td className={td} style={{ minWidth: 110 }}>
                       {renderRowImages(row)}
@@ -809,17 +809,17 @@ export default function SupplierQuoteBuilder() {
           </div>
           <div className="flex items-center justify-between mt-3 mb-4">
             <button type="button" onClick={addRow}
-              className="text-xs font-semibold px-4 py-2 bg-[#8A7B6C] hover:bg-[#6F6255] text-white rounded-lg transition-colors">
+              className="text-xs font-semibold px-4 py-2 bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white rounded-lg transition-colors">
               {tx('addItem', language)}
             </button>
           </div>
 
           {/* TOTALS SUMMARY */}
-          <div className="bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-4 flex flex-col gap-2 max-w-sm ms-auto">
+          <div className="bg-[var(--bg-soft)] border border-[var(--line)] rounded-xl p-4 flex flex-col gap-2 max-w-sm ms-auto">
             <div className="flex items-center justify-between gap-3">
               <label className="text-xs font-semibold text-stone-600">{tx('overallDiscount', language)}</label>
               <input type="number" min="0" value={overallDiscount} onChange={e => setOverallDiscount(e.target.value)}
-                className="w-28 text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 bg-white outline-none text-end" />
+                className="w-28 text-xs border border-[var(--line)] rounded-lg px-2 py-1.5 bg-white outline-none text-end" />
             </div>
             <div className="flex items-center justify-between text-xs text-stone-600">
               <span>{tx('subtotalBeforeTax', language)}</span>
@@ -829,24 +829,24 @@ export default function SupplierQuoteBuilder() {
               <span>{tx('totalTax', language)}</span>
               <span className="font-semibold">{totals.taxAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(currency, language)}</span>
             </div>
-            <div className="flex items-center justify-between text-sm font-bold text-stone-900 pt-2 border-t border-[#E8DFD3]">
+            <div className="flex items-center justify-between text-sm font-bold text-stone-900 pt-2 border-t border-[var(--line)]">
               <span>{tx('grandTotal', language)}</span>
-              <span className="text-[#C0603E]">{totals.grandTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(currency, language)}</span>
+              <span className="text-[var(--brand-strong)]">{totals.grandTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(currency, language)}</span>
             </div>
           </div>
         </div>
 
         {/* ATTACHMENTS */}
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl p-5">
+        <div className="bg-white border border-[var(--line)] rounded-2xl p-5">
           <label className={labelCls}>{tx('attachments', language)}</label>
-          <label className="inline-block cursor-pointer text-xs font-semibold px-4 py-2.5 bg-[#8A7B6C] hover:bg-[#6F6255] text-white rounded-xl transition-colors">
+          <label className="inline-block cursor-pointer text-xs font-semibold px-4 py-2.5 bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white rounded-xl transition-colors">
             {tx('uploadFiles', language)}
             <input type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar,image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileUpload} />
           </label>
           {attachments.length > 0 && (
-            <div className="mt-3 border border-[#E8DFD3] rounded-xl overflow-hidden">
+            <div className="mt-3 border border-[var(--line)] rounded-xl overflow-hidden">
               {attachments.map((f, i) => (
-                <div key={i} className="flex items-center justify-between px-4 py-2.5 border-b border-[#F1EAE0] last:border-0">
+                <div key={i} className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--line-soft)] last:border-0">
                   <span className="text-xs text-stone-700">📎 {f.name}</span>
                   <button type="button" onClick={() => removeAttachment(i)} className="text-red-500 hover:text-red-600 text-xs font-semibold">✕</button>
                 </div>
@@ -856,7 +856,7 @@ export default function SupplierQuoteBuilder() {
         </div>
 
         {/* NOTES */}
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl p-5">
+        <div className="bg-white border border-[var(--line)] rounded-2xl p-5">
           <label className={labelCls}>{tx('notes', language)}</label>
           <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3}
             placeholder={tx('notesPh', language)} className={`${inputCls} resize-none`} />
@@ -866,26 +866,26 @@ export default function SupplierQuoteBuilder() {
         <div className="flex gap-3">
           {!editQuoteId && (
             <button type="button" onClick={handleSaveDraft}
-              className="px-6 py-3 bg-transparent text-[#8A7B6C] border border-[#E8DFD3] rounded-xl font-bold text-sm hover:bg-[#FAF7F2] transition-colors">
+              className="px-6 py-3 bg-transparent text-[var(--sec)] border border-[var(--line)] rounded-xl font-bold text-sm hover:bg-[var(--bg-soft)] transition-colors">
               {tx('saveDraftBtn', language)}
             </button>
           )}
           {editQuoteId && (
             <button type="button" onClick={() => { if (validate()) handleSaveOnly(); }}
-              className="px-6 py-3 bg-transparent text-[#8A7B6C] border border-[#E8DFD3] rounded-xl font-bold text-sm hover:bg-[#FAF7F2] transition-colors">
+              className="px-6 py-3 bg-transparent text-[var(--sec)] border border-[var(--line)] rounded-xl font-bold text-sm hover:bg-[var(--bg-soft)] transition-colors">
               {tx('saveOnlyBtn', language)}
             </button>
           )}
           <button type="button" onClick={handlePrintPreview}
-            className="px-6 py-3 bg-transparent text-stone-500 border border-[#E8DFD3] rounded-xl font-bold text-sm hover:bg-[#FAF7F2] transition-colors">
+            className="px-6 py-3 bg-transparent text-stone-500 border border-[var(--line)] rounded-xl font-bold text-sm hover:bg-[var(--bg-soft)] transition-colors">
             🖨 {tx('printPreview', language)}
           </button>
           <button type="button" onClick={handleReview}
-            className="px-6 py-3 bg-white text-[#C0603E] border-2 border-[#C0603E] rounded-xl font-bold text-sm hover:bg-[#FFFDF9] transition-colors">
+            className="px-6 py-3 bg-white text-[var(--brand-strong)] border-2 border-[var(--brand-strong)] rounded-xl font-bold text-sm hover:bg-[var(--bg-soft)] transition-colors">
             {tx('reviewBtn', language)}
           </button>
           <button type="button" onClick={() => { if (validate()) confirmAndSubmit(); }}
-            className="flex-1 py-3 bg-[#C0603E] hover:bg-[#9C4C31] text-white rounded-xl font-bold text-sm transition-colors">
+            className="flex-1 py-3 bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white rounded-xl font-bold text-sm transition-colors">
             {editQuoteId ? tx('updateBtn', language) : tx('submitBtn', language)}
           </button>
         </div>
@@ -900,7 +900,7 @@ export default function SupplierQuoteBuilder() {
               <button onClick={() => setShowPreview(false)} className="w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-500">✕</button>
             </div>
 
-            <div className="bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-4 mb-4 grid grid-cols-2 gap-2 text-xs text-stone-700">
+            <div className="bg-[var(--bg-soft)] border border-[var(--line)] rounded-xl p-4 mb-4 grid grid-cols-2 gap-2 text-xs text-stone-700">
               <p><strong>{tx('quoteNumber', language)}:</strong> {quoteNumber}</p>
               <p><strong>{tx('clientName', language)}:</strong> {clientName}</p>
               <p><strong>{tx('location', language)}:</strong> {getCityName(location, language)}</p>
@@ -909,7 +909,7 @@ export default function SupplierQuoteBuilder() {
               <p><strong>{tx('validUntil', language)}:</strong> {formatDay(validUntil, language)}</p>
             </div>
 
-            <div className="overflow-x-auto border border-[#E8DFD3] rounded-xl mb-4">
+            <div className="overflow-x-auto border border-[var(--line)] rounded-xl mb-4">
               <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr>
@@ -933,26 +933,26 @@ export default function SupplierQuoteBuilder() {
                 <tbody>
                   {lineItems.filter(isValidLineItem).map((li, i) => (
                     <tr key={li.id}>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0] font-bold text-[#C0603E]">{i + 1}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{displayVal(resolveOther(li.type, li.typeOther), language)}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{resolveOther(li.size, li.sizeOther) || tx('noValue', language)}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{resolveOther(li.thickness, li.thicknessOther) || tx('noValue', language)}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{displayVal(resolveOther(li.finish, li.finishOther), language) || tx('noValue', language)}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{displayVal(resolveOther(li.color, li.colorOther), language) || tx('noValue', language)}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{li.quantity || tx('noValue', language)}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{displayVal(resolveOther(li.unit, li.unitOther), language)}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{li.unitPrice} {currencyLabel(currency, language)}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{Number(li.discount) || 0}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{rowSubtotal(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">{rowTax(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0] font-bold">{rowTotal(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0] max-w-[140px]">{li.description || tx('noValue', language)}</td>
-                      <td className="px-3 py-2 text-center border-b border-[#F1EAE0]">
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)] font-bold text-[var(--brand-strong)]">{i + 1}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{displayVal(resolveOther(li.type, li.typeOther), language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{resolveOther(li.size, li.sizeOther) || tx('noValue', language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{resolveOther(li.thickness, li.thicknessOther) || tx('noValue', language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{displayVal(resolveOther(li.finish, li.finishOther), language) || tx('noValue', language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{displayVal(resolveOther(li.color, li.colorOther), language) || tx('noValue', language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{li.quantity || tx('noValue', language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{displayVal(resolveOther(li.unit, li.unitOther), language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{li.unitPrice} {currencyLabel(currency, language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{Number(li.discount) || 0}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{rowSubtotal(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{rowTax(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)] font-bold">{rowTotal(li).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)] max-w-[140px]">{li.description || tx('noValue', language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">
                         {li.images.length > 0 ? (
                           <div className="flex gap-1 justify-center">
                             {li.images.map((img, imgI) => (
                               <img key={imgI} src={img} alt="" onClick={() => { setLightboxImg(img); setZoomLevel(1); }}
-                                className="w-8 h-8 object-cover rounded border border-[#E8DFD3] cursor-zoom-in" />
+                                className="w-8 h-8 object-cover rounded border border-[var(--line)] cursor-zoom-in" />
                             ))}
                           </div>
                         ) : tx('noValue', language)}
@@ -963,7 +963,7 @@ export default function SupplierQuoteBuilder() {
               </table>
             </div>
 
-            <div className="bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-4 flex flex-col gap-2 max-w-sm ms-auto mb-4">
+            <div className="bg-[var(--bg-soft)] border border-[var(--line)] rounded-xl p-4 flex flex-col gap-2 max-w-sm ms-auto mb-4">
               {Number(overallDiscount) > 0 && (
                 <div className="flex items-center justify-between text-xs text-stone-600">
                   <span>{tx('overallDiscount', language)}</span>
@@ -978,14 +978,14 @@ export default function SupplierQuoteBuilder() {
                 <span>{tx('totalTax', language)}</span>
                 <span className="font-semibold">{totals.taxAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(currency, language)}</span>
               </div>
-              <div className="flex items-center justify-between text-sm font-bold text-stone-900 pt-2 border-t border-[#E8DFD3]">
+              <div className="flex items-center justify-between text-sm font-bold text-stone-900 pt-2 border-t border-[var(--line)]">
                 <span>{tx('grandTotal', language)}</span>
-                <span className="text-[#C0603E]">{totals.grandTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(currency, language)}</span>
+                <span className="text-[var(--brand-strong)]">{totals.grandTotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} {currencyLabel(currency, language)}</span>
               </div>
             </div>
 
             {attachments.length > 0 && (
-              <div className="mb-4 bg-[#FAF7F2] rounded-lg p-3">
+              <div className="mb-4 bg-[var(--bg-soft)] rounded-lg p-3">
                 <p className="text-xs font-bold text-stone-700 mb-1">{tx('attachments', language)}:</p>
                 {attachments.map((f, i) => <p key={i} className="text-xs text-stone-600">📎 {f.name}</p>)}
               </div>
@@ -993,15 +993,15 @@ export default function SupplierQuoteBuilder() {
 
             <div className="flex gap-3">
               <button onClick={confirmAndSubmit}
-                className="flex-[2] py-3 bg-[#C0603E] hover:bg-[#9C4C31] text-white rounded-xl font-bold text-sm transition-colors">
+                className="flex-[2] py-3 bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white rounded-xl font-bold text-sm transition-colors">
                 {tx('confirm', language)}
               </button>
               <button onClick={handlePrintPreview}
-                className="flex-1 py-3 bg-white text-stone-500 border border-[#E8DFD3] rounded-xl font-bold text-sm hover:bg-[#FAF7F2] transition-colors">
+                className="flex-1 py-3 bg-white text-stone-500 border border-[var(--line)] rounded-xl font-bold text-sm hover:bg-[var(--bg-soft)] transition-colors">
                 🖨 {tx('printPreview', language)}
               </button>
               <button onClick={() => setShowPreview(false)}
-                className="flex-1 py-3 bg-white text-[#8A7B6C] border-2 border-[#8A7B6C] rounded-xl font-bold text-sm transition-colors">
+                className="flex-1 py-3 bg-white text-[var(--sec)] border-2 border-[var(--sec)] rounded-xl font-bold text-sm transition-colors">
                 {tx('editBack', language)}
               </button>
             </div>
@@ -1028,7 +1028,7 @@ export default function SupplierQuoteBuilder() {
               <button onClick={e => { e.stopPropagation(); setZoomLevel(1); }}
                 className="px-3 py-1.5 bg-stone-600 text-white rounded-lg text-xs">{tx('zoomReset', language)}</button>
               <a href={lightboxImg} download="buildpro-image.jpg" onClick={e => e.stopPropagation()}
-                className="px-3.5 py-1.5 bg-[#8A7B6C] text-white rounded-lg text-xs font-bold no-underline">{tx('download', language)}</a>
+                className="px-3.5 py-1.5 bg-[var(--sec)] text-white rounded-lg text-xs font-bold no-underline">{tx('download', language)}</a>
               <button onClick={e => { e.stopPropagation(); setLightboxImg(null); setZoomLevel(1); }}
                 className="px-3.5 py-1.5 bg-red-500 text-white rounded-lg text-xs font-bold">{tx('close', language)}</button>
             </div>

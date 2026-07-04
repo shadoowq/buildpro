@@ -24,9 +24,9 @@ const REPORT_TABS = [
 function t(ar: string, en: string, lang: Lang) { return lang === 'ar' ? ar : en; }
 function fmtN(n: number, lang: Lang) { return Math.round(n).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US'); }
 
-const TH = (lang: Lang) => `border border-stone-200 bg-[#C0603E] px-3 py-2.5 ${lang === 'ar' ? 'text-right' : 'text-left'} text-white font-semibold text-xs whitespace-nowrap`;
+const TH = (lang: Lang) => `border border-stone-200 bg-[var(--chrome)] px-3 py-2.5 ${lang === 'ar' ? 'text-right' : 'text-left'} text-white font-semibold text-xs whitespace-nowrap`;
 const TD = 'border border-stone-200 px-3 py-2 text-xs text-stone-700';
-const TDE = 'border border-stone-200 px-3 py-2 text-xs text-stone-700 bg-[#FAF7F2]';
+const TDE = 'border border-stone-200 px-3 py-2 text-xs text-stone-700 bg-[var(--bg-soft)]';
 
 export default function SupplierReportsPage() {
   const router = useRouter();
@@ -148,11 +148,11 @@ export default function SupplierReportsPage() {
   })();
 
   return (
-    <div className="min-h-screen bg-[#F7F2EC]" style={{ fontFamily: 'Cairo, Arial, sans-serif' }} dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] md:ps-[190px]" style={{ fontFamily: 'Cairo, Arial, sans-serif' }} dir={dir}>
       <SupplierNav lang={lang} setLang={handleLangChange} userName={userName} active="/supplier-reports" />
 
       {/* HERO */}
-      <div className="bg-[#C0603E] px-4 md:px-7 pt-5 pb-0">
+      <div className="bg-[var(--chrome)] px-4 md:px-7 pt-5 pb-0">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <p className="text-white/70 text-xs mb-1">{printDate}</p>
@@ -166,7 +166,7 @@ export default function SupplierReportsPage() {
         <div className="flex gap-0 mt-4 border-t border-white/10 overflow-x-auto">
           {REPORT_TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'text-white border-[#8A7B6C]' : 'text-white/60 border-transparent hover:text-white/70'}`}>
+              className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'text-white border-[var(--sec)]' : 'text-white/60 border-transparent hover:text-white/70'}`}>
               {tab.iconAr} {lang === 'ar' ? tab.labelAr : tab.labelEn}
             </button>
           ))}
@@ -178,7 +178,7 @@ export default function SupplierReportsPage() {
 
         <div className="hidden print:block mb-6 pb-4 border-b border-stone-200">
           <div className="flex items-center justify-between">
-            <div className="text-2xl font-bold text-[#C0603E]">Build<span className="text-[#8A7B6C]">Pro</span></div>
+            <div className="text-2xl font-bold text-[var(--brand-strong)]">Build<span className="text-[var(--sec)]">Pro</span></div>
             <div className="text-sm text-stone-600 text-left">
               <p className="font-bold">{REPORT_TABS.find(x => x.id === activeTab)?.[lang === 'ar' ? 'labelAr' : 'labelEn']}</p>
               <p>{printDate}</p>
@@ -187,7 +187,7 @@ export default function SupplierReportsPage() {
         </div>
 
         {quotes.length === 0 ? (
-          <div className="bg-white border border-[#E8DFD3] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
+          <div className="bg-white border border-[var(--line)] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
             <span className="text-4xl">📊</span>
             <p className="text-stone-900 font-bold text-base">{t('لا توجد بيانات كافية بعد', 'Not enough data yet', lang)}</p>
             <p className="text-stone-500 text-sm max-w-xs">{t('قدّم عروض أسعار على الطلبات المتاحة لتظهر تقاريرك هنا', 'Submit quotes on available requests for your reports to appear here', lang)}</p>
@@ -199,12 +199,12 @@ export default function SupplierReportsPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { icon: '📄', bg: 'bg-[#F3EAE0]',  val: quotes.length,                                             label: t('إجمالي العروض', 'Total Quotes', lang) },
+                    { icon: '📄', bg: 'bg-[var(--tint)]',  val: quotes.length,                                             label: t('إجمالي العروض', 'Total Quotes', lang) },
                     { icon: '📈', bg: 'bg-emerald-50', val: winRate !== null ? `${winRate}%` : '—',                    label: t('نسبة الفوز', 'Win Rate', lang) },
                     { icon: '💰', bg: 'bg-amber-50',   val: `${fmtN(totalAccepted, lang)} ${t('ر.س', 'SAR', lang)}`,    label: t('إجمالي القيمة المقبولة', 'Total Accepted Value', lang) },
                     { icon: '⏱', bg: 'bg-stone-100',   val: avgResponseDays !== null ? `${avgResponseDays} ${t('يوم', 'd', lang)}` : '—', label: t('متوسط زمن الرد', 'Avg Response Time', lang) },
                   ].map((s, i) => (
-                    <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4">
+                    <div key={i} className="bg-white border border-[var(--line)] rounded-xl p-4">
                       <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
                       <div className="text-lg font-bold text-stone-900">{s.val}</div>
                       <div className="text-xs text-stone-500 mt-1">{s.label}</div>
@@ -219,15 +219,15 @@ export default function SupplierReportsPage() {
                     { val: rejected.length, label: t('مرفوضة', 'Rejected', lang), color: 'text-red-500' },
                     { val: revision.length, label: t('طلب تعديل', 'Revision', lang), color: 'text-amber-500' },
                   ].map((s, i) => (
-                    <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4 text-center">
+                    <div key={i} className="bg-white border border-[var(--line)] rounded-xl p-4 text-center">
                       <div className={`text-2xl font-bold ${s.color}`}>{s.val}</div>
                       <div className="text-xs text-stone-500 mt-1">{s.label}</div>
                     </div>
                   ))}
                 </div>
 
-                <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
-                  <div className="px-5 py-3.5 border-b border-[#F1EAE0] flex items-center justify-between">
+                <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-[var(--line-soft)] flex items-center justify-between">
                     <h2 className="text-sm font-bold text-stone-900">📄 {t('تفاصيل العروض', 'Quote Details', lang)}</h2>
                     <span className="text-xs text-stone-500">{quotes.length} {t('عرض', 'quotes', lang)}</span>
                   </div>
@@ -269,8 +269,8 @@ export default function SupplierReportsPage() {
 
             {/* ══════ MATERIALS ══════ */}
             {activeTab === 'materials' && (
-              <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-[#F1EAE0]">
+              <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-[var(--line-soft)]">
                   <h2 className="text-sm font-bold text-stone-900">🧱 {t('تفصيل حسب نوع المادة', 'Breakdown by Material Type', lang)}</h2>
                 </div>
                 {materialStats.length === 0 ? (
@@ -305,8 +305,8 @@ export default function SupplierReportsPage() {
 
             {/* ══════ MONTHLY ══════ */}
             {activeTab === 'monthly' && (
-              <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-[#F1EAE0]">
+              <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-[var(--line-soft)]">
                   <h2 className="text-sm font-bold text-stone-900">📅 {t('الأداء الشهري', 'Monthly Performance', lang)}</h2>
                 </div>
                 <div className="overflow-x-auto">
@@ -335,8 +335,8 @@ export default function SupplierReportsPage() {
 
             {/* ══════ CONTRACTORS ══════ */}
             {activeTab === 'contractors' && (
-              <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-[#F1EAE0]">
+              <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-[var(--line-soft)]">
                   <h2 className="text-sm font-bold text-stone-900">🏗 {t('العملاء (المقاولون)', 'Contractors', lang)}</h2>
                 </div>
                 <div className="overflow-x-auto">

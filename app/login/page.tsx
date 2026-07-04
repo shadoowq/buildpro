@@ -60,19 +60,19 @@ export default function LoginPage() {
     <div className="min-h-screen flex font-cairo" dir={dir}>
 
       {/* ── LEFT / BRAND PANEL ── */}
-      <div className="hidden lg:flex flex-col justify-between w-[42%] bg-[#C0603E] px-12 py-10 relative overflow-hidden">
+      <div className="hidden lg:flex flex-col justify-between w-[42%] bg-[var(--chrome)] px-12 py-10 relative overflow-hidden">
         {/* decorative blobs */}
-        <div className="absolute top-0 right-0 w-72 h-72 bg-[#8A7B6C]/20 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        <div className="absolute top-0 right-0 w-72 h-72 bg-[var(--sec)]/20 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-56 h-56 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
         {/* logo */}
         <Link href="/" className="text-xl font-extrabold text-white relative z-10">
-          Build<span className="text-[#8A7B6C]">Pro</span>
+          Build<span className="text-[var(--sec)]">Pro</span>
         </Link>
 
         {/* center content */}
         <div className="relative z-10">
-          <div className="w-16 h-16 bg-[#8A7B6C]/20 rounded-2xl flex items-center justify-center text-4xl mb-6">🏗</div>
+          <div className="w-16 h-16 bg-[var(--sec)]/20 rounded-2xl flex items-center justify-center text-4xl mb-6">🏗</div>
           <h2 className="text-white text-2xl font-extrabold leading-snug mb-3">
             {t('منصة تسعير مواد البناء\nرقم 1 في السعودية', 'Saudi Arabia\'s #1\nBuilding Materials\nPricing Platform')}
           </h2>
@@ -113,14 +113,14 @@ export default function LoginPage() {
       {/* ── RIGHT / FORM PANEL ── */}
       <div className="flex-1 bg-white flex flex-col">
         {/* top bar */}
-        <div className="flex items-center justify-between px-8 py-4 border-b border-[#F1EAE0]">
-          <Link href="/" className="lg:hidden text-[16px] font-extrabold text-[#C0603E]">
-            Build<span className="text-[#8A7B6C]">Pro</span>
+        <div className="flex items-center justify-between px-8 py-4 border-b border-[var(--line-soft)]">
+          <Link href="/" className="lg:hidden text-[16px] font-extrabold text-[var(--brand-strong)]">
+            Build<span className="text-[var(--sec)]">Pro</span>
           </Link>
           <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1 mr-auto">
             {(['ar', 'en'] as Lang[]).map(l => (
               <button key={l} onClick={() => switchLang(l)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[#C0603E] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[var(--brand-strong)] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
                 <img src={l === 'ar' ? 'https://flagcdn.com/w20/sa.png' : 'https://flagcdn.com/w20/us.png'}
                   width="20" height="14" alt={l} className="rounded-sm" />
                 {l.toUpperCase()}
@@ -153,7 +153,7 @@ export default function LoginPage() {
                   onChange={e => setEmail(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleLogin()}
                   placeholder={t('example@email.com', 'example@email.com')}
-                  className="w-full border border-[#E8DFD3] bg-[#FAF7F2] rounded-xl px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8A7B6C] focus:border-transparent transition-all"
+                  className="w-full border border-[var(--line)] bg-[var(--bg-soft)] rounded-xl px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--sec)] focus:border-transparent transition-all"
                   dir="ltr"
                 />
               </div>
@@ -170,7 +170,7 @@ export default function LoginPage() {
                     onChange={e => setPassword(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleLogin()}
                     placeholder="••••••••"
-                    className="w-full border border-[#E8DFD3] bg-[#FAF7F2] rounded-xl px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8A7B6C] focus:border-transparent transition-all"
+                    className="w-full border border-[var(--line)] bg-[var(--bg-soft)] rounded-xl px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--sec)] focus:border-transparent transition-all"
                     dir="ltr"
                   />
                   <button
@@ -193,7 +193,7 @@ export default function LoginPage() {
               {/* submit */}
               <button
                 onClick={handleLogin}
-                className="w-full bg-[#C0603E] hover:bg-[#9C4C31] text-white font-bold py-3 rounded-xl text-sm transition-colors"
+                className="w-full bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-bold py-3 rounded-xl text-sm transition-colors"
               >
                 {t('دخول', 'Sign In')}
               </button>
@@ -208,18 +208,18 @@ export default function LoginPage() {
               {/* signup links */}
               <div className="grid grid-cols-2 gap-2">
                 <Link href="/signup?type=contractor"
-                  className="flex items-center justify-center gap-1.5 border border-[#E8DFD3] rounded-xl py-2.5 text-xs font-semibold text-stone-600 hover:bg-[#F7F2EC] hover:text-[#C0603E] transition-colors">
+                  className="flex items-center justify-center gap-1.5 border border-[var(--line)] rounded-xl py-2.5 text-xs font-semibold text-stone-600 hover:bg-[var(--bg)] hover:text-[var(--brand-strong)] transition-colors">
                   <span>👷</span> {t('مقاول جديد', 'New Contractor')}
                 </Link>
                 <Link href="/signup?type=supplier"
-                  className="flex items-center justify-center gap-1.5 border border-[#E8DFD3] rounded-xl py-2.5 text-xs font-semibold text-stone-600 hover:bg-[#F7F2EC] hover:text-[#C0603E] transition-colors">
+                  className="flex items-center justify-center gap-1.5 border border-[var(--line)] rounded-xl py-2.5 text-xs font-semibold text-stone-600 hover:bg-[var(--bg)] hover:text-[var(--brand-strong)] transition-colors">
                   <span>🏢</span> {t('مورد جديد', 'New Supplier')}
                 </Link>
               </div>
             </div>
 
             <p className="text-center text-stone-400 text-xs mt-6">
-              <Link href="/" className="hover:text-[#C0603E] transition-colors">
+              <Link href="/" className="hover:text-[var(--brand-strong)] transition-colors">
                 ← {t('العودة للصفحة الرئيسية', 'Back to homepage')}
               </Link>
             </p>

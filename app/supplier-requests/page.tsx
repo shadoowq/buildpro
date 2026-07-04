@@ -133,8 +133,8 @@ export default function SupplierRequests() {
     const el = document.getElementById(`avail-req-${pendingReqId}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('ring-2', 'ring-[#C0603E]');
-      setTimeout(() => el.classList.remove('ring-2', 'ring-[#C0603E]'), 2000);
+      el.classList.add('ring-2', 'ring-[var(--brand)]');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-[var(--brand)]'), 2000);
     }
     setPendingReqId(null);
   }, [pendingReqId, requests]);
@@ -171,7 +171,7 @@ export default function SupplierRequests() {
   };
 
   if (!user) return (
-    <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center font-cairo">
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center font-cairo">
       <div className="text-stone-500 text-sm">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
     </div>
   );
@@ -218,7 +218,7 @@ export default function SupplierRequests() {
   });
 
   const stats = [
-    { icon: '📋', bg: 'bg-[#F3EAE0]', val: openRequests.length, label: tStr('statAvail', language) },
+    { icon: '📋', bg: 'bg-[var(--tint)]', val: openRequests.length, label: tStr('statAvail', language) },
     { icon: '📨', bg: 'bg-orange-50', val: openRequests.filter(r => !hasQuoted(r.id)).length, label: tStr('statNotQ', language) },
     { icon: '⏱', bg: 'bg-amber-50', val: urgentIds.size, label: tStr('statUrgent', language) },
     { icon: '✅', bg: 'bg-emerald-50', val: openRequests.filter(r => hasQuoted(r.id)).length, label: tStr('statQ', language) },
@@ -243,7 +243,7 @@ export default function SupplierRequests() {
           </div>
           {myQuoteFor(request.id) && (
             <a href={`/print/quote/${myQuoteFor(request.id).id}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}
-              className="py-2.5 px-3 bg-white text-[#C0603E] border border-[#C0603E] rounded-xl font-bold text-xs hover:bg-[#FFFDF9] transition-colors text-center">
+              className="py-2.5 px-3 bg-white text-[var(--brand-strong)] border border-[var(--brand-strong)] rounded-xl font-bold text-xs hover:bg-[var(--bg-soft)] transition-colors text-center">
               {tStr('viewQuote', language)}
             </a>
           )}
@@ -260,14 +260,14 @@ export default function SupplierRequests() {
     }
     return (
       <Link href={`/supplier-requests/quote/${request.id}`} onClick={e => e.stopPropagation()}
-        className={`${compact ? '' : 'w-full'} py-2.5 bg-[#C0603E] hover:bg-[#9C4C31] text-white rounded-xl font-bold text-xs transition-colors text-center block`}>
+        className={`${compact ? '' : 'w-full'} py-2.5 bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white rounded-xl font-bold text-xs transition-colors text-center block`}>
         {tStr('submitQuote', language)}
       </Link>
     );
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
       <SupplierNav lang={language} setLang={l => { setLanguage(l); localStorage.setItem('language', l); }} userName={user.name || ''} active="/supplier-requests" />
 
       <Suspense fallback={null}>
@@ -275,7 +275,7 @@ export default function SupplierRequests() {
       </Suspense>
 
       {/* HERO */}
-      <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-0">
+      <div className="bg-[var(--chrome)] px-4 md:px-7 pt-6 pb-0">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <p className="text-white/70 text-xs mb-1">
@@ -299,7 +299,7 @@ export default function SupplierRequests() {
             ['urgent', tStr('filterUrgent', language)],
           ] as [FilterTab, string][]).map(([val, label]) => (
             <button key={val} onClick={() => setFilter(val)}
-              className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${filter === val ? 'text-white border-[#8A7B6C]' : 'text-white/60 border-transparent hover:text-white/70'}`}>
+              className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${filter === val ? 'text-white border-[var(--sec)]' : 'text-white/60 border-transparent hover:text-white/70'}`}>
               {label}
             </button>
           ))}
@@ -309,7 +309,7 @@ export default function SupplierRequests() {
       {/* STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {stats.map((s, i) => (
-          <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4">
+          <div key={i} className="bg-white border border-[var(--line)] rounded-xl p-4">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
             <div className="text-2xl font-bold text-stone-900">{s.val}</div>
             <div className="text-xs text-stone-500 mt-1">{s.label}</div>
@@ -321,32 +321,32 @@ export default function SupplierRequests() {
       <div className="flex items-center justify-between flex-wrap gap-3 px-4 md:px-7 pb-4">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs text-stone-500 font-semibold">{tStr('sortLabel', language)}</span>
-          <div className="flex items-center gap-1 bg-white border border-[#E8DFD3] rounded-lg p-0.5">
+          <div className="flex items-center gap-1 bg-white border border-[var(--line)] rounded-lg p-0.5">
             {([['newest', tStr('sortNewest', language)], ['deadline', tStr('sortDeadline', language)]] as [SortBy, string][]).map(([v, l]) => (
               <button key={v} onClick={() => setSortBy(v)}
-                className={`text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${sortBy === v ? 'bg-[#8A7B6C] text-white' : 'text-stone-500 hover:bg-stone-50'}`}>
+                className={`text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${sortBy === v ? 'bg-[var(--sec)] text-white' : 'text-stone-500 hover:bg-stone-50'}`}>
                 {l}
               </button>
             ))}
           </div>
           <select value={cityFilter} onChange={e => setCityFilter(e.target.value)}
-            className={`text-xs border rounded-lg px-2.5 py-1.5 bg-white outline-none font-cairo ${cityFilter ? 'border-[#C0603E] text-[#C0603E] font-semibold' : 'border-[#E8DFD3] text-stone-600'}`}>
+            className={`text-xs border rounded-lg px-2.5 py-1.5 bg-white outline-none font-cairo ${cityFilter ? 'border-[var(--brand-strong)] text-[var(--brand-strong)] font-semibold' : 'border-[var(--line)] text-stone-600'}`}>
             <option value="">📍 {tStr('allCities', language)}</option>
             {cityOptions.map(c => <option key={c} value={c}>{getCityName(c, language)}</option>)}
           </select>
           <select value={materialFilter} onChange={e => setMaterialFilter(e.target.value)}
-            className={`text-xs border rounded-lg px-2.5 py-1.5 bg-white outline-none font-cairo ${materialFilter ? 'border-[#C0603E] text-[#C0603E] font-semibold' : 'border-[#E8DFD3] text-stone-600'}`}>
+            className={`text-xs border rounded-lg px-2.5 py-1.5 bg-white outline-none font-cairo ${materialFilter ? 'border-[var(--brand-strong)] text-[var(--brand-strong)] font-semibold' : 'border-[var(--line)] text-stone-600'}`}>
             <option value="">🧱 {tStr('allMaterials', language)}</option>
             {MATERIAL_OPTIONS.types.map(m => <option key={m} value={m}>{displayVal(m, language)}</option>)}
           </select>
         </div>
-        <div className="flex items-center gap-1 bg-white border border-[#E8DFD3] rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-white border border-[var(--line)] rounded-xl p-1">
           {([
             { mode: 'cards' as ViewMode, icon: '⊞', label: tStr('viewCards', language) },
             { mode: 'table' as ViewMode, icon: '☰', label: tStr('viewTable', language) },
           ]).map(v => (
             <button key={v.mode} onClick={() => setViewMode(v.mode)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === v.mode ? 'bg-[#F3EAE0] text-[#C0603E]' : 'text-stone-500 hover:text-stone-600'}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === v.mode ? 'bg-[var(--tint)] text-[var(--brand-strong)]' : 'text-stone-500 hover:text-stone-600'}`}>
               <span className="text-sm">{v.icon}</span>
               {v.label}
             </button>
@@ -356,15 +356,15 @@ export default function SupplierRequests() {
 
       <div className="px-4 md:px-7 pb-10">
         {sorted.length === 0 ? (
-          <div className="bg-white border border-[#E8DFD3] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
+          <div className="bg-white border border-[var(--line)] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
             <span className="text-4xl">📭</span>
             <p className="text-stone-900 font-bold text-base">{tStr('noRequests', language)}</p>
           </div>
         ) : viewMode === 'table' ? (
-          <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden overflow-x-auto">
+          <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden overflow-x-auto">
             <table className="w-full text-xs" style={{ minWidth: 760 }}>
               <thead>
-                <tr className="bg-[#FAF7F2] border-b border-[#F1EAE0]">
+                <tr className="bg-[var(--bg-soft)] border-b border-[var(--line-soft)]">
                   {['#', tStr('name', language), tStr('materials', language), tStr('location', language), tStr('deadline', language), tStr('action', language)].map((h, i) => (
                     <th key={i} className="px-4 py-2.5 text-xs font-semibold text-stone-500 whitespace-nowrap text-start">{h}</th>
                   ))}
@@ -375,9 +375,9 @@ export default function SupplierRequests() {
                   const urgency = getDeadlineUrgency(request.deadline, false);
                   return (
                     <tr key={request.id} id={`avail-req-${request.id}`}
-                      className="border-b border-[#F1EAE0] last:border-0 hover:bg-[#FFFDF9] cursor-pointer transition-colors"
+                      className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--bg-soft)] cursor-pointer transition-colors"
                       onClick={() => setPreviewRequest(request)}>
-                      <td className="px-4 py-3 font-semibold text-[#C0603E]">
+                      <td className="px-4 py-3 font-semibold text-[var(--brand-strong)]">
                         {urgency === 'overdue' ? '🔴' : urgency === 'soon' ? '🟠' : '🟢'} {String(request.id).slice(-6)}
                       </td>
                       <td className="px-4 py-3 font-bold text-stone-900 whitespace-nowrap">{getReqName(request)}</td>
@@ -403,7 +403,7 @@ export default function SupplierRequests() {
               const urgency = getDeadlineUrgency(request.deadline, false);
               return (
                 <div key={request.id} id={`avail-req-${request.id}`}
-                  className="bg-white border border-[#E8DFD3] rounded-2xl p-5 transition-shadow cursor-pointer hover:shadow-md"
+                  className="bg-white border border-[var(--line)] rounded-2xl p-5 transition-shadow cursor-pointer hover:shadow-md"
                   onClick={() => setPreviewRequest(request)}>
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-bold text-stone-900">{getReqName(request)}</h3>
@@ -420,7 +420,7 @@ export default function SupplierRequests() {
                     </span>
                   </p>
 
-                  <div className="bg-[#FAF7F2] rounded-lg p-3 mb-3">
+                  <div className="bg-[var(--bg-soft)] rounded-lg p-3 mb-3">
                     {getReqMaterialLines(request).map((line, i) => (
                       <p key={i} className="text-xs text-stone-700 my-0.5">• {line}</p>
                     ))}
@@ -428,7 +428,7 @@ export default function SupplierRequests() {
 
                   <div className="flex items-center justify-between mb-3">
                     <button onClick={e => { e.stopPropagation(); setPreviewRequest(request); }}
-                      className="text-xs font-semibold text-[#8A7B6C] hover:underline">
+                      className="text-xs font-semibold text-[var(--sec)] hover:underline">
                       👁 {tStr('preview', language)}
                     </button>
                   </div>
@@ -448,7 +448,7 @@ export default function SupplierRequests() {
             <div className="flex items-center justify-between p-5 border-b border-stone-100 flex-wrap gap-3">
               <div className="flex items-center gap-3 flex-wrap">
                 <h2 className="text-lg font-bold text-stone-900">{tStr('previewTitle', language)}</h2>
-                <span className="text-[#8A7B6C] font-bold text-sm">{getReqName(previewRequest)}</span>
+                <span className="text-[var(--sec)] font-bold text-sm">{getReqName(previewRequest)}</span>
                 <span className="text-stone-500 text-sm">📍 {getCityName(previewRequest.location, language)}</span>
                 {previewRequest.deadline && <span className="text-stone-500 text-sm">⏱ {formatDay(previewRequest.deadline, language)}</span>}
               </div>
@@ -465,26 +465,26 @@ export default function SupplierRequests() {
                       <thead>
                         <tr>
                           {['#', tStr('material', language), tStr('usage', language), tStr('size', language), tStr('thickness', language), tStr('finish', language), tStr('color', language), tStr('qty', language), tStr('targetPrice', language), tStr('origin', language), tStr('deliveryDate', language), tStr('note', language), tStr('images', language)].map(h => (
-                            <th key={h} style={{ padding: '8px 10px', backgroundColor: '#C0603E', color: 'white', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', textAlign: 'center', border: '1px solid #9C4C31' }}>{h}</th>
+                            <th key={h} style={{ padding: '8px 10px', backgroundColor: 'var(--chrome)', color: 'white', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', textAlign: 'center', border: '1px solid var(--chrome-line)' }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {previewRequest.materials.map((m: any, i: number) => (
-                          <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#fff' : '#FAF7F2' }}>
-                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{i + 1}</td>
-                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3', fontWeight: 700 }}>{displayVal(m.type, language)}</td>
-                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{displayVal(m.usage, language)}</td>
-                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{m.size || tStr('noValue', language)}</td>
-                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{m.thickness || tStr('noValue', language)}</td>
-                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{displayVal(m.finish, language)}</td>
-                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{displayVal(m.color, language)}</td>
-                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{m.quantity ? `${m.quantity} ${displayVal(m.unit, language) !== '—' ? displayVal(m.unit, language) : 'm²'}` : tStr('noValue', language)}</td>
-                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{m.targetPrice ? `${m.targetPrice} ${m.currency || 'ر.س'}` : tStr('noValue', language)}</td>
-                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{displayVal(m.origin, language)}</td>
-                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{m.deliveryDate || tStr('noValue', language)}</td>
-                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 11, textAlign: 'center', border: '1px solid #E8DFD3', maxWidth: 120 }}>{m.note || tStr('noValue', language)}</td>
-                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>
+                          <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#fff' : 'var(--bg-soft)' }}>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid var(--line)' }}>{i + 1}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid var(--line)', fontWeight: 700 }}>{displayVal(m.type, language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid var(--line)' }}>{displayVal(m.usage, language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid var(--line)' }}>{m.size || tStr('noValue', language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid var(--line)' }}>{m.thickness || tStr('noValue', language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid var(--line)' }}>{displayVal(m.finish, language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid var(--line)' }}>{displayVal(m.color, language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid var(--line)' }}>{m.quantity ? `${m.quantity} ${displayVal(m.unit, language) !== '—' ? displayVal(m.unit, language) : 'm²'}` : tStr('noValue', language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid var(--line)' }}>{m.targetPrice ? `${m.targetPrice} ${m.currency || 'ر.س'}` : tStr('noValue', language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid var(--line)' }}>{displayVal(m.origin, language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid var(--line)' }}>{m.deliveryDate || tStr('noValue', language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 11, textAlign: 'center', border: '1px solid var(--line)', maxWidth: 120 }}>{m.note || tStr('noValue', language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid var(--line)' }}>
                               {m.images && m.images.length > 0 ? (
                                 <div className="flex gap-1 justify-center">
                                   {m.images.map((img: string, j: number) => (

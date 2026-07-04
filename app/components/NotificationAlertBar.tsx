@@ -8,14 +8,14 @@ type Lang = 'ar' | 'en';
 
 /** Strong accent color per notification type — used for the card border/ring so the alert reads instantly, not just its icon tint. */
 const alertAccent: Record<NotifType, { border: string; ring: string }> = {
-  quote:       { border: 'border-[#C0603E]', ring: 'bg-[#C0603E]' },
+  quote:       { border: 'border-[var(--brand-strong)]', ring: 'bg-[var(--brand)]' },
   accepted:    { border: 'border-emerald-500', ring: 'bg-emerald-500' },
   rejected:    { border: 'border-red-500', ring: 'bg-red-500' },
   revision:    { border: 'border-amber-500', ring: 'bg-amber-500' },
   close:       { border: 'border-stone-400', ring: 'bg-stone-400' },
-  open:        { border: 'border-[#C0603E]', ring: 'bg-[#C0603E]' },
+  open:        { border: 'border-[var(--brand-strong)]', ring: 'bg-[var(--brand)]' },
   rated:       { border: 'border-amber-500', ring: 'bg-amber-500' },
-  invite:      { border: 'border-[#C0603E]', ring: 'bg-[#C0603E]' },
+  invite:      { border: 'border-[var(--brand-strong)]', ring: 'bg-[var(--brand)]' },
   editRequest: { border: 'border-amber-500', ring: 'bg-amber-500' },
   withdrawn:   { border: 'border-stone-400', ring: 'bg-stone-400' },
   expiring:    { border: 'border-orange-500', ring: 'bg-orange-500' },

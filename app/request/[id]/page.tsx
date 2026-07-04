@@ -288,18 +288,18 @@ export default function RequestDetailPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center font-cairo">
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center font-cairo">
       <div className="text-stone-400 text-sm">{lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
     </div>
   );
 
   if (!request) return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
       <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/my-requests" />
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <span className="text-5xl">📭</span>
         <p className="text-stone-900 font-bold text-lg">{t('notFound', lang)}</p>
-        <Link href="/my-requests" className="bg-[#C0603E] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#9C4C31] transition-colors">
+        <Link href="/my-requests" className="bg-[var(--brand)] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[var(--brand-hover)] transition-colors">
           {t('goBack', lang)}
         </Link>
       </div>
@@ -310,13 +310,13 @@ export default function RequestDetailPage() {
   const fastestId  = quotes.length > 1 ? quotes.reduce((a, b) => a.deliveryDays < b.deliveryDays ? a : b).id : null;
 
   return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo print:bg-white" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo print:bg-white" dir={dir}>
       <div className="print:hidden">
         <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/my-requests" />
       </div>
 
       {/* HERO */}
-      <div className="bg-[#C0603E] px-4 md:px-7 pt-5 pb-5 print:hidden">
+      <div className="bg-[var(--chrome)] px-4 md:px-7 pt-5 pb-5 print:hidden">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <Link href="/my-requests" className="text-white/50 text-xs hover:text-white/80 transition-colors mb-2 inline-block">
@@ -324,7 +324,7 @@ export default function RequestDetailPage() {
             </Link>
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-white text-xl font-bold">{getReqName(request)}</h1>
-              <span className="text-[#8A7B6C] font-mono font-bold text-sm">#{request.id}</span>
+              <span className="text-[var(--sec)] font-mono font-bold text-sm">#{request.id}</span>
               <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${request.status === 'open' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30' : 'bg-white/10 text-white/60 border border-white/20'}`}>
                 {t(request.status === 'open' ? 'open' : 'closed', lang)}
               </span>
@@ -349,7 +349,7 @@ export default function RequestDetailPage() {
               {request.status === 'open' ? t('closeReq', lang) : t('openReq', lang)}
             </button>
             <Link href={`/create-request?edit=${request.id}`}
-              className="text-xs font-semibold px-3 py-2 bg-[#8A7B6C] hover:bg-[#6F6255] text-white rounded-lg transition-colors flex items-center gap-1.5">
+              className="text-xs font-semibold px-3 py-2 bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white rounded-lg transition-colors flex items-center gap-1.5">
               ✏ {t('editReq', lang)}
             </Link>
             <div className="relative">
@@ -358,7 +358,7 @@ export default function RequestDetailPage() {
                 ⋯
               </button>
               {showMoreMenu && (
-                <div className="absolute z-20 top-full mt-1 end-0 w-52 bg-white border border-[#E8DFD3] rounded-xl shadow-lg overflow-hidden" dir={dir}>
+                <div className="absolute z-20 top-full mt-1 end-0 w-52 bg-white border border-[var(--line)] rounded-xl shadow-lg overflow-hidden" dir={dir}>
                   <a href={`/print/request/${request.id}`} target="_blank" rel="noopener noreferrer" onClick={() => setShowMoreMenu(false)}
                     className={`block w-full px-3 py-2 text-xs font-semibold transition-colors hover:bg-stone-100 text-stone-700 ${dir === 'rtl' ? 'text-right' : 'text-left'}`}>
                     🖨 {t('print', lang)}
@@ -390,7 +390,7 @@ export default function RequestDetailPage() {
       <div className="hidden print:block px-8 pt-6 pb-4 border-b border-stone-200">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-2xl font-bold text-[#C0603E]">BuildPro</p>
+            <p className="text-2xl font-bold text-[var(--brand-strong)]">BuildPro</p>
             <p className="text-stone-500 text-sm mt-1">{t('reqDetails', lang)} — #{request.id}</p>
           </div>
           <div className="text-right text-sm text-stone-600">
@@ -405,8 +405,8 @@ export default function RequestDetailPage() {
       <div className="px-4 md:px-7 py-6 space-y-5 max-w-5xl print:max-w-full print:px-8 print:py-4">
 
         {/* MATERIALS */}
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden print:border print:border-stone-200 print:rounded-lg">
-          <div className="px-5 py-3.5 border-b border-[#F1EAE0] flex items-center gap-2">
+        <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden print:border print:border-stone-200 print:rounded-lg">
+          <div className="px-5 py-3.5 border-b border-[var(--line-soft)] flex items-center gap-2">
             <span className="text-base">📦</span>
             <h2 className="text-sm font-bold text-stone-900">{t('materials', lang)}</h2>
           </div>
@@ -417,7 +417,7 @@ export default function RequestDetailPage() {
                   <thead>
                     <tr>
                       {['#', t('matType', lang), t('usage', lang), t('size', lang), t('thickness', lang), t('finish', lang), t('color', lang), t('qty', lang), t('targetPrice', lang), t('origin', lang), t('deliveryDate', lang), t('note', lang), t('images', lang)].map(h => (
-                        <th key={h} className="border border-stone-200 bg-[#C0603E] px-3 py-2 text-right text-white font-semibold whitespace-nowrap print:py-1.5">
+                        <th key={h} className="border border-stone-200 bg-[var(--chrome)] px-3 py-2 text-right text-white font-semibold whitespace-nowrap print:py-1.5">
                           {h}
                         </th>
                       ))}
@@ -425,7 +425,7 @@ export default function RequestDetailPage() {
                   </thead>
                   <tbody>
                     {request.materials.map((m: any, i: number) => (
-                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[#FAF7F2]'}>
+                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[var(--bg-soft)]'}>
                         <td className="border border-stone-200 px-3 py-2 font-bold text-stone-900 text-center">{i + 1}</td>
                         <td className="border border-stone-200 px-3 py-2 font-bold text-stone-900">{displayVal(m.type, lang)}</td>
                         <td className="border border-stone-200 px-3 py-2 text-stone-700">{displayVal(m.usage, lang)}</td>
@@ -467,8 +467,8 @@ export default function RequestDetailPage() {
 
         {/* DESCRIPTION */}
         {request.description && (
-          <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden print:border-stone-200 print:rounded-lg">
-            <div className="px-5 py-3.5 border-b border-[#F1EAE0] flex items-center gap-2">
+          <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden print:border-stone-200 print:rounded-lg">
+            <div className="px-5 py-3.5 border-b border-[var(--line-soft)] flex items-center gap-2">
               <span className="text-base">📝</span>
               <h2 className="text-sm font-bold text-stone-900">{t('description', lang)}</h2>
             </div>
@@ -477,8 +477,8 @@ export default function RequestDetailPage() {
         )}
 
         {/* QUOTES */}
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden print:border-stone-200 print:rounded-lg">
-          <div className="px-5 py-3.5 border-b border-[#F1EAE0] flex items-center justify-between">
+        <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden print:border-stone-200 print:rounded-lg">
+          <div className="px-5 py-3.5 border-b border-[var(--line-soft)] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-base">💼</span>
               <h2 className="text-sm font-bold text-stone-900">{t('quotesSection', lang)} ({quotes.length})</h2>
@@ -516,12 +516,12 @@ export default function RequestDetailPage() {
                 onRevisionSubmit={handleRevisionSubmit} />
             </div>
           ) : (
-            <div className="divide-y divide-[#FAF7F2]">
+            <div className="divide-y divide-[var(--line-soft)]">
               {quotes.map(q => (
                 <div key={q.id}>
                   <div className={`flex items-start gap-4 px-5 py-4 flex-wrap md:flex-nowrap ${q.status === 'accepted' ? 'bg-emerald-50/40' : q.status === 'rejected' ? 'bg-red-50/30' : ''}`}>
                     {/* avatar */}
-                    <div className="w-10 h-10 rounded-xl bg-[#F3EAE0] border border-[#E8DFD3] flex items-center justify-center text-[12px] font-bold text-[#C0603E] shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-[var(--tint)] border border-[var(--line)] flex items-center justify-center text-[12px] font-bold text-[var(--brand-strong)] shrink-0">
                       {q.supplierCompany.slice(0, 2).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -530,7 +530,7 @@ export default function RequestDetailPage() {
                         <p className="text-[11px] text-stone-400">{q.supplierName}</p>
                         <StatusBadge status={getEffectiveQuoteStatus(q)} lang={lang} />
                         {q.id === cheapestId && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{t('cheapest', lang)}</span>}
-                        {q.id === fastestId  && <span className="text-[9px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded-full font-bold">{t('fastest', lang)}</span>}
+                        {q.id === fastestId  && <span className="text-[9px] bg-[var(--tint)] text-[var(--brand-strong)] px-1.5 py-0.5 rounded-full font-bold">{t('fastest', lang)}</span>}
                       </div>
                       <div className="flex gap-4 mt-1">
                         <span className="text-xl font-bold text-stone-900">{Number(q.totalPrice).toLocaleString()} <span className="text-xs font-medium text-stone-500">{t('sar', lang)}</span></span>
@@ -600,14 +600,14 @@ export default function RequestDetailPage() {
 
         {/* ACTIVITY LOG */}
         {logs.length > 0 && (
-          <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden print:border-stone-200 print:rounded-lg">
-            <div className="px-5 py-3.5 border-b border-[#F1EAE0] flex items-center gap-2">
+          <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden print:border-stone-200 print:rounded-lg">
+            <div className="px-5 py-3.5 border-b border-[var(--line-soft)] flex items-center gap-2">
               <span className="text-base">📋</span>
               <h2 className="text-sm font-bold text-stone-900">{t('activity', lang)}</h2>
             </div>
-            <div className="divide-y divide-[#FAF7F2]">
+            <div className="divide-y divide-[var(--line-soft)]">
               {logs.map((log, i) => (
-                <div key={log.id} className={`flex items-center justify-between px-5 py-3 text-xs ${i % 2 === 0 ? 'bg-white' : 'bg-[#FFFDF9]'}`}>
+                <div key={log.id} className={`flex items-center justify-between px-5 py-3 text-xs ${i % 2 === 0 ? 'bg-white' : 'bg-[var(--bg-soft2)]'}`}>
                   <span className="text-stone-700">
                     {log.action.includes('قبول') || log.action.includes('Accepted') ? '✅'
                      : log.action.includes('رفض') || log.action.includes('Rejected') ? '❌'

@@ -4,6 +4,27 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* ── BuildPro design tokens: "غرافيت × كهرماني إنشائي" ──
+     Change the palette here — every page styles through these vars. */
+  --brand: #E8A33D;          /* construction amber — fills (buttons, avatars, active states) */
+  --brand-hover: #D69430;
+  --brand-strong: #8A6210;   /* amber dark enough for TEXT/borders on light backgrounds */
+  --on-brand: #231B06;       /* text placed on top of --brand fills */
+  --sec: #5B6472;            /* steel gray secondary */
+  --sec-hover: #49525E;
+  --tint: #F7EEDD;           /* amber-tinted highlight surface */
+  --tint-hover: #F1E2C4;
+  --bg: #F5F6F7;             /* page background (cool light gray) */
+  --bg-soft: #F8F9FA;
+  --bg-soft2: #FAFBFC;
+  --line: #E3E6EA;
+  --line-soft: #EDF0F3;
+  --chrome: #22262C;         /* graphite frame: sidebar, heroes, table headers */
+  --chrome-line: #32383F;
+  --chrome-ink2: #9BA3AD;    /* muted text on graphite */
+  --chrome-active-bg: rgba(232, 163, 61, 0.16);
+  --chrome-active-ink: #F0BE6B;
 }
 
 @theme inline {
@@ -13,21 +34,25 @@
   --font-mono: var(--font-geist-mono);
   --font-cairo: 'Cairo', sans-serif;
 
-  --color-bp-primary:      #C0603E;
-  --color-bp-primary-dark: #9C4C31;
-  --color-bp-secondary:    #8A7B6C;
-  --color-bp-secondary-dark: #6F6255;
-  --color-bp-bg:           #F7F2EC;
-  --color-bp-card:         #FFFDF9;
-  --color-bp-border:       #E8DFD3;
-  --color-bp-border-light: #F1EAE0;
+  --color-bp-primary:      var(--brand);
+  --color-bp-primary-dark: var(--brand-hover);
+  --color-bp-secondary:    var(--sec);
+  --color-bp-secondary-dark: var(--sec-hover);
+  --color-bp-bg:           var(--bg);
+  --color-bp-card:         var(--bg-soft2);
+  --color-bp-border:       var(--line);
+  --color-bp-border-light: var(--line-soft);
 }
 
 body {
-  background: #F7F2EC;
+  background: var(--bg);
   color: #292524;
   font-family: 'Cairo', Arial, sans-serif;
 }
+
+/* Amber is too light for white text: anything filled with --brand gets dark ink.
+   Unlayered, so it outranks Tailwind's layered text-white utility on the same element. */
+[class*="bg-[var(--brand)]"] { color: var(--on-brand); }
 
 @media print {
   /* override dark-mode CSS variables so var(--background) resolves to white */
@@ -115,17 +140,17 @@ body {
 }
 
 .bp-page {
-  background: #F7F2EC;
+  background: var(--bg);
   min-height: 100vh;
 }
 
 .bp-table th {
-  background: #C0603E !important;
+  background: var(--chrome) !important;
   color: #fff !important;
   font-family: 'Cairo', sans-serif !important;
   font-weight: 600 !important;
   padding: 10px 12px !important;
-  border: 1px solid #9C4C31 !important;
+  border: 1px solid var(--chrome-line) !important;
   white-space: nowrap;
 }
 
@@ -135,11 +160,11 @@ body {
   font-family: 'Cairo', sans-serif !important;
   font-weight: 600 !important;
   padding: 8px 12px !important;
-  border: 1px solid #E8DFD3 !important;
+  border: 1px solid var(--line) !important;
 }
 
 .bp-table tr:nth-child(even) td {
-  background: #FAF5EE;
+  background: var(--bg-soft);
 }
 
 .bp-page h1,

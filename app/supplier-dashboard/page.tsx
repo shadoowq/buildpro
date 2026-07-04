@@ -138,10 +138,10 @@ export default function SupplierDashboardPage() {
   const notYetQuotedCount = availableRequests.filter(r => !hasQuoted(r.id)).length
 
   const stats = [
-    { icon: '📄', bg: 'bg-[#F3EAE0]', val: myQuotes.length, label: tStr('quotesSub', lang), badge: null as string | null },
+    { icon: '📄', bg: 'bg-[var(--tint)]', val: myQuotes.length, label: tStr('quotesSub', lang), badge: null as string | null },
     { icon: '📈', bg: 'bg-emerald-50', val: acceptanceRate !== null ? `${acceptanceRate}%` : '—', label: tStr('acceptRate', lang), badge: decidedCount > 0 ? `${acceptedQ.length}/${decidedCount}` : null },
     { icon: '💰', bg: 'bg-amber-50', val: acceptedValue.toLocaleString(), label: tStr('acceptedVal', lang), badge: acceptedQ.length > 0 ? tStr('sar', lang) : null },
-    { icon: '📨', bg: 'bg-[#F3EAE0]', val: notYetQuotedCount, label: tStr('newAvail', lang), badge: notYetQuotedCount > 0 ? (lang === 'ar' ? 'جديد' : 'new') : null },
+    { icon: '📨', bg: 'bg-[var(--tint)]', val: notYetQuotedCount, label: tStr('newAvail', lang), badge: notYetQuotedCount > 0 ? (lang === 'ar' ? 'جديد' : 'new') : null },
   ]
 
   /* ── action needed: quotes the contractor asked me to revise ── */
@@ -165,12 +165,12 @@ export default function SupplierDashboardPage() {
   const recentRatings = [...myRatings].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 5)
 
   return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
 
       <SupplierNav lang={lang} setLang={handleLangChange} userName={userName} active="/supplier-dashboard" />
 
       {/* HERO */}
-      <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-6">
+      <div className="bg-[var(--chrome)] px-4 md:px-7 pt-6 pb-6">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <p className="text-white/70 text-xs mb-1">
@@ -182,7 +182,7 @@ export default function SupplierDashboardPage() {
             </p>
           </div>
           <Link href="/supplier-requests"
-            className="mb-1 bg-[#8A7B6C] hover:bg-[#6F6255] text-white text-sm font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors">
+            className="mb-1 bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white text-sm font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors">
             {tStr('browseReqs', lang)}
           </Link>
         </div>
@@ -204,7 +204,7 @@ export default function SupplierDashboardPage() {
       {/* STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {stats.map((s, i) => (
-          <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4 relative">
+          <div key={i} className="bg-white border border-[var(--line)] rounded-xl p-4 relative">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
             <div className="text-2xl font-bold text-stone-900">{s.val}</div>
             <div className="text-xs text-stone-500 mt-1">{s.label}</div>
@@ -221,10 +221,10 @@ export default function SupplierDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_268px] gap-4 px-4 md:px-7 pb-8">
 
         {/* ── available requests table ── */}
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F1EAE0]">
+        <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--line-soft)]">
             <span className="text-sm font-bold text-stone-900">{tStr('availReqs', lang)}</span>
-            <Link href="/supplier-requests" className="text-xs text-[#8A7B6C] font-semibold hover:underline">
+            <Link href="/supplier-requests" className="text-xs text-[var(--sec)] font-semibold hover:underline">
               {tStr('viewAll', lang)}
             </Link>
           </div>
@@ -238,7 +238,7 @@ export default function SupplierDashboardPage() {
               <col style={{ width: '68px' }} />
             </colgroup>
             <thead>
-              <tr className="bg-[#FFFDF9] border-b border-[#F1EAE0]">
+              <tr className="bg-[var(--bg-soft2)] border-b border-[var(--line-soft)]">
                 {[tStr('reqId', lang), tStr('reqName', lang), tStr('city', lang), tStr('status', lang), tStr('deadline', lang), ''].map((h, i) => (
                   <th key={i} className={`text-[11px] font-semibold uppercase tracking-wider text-stone-500 px-4 py-2.5 ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
                     {h}
@@ -262,9 +262,9 @@ export default function SupplierDashboardPage() {
                   const urgency = getDeadlineUrgency(r.deadline, false)
                   const needsAction = needsActionReqIds.has(r.id)
                   return (
-                    <tr key={r.id} className="border-b border-[#FAF7F2] hover:bg-[#FFFDF9] transition-colors">
+                    <tr key={r.id} className="border-b border-[var(--line-soft)] hover:bg-[var(--bg-soft)] transition-colors">
                       <td className="px-4 py-3">
-                        <span className="text-[11px] text-[#8A7B6C] font-semibold font-mono">{String(r.id).slice(-6)}</span>
+                        <span className="text-[11px] text-[var(--sec)] font-semibold font-mono">{String(r.id).slice(-6)}</span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-[13px] font-semibold text-stone-900 truncate">{getReqName(r)}</div>
@@ -278,7 +278,7 @@ export default function SupplierDashboardPage() {
                       </td>
                       <td className="px-4 py-3">
                         <Link href={`/supplier-requests?reqId=${r.id}`}
-                          className="text-xs font-semibold text-[#C0603E] bg-[#F3EAE0] border border-[#E8DFD3] rounded-md px-2.5 py-1 hover:bg-[#EDE0D2] transition-colors">
+                          className="text-xs font-semibold text-[var(--brand-strong)] bg-[var(--tint)] border border-[var(--line)] rounded-md px-2.5 py-1 hover:bg-[var(--tint-hover)] transition-colors">
                           {tStr('view', lang)}
                         </Link>
                       </td>
@@ -294,8 +294,8 @@ export default function SupplierDashboardPage() {
         <div className="flex flex-col gap-3.5">
 
           {/* Quote Performance */}
-          <div className="bg-white border border-[#E8DFD3] rounded-xl overflow-hidden">
-            <div className="px-3.5 py-3 border-b border-[#F1EAE0]">
+          <div className="bg-white border border-[var(--line)] rounded-xl overflow-hidden">
+            <div className="px-3.5 py-3 border-b border-[var(--line-soft)]">
               <span className="text-xs font-bold text-stone-900">{tStr('perf', lang)}</span>
             </div>
             {myQuotes.length === 0 ? (
@@ -321,8 +321,8 @@ export default function SupplierDashboardPage() {
           </div>
 
           {/* Ratings Received */}
-          <div className="bg-white border border-[#E8DFD3] rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-3.5 py-3 border-b border-[#F1EAE0]">
+          <div className="bg-white border border-[var(--line)] rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-3.5 py-3 border-b border-[var(--line-soft)]">
               <span className="text-xs font-bold text-stone-900">{tStr('ratingsRec', lang)}</span>
               {myRatings.length > 0 && (
                 <span className="text-xs text-amber-400 flex items-center gap-1">
@@ -338,7 +338,7 @@ export default function SupplierDashboardPage() {
               </div>
             ) : (
               recentRatings.map(r => (
-                <div key={r.id} className="px-3.5 py-2.5 border-b border-[#FAF7F2] last:border-0">
+                <div key={r.id} className="px-3.5 py-2.5 border-b border-[var(--line-soft)] last:border-0">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-amber-400">{'★'.repeat(r.rating) + '☆'.repeat(5 - r.rating)}</span>
                     <span className="text-[10px] text-stone-500">{tStr('req', lang)} #{String(r.requestId).slice(-4)}</span>

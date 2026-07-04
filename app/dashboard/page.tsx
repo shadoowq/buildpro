@@ -428,12 +428,12 @@ export default function DashboardPage() {
 
   /* ══════════════════════════════════ RENDER ══════════════════════════════════ */
   return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
 
       <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/dashboard" />
 
       {/* HERO */}
-      <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-0">
+      <div className="bg-[var(--chrome)] px-4 md:px-7 pt-6 pb-0">
         <div className="flex items-end justify-between">
           <div>
             <p className="text-white/50 text-xs mb-1">
@@ -447,7 +447,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <Link href="/create-request"
-            className="mb-4 bg-[#8A7B6C] hover:bg-[#6F6255] text-white text-sm font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors">
+            className="mb-4 bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white text-sm font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors">
             <span className="text-base">+</span> {tStr('newRequest', lang)}
           </Link>
         </div>
@@ -461,7 +461,7 @@ export default function DashboardPage() {
           ] as ['all'|'active'|'pending'|'done', string][]).map(([val, label]) => (
             <button key={val} onClick={() => setActiveFilter(val)}
               className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${
-                activeFilter === val ? 'text-white border-[#8A7B6C]' : 'text-white/40 border-transparent hover:text-white/70'
+                activeFilter === val ? 'text-white border-[var(--sec)]' : 'text-white/40 border-transparent hover:text-white/70'
               }`}>
               {label} ({val === 'all' ? rows.length : rows.filter(r => r.status === val).length})
             </button>
@@ -486,7 +486,7 @@ export default function DashboardPage() {
             )}
           </div>
           <Link href="/create-request"
-            className="text-xs font-semibold px-3 py-1.5 bg-[#C0603E] text-white rounded-lg hover:bg-[#9C4C31] transition-colors shrink-0">
+            className="text-xs font-semibold px-3 py-1.5 bg-[var(--brand)] text-white rounded-lg hover:bg-[var(--brand-hover)] transition-colors shrink-0">
             {lang === 'ar' ? 'استكمال' : 'Continue'}
           </Link>
           <button onClick={dismissUnfinishedDraft}
@@ -505,11 +505,11 @@ export default function DashboardPage() {
             badgeCls: 'bg-emerald-50 text-emerald-700',
           },
           {
-            icon: '📥', bg: 'bg-[#F3EAE0]',
+            icon: '📥', bg: 'bg-[var(--tint)]',
             val: stats.totalQ,
             label: tStr('incomingQ', lang),
             badge: unreadQuotes > 0 ? `${unreadQuotes} ${lang === 'ar' ? 'جديدة' : 'new'}` : null,
-            badgeCls: 'bg-[#F3EAE0] text-[#8A7B6C]',
+            badgeCls: 'bg-[var(--tint)] text-[var(--sec)]',
           },
           {
             icon: '💰', bg: 'bg-emerald-50',
@@ -525,7 +525,7 @@ export default function DashboardPage() {
             badge: null, badgeCls: '',
           },
         ].map((s, i) => (
-          <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4 relative">
+          <div key={i} className="bg-white border border-[var(--line)] rounded-xl p-4 relative">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
             <div className="text-2xl font-bold text-stone-900">{s.val}</div>
             <div className="text-[11px] text-stone-500 mt-1">{s.label}</div>
@@ -542,18 +542,18 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_268px] gap-4 px-4 md:px-7 pb-8">
 
         {/* ── طلبات Table ── */}
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F1EAE0]">
+        <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--line-soft)]">
             <span className="text-sm font-bold text-stone-900">{tStr('pricingReqs', lang)}</span>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 bg-[#FAF7F2] border border-[#E8DFD3] rounded-lg px-3 py-1.5 w-44">
+              <div className="flex items-center gap-2 bg-[var(--bg-soft)] border border-[var(--line)] rounded-lg px-3 py-1.5 w-44">
                 <span className="text-stone-300 text-sm">🔍</span>
                 <input type="text" value={search} onChange={e => setSearch(e.target.value)}
                   placeholder={tStr('search', lang)}
                   className="bg-transparent border-none outline-none text-xs font-cairo w-full placeholder-stone-300 text-stone-700" />
               </div>
               <Link href="/create-request"
-                className="bg-[#C0603E] hover:bg-[#9C4C31] text-white text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors">
+                className="bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white text-xs font-semibold px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors">
                 {tStr('addNew', lang)}
               </Link>
             </div>
@@ -568,7 +568,7 @@ export default function DashboardPage() {
               <col style={{ width: '68px' }} />
             </colgroup>
             <thead>
-              <tr className="bg-[#FFFDF9] border-b border-[#F1EAE0]">
+              <tr className="bg-[var(--bg-soft2)] border-b border-[var(--line-soft)]">
                 {[tStr('reqId',lang), tStr('reqName',lang), tStr('status',lang), tStr('quotesCol',lang), tStr('deadline',lang), ''].map((h, i) => (
                   <th key={i} className={`text-[10px] font-semibold uppercase tracking-wider text-stone-400 px-4 py-2.5 ${lang === 'ar' ? 'text-right' : 'text-left'}`}
                     style={i === 3 ? { textAlign: 'center' } : {}}>
@@ -593,16 +593,16 @@ export default function DashboardPage() {
                   const hasAccepted = raw ? getReqQuotes(raw.id).some((q: any) => q.status === 'accepted') : false
                   const urgency = raw ? getDeadlineUrgency(raw.deadline, hasAccepted) : null
                   return (
-                    <tr key={req.id} className="border-b border-[#FAF7F2] hover:bg-[#FFFDF9] transition-colors cursor-pointer"
+                    <tr key={req.id} className="border-b border-[var(--line-soft)] hover:bg-[var(--bg-soft)] transition-colors cursor-pointer"
                       onClick={() => raw && setSelected(raw)}>
                       <td className="px-4 py-3">
-                        <span className="text-[10px] text-[#8A7B6C] font-semibold font-mono">{req.id}</span>
+                        <span className="text-[10px] text-[var(--sec)] font-semibold font-mono">{req.id}</span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-[13px] font-semibold text-stone-900 truncate">{req.name}</div>
                         <div className="flex gap-1 mt-1 flex-wrap">
                           {req.tags.slice(0, 3).map((tg, i) => (
-                            <span key={i} className="text-[10px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded font-medium">{tg}</span>
+                            <span key={i} className="text-[10px] bg-[var(--tint)] text-[var(--brand-strong)] px-1.5 py-0.5 rounded font-medium">{tg}</span>
                           ))}
                         </div>
                       </td>
@@ -615,7 +615,7 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <button onClick={() => raw && setSelected(raw)}
-                          className="text-[11px] font-semibold text-[#C0603E] bg-[#F3EAE0] border border-[#E8DFD3] rounded-md px-2.5 py-1 hover:bg-[#EDE0D2] transition-colors">
+                          className="text-[11px] font-semibold text-[var(--brand-strong)] bg-[var(--tint)] border border-[var(--line)] rounded-md px-2.5 py-1 hover:bg-[var(--tint-hover)] transition-colors">
                           {tStr('view', lang)}
                         </button>
                       </td>
@@ -631,10 +631,10 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-3.5">
 
           {/* Real Suppliers */}
-          <div className="bg-white border border-[#E8DFD3] rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-3.5 py-3 border-b border-[#F1EAE0]">
+          <div className="bg-white border border-[var(--line)] rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-3.5 py-3 border-b border-[var(--line-soft)]">
               <span className="text-xs font-bold text-stone-900">{tStr('topSuppliers', lang)}</span>
-              <Link href="/suppliers" className="text-[10px] text-[#8A7B6C] font-semibold hover:underline">
+              <Link href="/suppliers" className="text-[10px] text-[var(--sec)] font-semibold hover:underline">
                 {tStr('viewAll', lang)}
               </Link>
             </div>
@@ -645,8 +645,8 @@ export default function DashboardPage() {
               </div>
             ) : (
               supplierUsers.map(s => (
-                <div key={s.email} className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-[#FAF7F2] last:border-0">
-                  <div className="w-9 h-9 rounded-lg bg-[#F3EAE0] border border-[#E8DFD3] flex items-center justify-center text-[11px] font-bold text-[#C0603E] shrink-0">
+                <div key={s.email} className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-[var(--line-soft)] last:border-0">
+                  <div className="w-9 h-9 rounded-lg bg-[var(--tint)] border border-[var(--line)] flex items-center justify-center text-[11px] font-bold text-[var(--brand-strong)] shrink-0">
                     {s.initials}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -672,8 +672,8 @@ export default function DashboardPage() {
           </div>
 
           {/* Real Monthly Activity */}
-          <div className="bg-white border border-[#E8DFD3] rounded-xl overflow-hidden">
-            <div className="px-3.5 py-3 border-b border-[#F1EAE0] flex items-center gap-1.5">
+          <div className="bg-white border border-[var(--line)] rounded-xl overflow-hidden">
+            <div className="px-3.5 py-3 border-b border-[var(--line-soft)] flex items-center gap-1.5">
               <span className="text-xs font-bold text-stone-900">{tStr('monthActivity', lang)}</span>
               <HelpTooltip lang={lang}
                 textAr="يقارن كل رقم نشاط الشهر الحالي بإجمالي طلباتك وعروضك منذ البداية، وليست مقارنة بين الأشهر. وتوضّح النسبة حصة هذا الشهر من الإجمالي."
@@ -685,8 +685,8 @@ export default function DashboardPage() {
                 const totalQuotes = Math.max(myQuotes.length, 1)
                 const totalClosed = Math.max(rows.filter(r => r.status === 'done').length, 1)
                 return [
-                  { ar: 'طلبات مرسلة',  en: 'Sent Requests',  val: `${reqsThisMonth} / ${myRequests.length}`,   pct: Math.round(reqsThisMonth / totalReqs * 100),   color: 'bg-[#8A7B6C]'  },
-                  { ar: 'عروض مستلمة',  en: 'Received Quotes', val: `${quotesThisMonth} / ${myQuotes.length}`,   pct: Math.round(quotesThisMonth / totalQuotes * 100), color: 'bg-[#C0603E]'  },
+                  { ar: 'طلبات مرسلة',  en: 'Sent Requests',  val: `${reqsThisMonth} / ${myRequests.length}`,   pct: Math.round(reqsThisMonth / totalReqs * 100),   color: 'bg-[var(--sec)]'  },
+                  { ar: 'عروض مستلمة',  en: 'Received Quotes', val: `${quotesThisMonth} / ${myQuotes.length}`,   pct: Math.round(quotesThisMonth / totalQuotes * 100), color: 'bg-[var(--brand)]'  },
                   { ar: 'صفقات مغلقة', en: 'Closed Deals',   val: `${closedThisMonth} / ${rows.length}`,        pct: Math.round(closedThisMonth / totalClosed * 100), color: 'bg-amber-500'  },
                 ]
               })().map(p => (

@@ -69,7 +69,7 @@ export default function QuoteCompareTable({
     <div className="overflow-x-auto">
       <table className="w-full text-xs border-collapse">
         <thead>
-          <tr className="bg-[#C0603E] text-white">
+          <tr className="bg-[var(--brand)] text-white">
             {headers.map(h => (
               <th key={h} className={`px-4 py-2.5 font-semibold whitespace-nowrap ${lang === 'ar' ? 'text-right' : 'text-left'}`}>{h}</th>
             ))}
@@ -82,10 +82,10 @@ export default function QuoteCompareTable({
             const isFastest = q.id === fastestId;
             const diff = Number(q.totalPrice) - Number(cheapestPrice);
             const diffPct = cheapestPrice > 0 ? Math.round((diff / cheapestPrice) * 100) : 0;
-            const rowCls = `border-b border-stone-100 ${i % 2 === 0 ? 'bg-white' : 'bg-[#FAF7F2]'} ${isCheapest ? '!bg-emerald-50/50' : ''}`;
+            const rowCls = `border-b border-stone-100 ${i % 2 === 0 ? 'bg-white' : 'bg-[var(--bg-soft)]'} ${isCheapest ? '!bg-emerald-50/50' : ''}`;
             return (
               <tr key={q.id} className={rowCls}>
-                {variant === 'readonly' && <td className="px-4 py-3 text-center font-bold text-[#C0603E]">{i + 1}</td>}
+                {variant === 'readonly' && <td className="px-4 py-3 text-center font-bold text-[var(--brand-strong)]">{i + 1}</td>}
                 <td className="px-4 py-3">
                   <p className="font-bold text-stone-900">{q.supplierCompany}</p>
                   <p className="text-stone-400 text-[10px]">{q.supplierName}</p>
@@ -97,10 +97,10 @@ export default function QuoteCompareTable({
                   {isCheapest && <span className="block text-[9px] text-emerald-600 font-semibold">{t('cheapest', lang)}</span>}
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`font-semibold ${isFastest ? 'text-[#C0603E]' : 'text-stone-700'}`}>
+                  <span className={`font-semibold ${isFastest ? 'text-[var(--brand-strong)]' : 'text-stone-700'}`}>
                     {q.deliveryDays} {t('days', lang)}
                   </span>
-                  {isFastest && <span className="block text-[9px] text-[#C0603E] font-semibold">{t('fastest', lang)}</span>}
+                  {isFastest && <span className="block text-[9px] text-[var(--brand-strong)] font-semibold">{t('fastest', lang)}</span>}
                 </td>
                 {variant === 'readonly' && (
                   <td className="px-4 py-3">

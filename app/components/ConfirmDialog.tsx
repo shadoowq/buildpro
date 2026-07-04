@@ -54,7 +54,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                 {state.options?.cancelText || (state.dir === 'rtl' ? 'إلغاء' : 'Cancel')}
               </button>
               <button onClick={() => handle(true)}
-                className={`flex-1 font-semibold py-2.5 rounded-xl text-sm text-white transition-colors ${state.options?.danger ? 'bg-red-500 hover:bg-red-600' : 'bg-[#8A7B6C] hover:bg-[#6F6255]'}`}>
+                className={`flex-1 font-semibold py-2.5 rounded-xl text-sm text-white transition-colors ${state.options?.danger ? 'bg-red-500 hover:bg-red-600' : 'bg-[var(--sec)] hover:bg-[var(--sec-hover)]'}`}>
                 {state.options?.confirmText || (state.dir === 'rtl' ? 'تأكيد' : 'Confirm')}
               </button>
             </div>

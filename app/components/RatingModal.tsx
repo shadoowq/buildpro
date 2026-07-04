@@ -48,7 +48,7 @@ export default function RatingModal({ lang, supplierCompany, onSubmit, onSkip }:
         <label className="block text-sm font-semibold text-stone-700 mb-2">{rt('rateComments', lang)}</label>
         <textarea value={comment} onChange={e => setComment(e.target.value)}
           placeholder={rt('rateWrite', lang)} rows={3}
-          className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-700 bg-white outline-none focus:border-[#8A7B6C] resize-none mb-4" />
+          className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-700 bg-white outline-none focus:border-[var(--sec)] resize-none mb-4" />
         <div className="flex gap-3">
           <button onClick={() => stars > 0 && onSubmit(stars, comment)} disabled={stars === 0}
             className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-2.5 rounded-xl text-sm transition-colors">

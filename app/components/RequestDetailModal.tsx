@@ -34,8 +34,8 @@ export default function RequestDetailModal({
       setTimeout(() => setLinkCopied(false), 2000);
     });
   };
-  const thStyle: React.CSSProperties = { padding: '8px 10px', backgroundColor: '#C0603E', color: 'white', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', textAlign: 'center', border: '1px solid #9C4C31' };
-  const tdStyle: React.CSSProperties = { padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' };
+  const thStyle: React.CSSProperties = { padding: '8px 10px', backgroundColor: 'var(--chrome)', color: 'white', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', textAlign: 'center', border: '1px solid var(--chrome-line)' };
+  const tdStyle: React.CSSProperties = { padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid var(--line)' };
   useEscapeKey(onClose);
   return (
     <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4" onClick={onClose}>
@@ -44,7 +44,7 @@ export default function RequestDetailModal({
         <div className="flex items-center justify-between p-5 border-b border-stone-100 flex-wrap gap-3">
           <div className="flex items-center gap-3 flex-wrap">
             <h2 className="text-lg font-bold text-stone-900">{tr('تفاصيل الطلب', 'Request Details')}</h2>
-            <span className="text-[#8A7B6C] font-bold text-sm">#{req.id}</span>
+            <span className="text-[var(--sec)] font-bold text-sm">#{req.id}</span>
             <span className={`text-xs font-semibold px-3 py-1 rounded-full ${req.status === 'open' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-stone-100 text-stone-600'}`}>
               {req.status === 'open' ? tr('مفتوح', 'Open') : tr('مغلق', 'Closed')}
             </span>
@@ -84,7 +84,7 @@ export default function RequestDetailModal({
                   </thead>
                   <tbody>
                     {req.materials.map((m: any, i: number) => (
-                      <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#fff' : '#FAF7F2' }}>
+                      <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#fff' : 'var(--bg-soft)' }}>
                         <td style={tdStyle}>{i + 1}</td>
                         <td style={{ ...tdStyle, fontWeight: 700 }}>{displayVal(m.type, lang)}</td>
                         <td style={tdStyle}>{displayVal(m.usage, lang)}</td>
@@ -137,7 +137,7 @@ export default function RequestDetailModal({
               <h3 className="text-sm font-bold text-stone-900">{tr('عروض الأسعار', 'Quotes')} ({quotes.length})</h3>
               {quotes.length > 1 && (
                 <button onClick={() => setComparing(c => !c)}
-                  className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${comparing ? 'bg-[#C0603E] text-white border-[#C0603E]' : 'bg-white text-[#C0603E] border-[#C0603E] hover:bg-[#F3EAE0]'}`}>
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors ${comparing ? 'bg-[var(--brand)] text-white border-[var(--brand-strong)]' : 'bg-white text-[var(--brand-strong)] border-[var(--brand-strong)] hover:bg-[var(--tint)]'}`}>
                   {tr('مقارنة العروض', 'Compare Quotes')} {comparing ? '✕' : '⇄'}
                 </button>
               )}
@@ -256,7 +256,7 @@ export default function RequestDetailModal({
         {/* footer actions */}
         <div className="flex gap-3 p-5 border-t border-stone-100">
           <button onClick={onClose} className="flex-1 bg-stone-100 text-stone-600 font-semibold py-2.5 rounded-xl text-sm hover:bg-stone-200">{tr('إغلاق','Close')}</button>
-          <button onClick={onEdit} className="flex-1 bg-[#8A7B6C] text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-[#6F6255]">{tr('تعديل','Edit')}</button>
+          <button onClick={onEdit} className="flex-1 bg-[var(--sec)] text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-[var(--sec-hover)]">{tr('تعديل','Edit')}</button>
           <button onClick={onToggle}
             className={`flex-1 font-semibold py-2.5 rounded-xl text-sm transition-colors ${req.status === 'open' ? 'bg-amber-400 text-white hover:bg-amber-500' : 'bg-emerald-500 text-white hover:bg-emerald-600'}`}>
             {req.status === 'open' ? tr('إغلاق الطلب','Close Request') : tr('فتح الطلب','Open Request')}

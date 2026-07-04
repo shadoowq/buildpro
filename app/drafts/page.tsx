@@ -131,15 +131,15 @@ export default function Drafts() {
     return getDraftName(d).toLowerCase().includes(q) || d.location?.toLowerCase().includes(q);
   });
 
-  if (!user) return <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center"><div className="text-stone-400">Loading...</div></div>;
+  if (!user) return <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center"><div className="text-stone-400">Loading...</div></div>;
 
   return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
 
       <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/drafts" />
 
       {/* ── HERO ── */}
-      <div className="bg-[#C0603E] px-7 pt-6 pb-5">
+      <div className="bg-[var(--chrome)] px-7 pt-6 pb-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-white/50 text-xs mb-1">
@@ -153,7 +153,7 @@ export default function Drafts() {
             </p>
           </div>
           <Link href="/create-request"
-            className="bg-[#8A7B6C] hover:bg-[#6F6255] text-white text-sm font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors">
+            className="bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white text-sm font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors">
             <span className="text-base">+</span> {t('طلب جديد', 'New Request', lang)}
           </Link>
         </div>
@@ -163,10 +163,10 @@ export default function Drafts() {
       <div className="grid grid-cols-3 gap-3 px-7 py-5">
         {[
           { icon: '✏️', bg: 'bg-amber-50',   val: drafts.length,                                               label: t('إجمالي المسودات', 'Total Drafts', lang) },
-          { icon: '📋', bg: 'bg-[#F3EAE0]',  val: drafts.reduce((s, d) => s + getMaterialCount(d), 0),         label: t('إجمالي المواد', 'Total Materials', lang) },
+          { icon: '📋', bg: 'bg-[var(--tint)]',  val: drafts.reduce((s, d) => s + getMaterialCount(d), 0),         label: t('إجمالي المواد', 'Total Materials', lang) },
           { icon: '📍', bg: 'bg-emerald-50', val: [...new Set(drafts.map(d => d.location).filter(Boolean))].length, label: t('مدن مختلفة', 'Different Cities', lang) },
         ].map((s, i) => (
-          <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4">
+          <div key={i} className="bg-white border border-[var(--line)] rounded-xl p-4">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
             <div className="text-2xl font-bold text-stone-900">{s.val}</div>
             <div className="text-[11px] text-stone-500 mt-1">{s.label}</div>
@@ -176,10 +176,10 @@ export default function Drafts() {
 
       {/* ── CONTENT ── */}
       <div className="px-7 pb-10">
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
+        <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
 
           {/* search bar */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F1EAE0] flex-wrap gap-2">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--line-soft)] flex-wrap gap-2">
             <span className="text-sm font-bold text-stone-900">{t('المسودات المحفوظة', 'Saved Drafts', lang)}</span>
             <div className="flex items-center gap-2">
               {selectedIds.size > 0 && (
@@ -188,7 +188,7 @@ export default function Drafts() {
                   {t('حذف المحدد', 'Delete Selected', lang)} ({selectedIds.size})
                 </button>
               )}
-              <div className="flex items-center gap-2 bg-[#FAF7F2] border border-[#E8DFD3] rounded-lg px-3 py-1.5 w-56">
+              <div className="flex items-center gap-2 bg-[var(--bg-soft)] border border-[var(--line)] rounded-lg px-3 py-1.5 w-56">
                 <span className="text-stone-300 text-sm">🔍</span>
                 <input type="text" value={search} onChange={e => setSearch(e.target.value)}
                   placeholder={t('ابحث عن مسودة...', 'Search drafts...', lang)}
@@ -208,7 +208,7 @@ export default function Drafts() {
                 {t('عندما تحفظ طلبًا كمسودة، سيظهر هنا', 'When you save a request as draft it will appear here', lang)}
               </p>
               <Link href="/create-request"
-                className="bg-[#C0603E] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#9C4C31] transition-colors">
+                className="bg-[var(--brand)] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[var(--brand-hover)] transition-colors">
                 {t('+ إنشاء طلب جديد', '+ Create New Request', lang)}
               </Link>
             </div>
@@ -216,12 +216,12 @@ export default function Drafts() {
 
           {/* drafts list */}
           {filtered.length > 0 && (
-            <div className="divide-y divide-[#FAF7F2]">
+            <div className="divide-y divide-[var(--line-soft)]">
               {filtered.map(draft => {
                 const matCount = getMaterialCount(draft);
                 const suppCount = draft.selectedSuppliers?.length || 0;
                 return (
-                  <div key={draft.id} className="px-5 py-4 hover:bg-[#FFFDF9] transition-colors group">
+                  <div key={draft.id} className="px-5 py-4 hover:bg-[var(--bg-soft)] transition-colors group">
                     <div className="flex items-start justify-between gap-4">
 
                       {/* left: checkbox + icon + info */}
@@ -277,7 +277,7 @@ export default function Drafts() {
                           👁 {t('معاينة', 'Preview', lang)}
                         </button>
                         <button onClick={() => handleContinue(draft)}
-                          className="text-xs font-semibold px-4 py-2 bg-[#C0603E] text-white rounded-xl hover:bg-[#9C4C31] transition-colors">
+                          className="text-xs font-semibold px-4 py-2 bg-[var(--brand)] text-white rounded-xl hover:bg-[var(--brand-hover)] transition-colors">
                           {t('استكمال', 'Continue', lang)}
                         </button>
                         <Link href={`/print/draft/${draft.id}`} target="_blank" rel="noopener noreferrer"
@@ -298,7 +298,7 @@ export default function Drafts() {
                           .filter(m => m.type?.trim() || m.typePending?.trim())
                           .slice(0, 6)
                           .map((m, i) => (
-                            <span key={i} className="text-[10px] bg-[#F3EAE0] text-[#C0603E] px-2 py-0.5 rounded-md font-medium">
+                            <span key={i} className="text-[10px] bg-[var(--tint)] text-[var(--brand-strong)] px-2 py-0.5 rounded-md font-medium">
                               {displayVal(m.type || m.typePending, lang)}
                               {m.quantity ? ` · ${m.quantity} ${lang === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : ''}
                             </span>
@@ -386,7 +386,7 @@ export default function Drafts() {
                     {previewDraft.selectedSuppliers.map(email => {
                       const s = getSupplierData(email);
                       return (
-                        <span key={email} className="bg-[#F3EAE0] text-[#C0603E] text-xs font-medium px-2.5 py-1 rounded-lg">
+                        <span key={email} className="bg-[var(--tint)] text-[var(--brand-strong)] text-xs font-medium px-2.5 py-1 rounded-lg">
                           {s?.company || email}
                         </span>
                       );
@@ -401,7 +401,7 @@ export default function Drafts() {
                 {t('إغلاق', 'Close', lang)}
               </button>
               <button onClick={() => { const d = previewDraft; setPreviewDraft(null); handleContinue(d); }}
-                className="flex-1 bg-[#C0603E] text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-[#9C4C31]">
+                className="flex-1 bg-[var(--brand)] text-white font-semibold py-2.5 rounded-xl text-sm hover:bg-[var(--brand-hover)]">
                 {t('استكمال', 'Continue', lang)}
               </button>
             </div>

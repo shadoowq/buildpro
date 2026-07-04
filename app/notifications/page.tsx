@@ -77,10 +77,10 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
       <ContractorNav lang={lang} setLang={setLang} userName={userName} active="/notifications" />
 
-      <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-0">
+      <div className="bg-[var(--chrome)] px-4 md:px-7 pt-6 pb-0">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-white text-xl font-bold mb-1">{t('title', lang)}</h1>
@@ -88,7 +88,7 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
           </div>
           {notifs.length > 0 && (
             <button onClick={markAllRead}
-              className="bg-[#8A7B6C] hover:bg-[#6F6255] text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors">
+              className="bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors">
               {t('markAllRead', lang)}
             </button>
           )}
@@ -103,7 +103,7 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
           ] as [FilterTab, string, number][]).map(([val, label, count]) => (
             <button key={val} onClick={() => setFilter(val)}
               className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${
-                filter === val ? 'text-white border-[#8A7B6C]' : 'text-white/60 border-transparent hover:text-white/70'
+                filter === val ? 'text-white border-[var(--sec)]' : 'text-white/60 border-transparent hover:text-white/70'
               }`}>
               {label} ({count})
             </button>
@@ -112,7 +112,7 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
       </div>
 
       <div className="px-4 md:px-7 py-6 max-w-2xl mx-auto">
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
+        <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
           {filteredNotifs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-4">
               <span className="text-3xl mb-3">🔔</span>
@@ -125,7 +125,7 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
               const isNew = n.unread && !seenIds.has(n.id);
               return (
                 <Link key={n.id} href={notifHref(n)} onClick={() => markRead(n.id)}
-                  className={`flex gap-3 px-5 py-4 border-b border-[#FAF7F2] last:border-0 hover:bg-[#FFFDF9] transition-colors ${isNew ? 'bg-[#F3EAE0]/40' : ''}`}>
+                  className={`flex gap-3 px-5 py-4 border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--bg-soft)] transition-colors ${isNew ? 'bg-[var(--tint)]/40' : ''}`}>
                   <div className={`w-9 h-9 rounded-lg ${icon.bg} flex items-center justify-center text-base ${icon.color} shrink-0`}>
                     {icon.icon}
                   </div>
@@ -133,7 +133,7 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
                     <p className="text-sm text-stone-700 leading-relaxed">{lang === 'ar' ? n.textAr : n.textEn}</p>
                     <p className="text-xs text-stone-500 mt-1">{timeAgo(n.timestamp, lang)}</p>
                   </div>
-                  {isNew && <span className="w-2 h-2 rounded-full bg-[#8A7B6C] shrink-0 mt-1.5" />}
+                  {isNew && <span className="w-2 h-2 rounded-full bg-[var(--sec)] shrink-0 mt-1.5" />}
                 </Link>
               );
             })
@@ -190,10 +190,10 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
       <SupplierNav lang={lang} setLang={setLang} userName={userName} active="/notifications" />
 
-      <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-0">
+      <div className="bg-[var(--chrome)] px-4 md:px-7 pt-6 pb-0">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-white text-xl font-bold mb-1">{t('title', lang)}</h1>
@@ -201,7 +201,7 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
           </div>
           {notifs.length > 0 && (
             <button onClick={markAllRead}
-              className="bg-[#8A7B6C] hover:bg-[#6F6255] text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors">
+              className="bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors">
               {t('markAllRead', lang)}
             </button>
           )}
@@ -216,7 +216,7 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
           ] as [SupplierFilterTab, string, number][]).map(([val, label, count]) => (
             <button key={val} onClick={() => setFilter(val)}
               className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${
-                filter === val ? 'text-white border-[#8A7B6C]' : 'text-white/60 border-transparent hover:text-white/70'
+                filter === val ? 'text-white border-[var(--sec)]' : 'text-white/60 border-transparent hover:text-white/70'
               }`}>
               {label} ({count})
             </button>
@@ -225,7 +225,7 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
       </div>
 
       <div className="px-4 md:px-7 py-6 max-w-2xl mx-auto">
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
+        <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
           {filteredNotifs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-4">
               <span className="text-3xl mb-3">🔔</span>
@@ -238,7 +238,7 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
               const isNew = n.unread && !seenIds.has(n.id);
               return (
                 <Link key={n.id} href={notifHref(n, 'supplier')} onClick={() => markRead(n.id)}
-                  className={`flex gap-3 px-5 py-4 border-b border-[#FAF7F2] last:border-0 hover:bg-[#FFFDF9] transition-colors ${isNew ? 'bg-[#F3EAE0]/40' : ''}`}>
+                  className={`flex gap-3 px-5 py-4 border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--bg-soft)] transition-colors ${isNew ? 'bg-[var(--tint)]/40' : ''}`}>
                   <div className={`w-9 h-9 rounded-lg ${icon.bg} flex items-center justify-center text-base ${icon.color} shrink-0`}>
                     {icon.icon}
                   </div>
@@ -246,7 +246,7 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
                     <p className="text-sm text-stone-700 leading-relaxed">{lang === 'ar' ? n.textAr : n.textEn}</p>
                     <p className="text-xs text-stone-500 mt-1">{timeAgo(n.timestamp, lang)}</p>
                   </div>
-                  {isNew && <span className="w-2 h-2 rounded-full bg-[#8A7B6C] shrink-0 mt-1.5" />}
+                  {isNew && <span className="w-2 h-2 rounded-full bg-[var(--sec)] shrink-0 mt-1.5" />}
                 </Link>
               );
             })
@@ -280,7 +280,7 @@ export default function NotificationsPage() {
   const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
 
   if (!userType) return (
-    <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center font-cairo">
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center font-cairo">
       <div className="text-stone-500 text-sm">{lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
     </div>
   );

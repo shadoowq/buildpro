@@ -77,7 +77,7 @@ function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void 
     <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1">
       {(['ar', 'en'] as Lang[]).map(l => (
         <button key={l} onClick={() => setLang(l)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[#C0603E] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[var(--brand-strong)] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
           <img src={l === 'ar' ? 'https://flagcdn.com/w20/sa.png' : 'https://flagcdn.com/w20/us.png'} width="20" height="14" alt={l} className="rounded-sm" />
           {l.toUpperCase()}
         </button>
@@ -88,8 +88,8 @@ function LangToggle({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void 
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
-      <div className="px-6 py-4 border-b border-[#F1EAE0] bg-[#FFFDF9]">
+    <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
+      <div className="px-6 py-4 border-b border-[var(--line-soft)] bg-[var(--bg-soft2)]">
         <h2 className="text-sm font-bold text-stone-900">{title}</h2>
       </div>
       <div className="p-6">{children}</div>
@@ -107,8 +107,8 @@ function Field({ label, note, children }: { label: string; note?: string; childr
   );
 }
 
-const inputCls = 'w-full text-sm border border-[#E8DFD3] rounded-xl px-4 py-2.5 outline-none font-cairo bg-white text-stone-800 placeholder-stone-300 focus:border-[#8A7B6C] focus:ring-2 focus:ring-[#8A7B6C]/10 transition-all';
-const readonlyCls = 'w-full text-sm border border-[#E8DFD3] rounded-xl px-4 py-2.5 font-cairo bg-[#FAF7F2] text-stone-500 cursor-not-allowed';
+const inputCls = 'w-full text-sm border border-[var(--line)] rounded-xl px-4 py-2.5 outline-none font-cairo bg-white text-stone-800 placeholder-stone-300 focus:border-[var(--sec)] focus:ring-2 focus:ring-[var(--sec)]/10 transition-all';
+const readonlyCls = 'w-full text-sm border border-[var(--line)] rounded-xl px-4 py-2.5 font-cairo bg-[var(--bg-soft)] text-stone-500 cursor-not-allowed';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -260,7 +260,7 @@ export default function ProfilePage() {
   const contractorNav = user?.userType === 'contractor';
 
   if (!user) return (
-    <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center font-cairo">
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center font-cairo">
       <div className="text-stone-400 text-sm">{lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
     </div>
   );
@@ -270,7 +270,7 @@ export default function ProfilePage() {
     : (lang === 'ar' ? 'غير معروف' : 'Unknown');
 
   return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
 
       {contractorNav
         ? <ContractorNav lang={lang} setLang={handleLangChange} userName={name} active="/profile" />
@@ -278,7 +278,7 @@ export default function ProfilePage() {
       }
 
       {/* HERO */}
-      <div className="bg-[#C0603E] px-7 pt-6 pb-6">
+      <div className="bg-[var(--chrome)] px-7 pt-6 pb-6">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white text-xl font-bold">
             {name.charAt(0) || 'م'}
@@ -322,7 +322,7 @@ export default function ProfilePage() {
               <div className={readonlyCls}>{user.email}</div>
             </Field>
             <button onClick={handleSaveInfo}
-              className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${infoSaved ? 'bg-emerald-500 text-white' : 'bg-[#C0603E] hover:bg-[#9C4C31] text-white'}`}>
+              className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${infoSaved ? 'bg-emerald-500 text-white' : 'bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white'}`}>
               {infoSaved ? t('saved', lang) : t('saveInfo', lang)}
             </button>
           </div>
@@ -344,7 +344,7 @@ export default function ProfilePage() {
                 <p className="text-xs font-semibold text-stone-700 mb-2">{t('headerLabel', lang)}</p>
                 {letterhead ? (
                   <div className="flex flex-col gap-3">
-                    <img src={letterhead} alt="header" className="w-full max-w-md h-24 object-contain border border-[#E8DFD3] rounded-xl bg-[#FAF7F2]" />
+                    <img src={letterhead} alt="header" className="w-full max-w-md h-24 object-contain border border-[var(--line)] rounded-xl bg-[var(--bg-soft)]" />
                     <div className="flex gap-2">
                       <label className="cursor-pointer text-xs font-semibold px-4 py-2 bg-stone-100 text-stone-700 rounded-lg hover:bg-stone-200">
                         {t('replaceLogo', lang)}
@@ -357,7 +357,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  <label className="cursor-pointer inline-block text-xs font-semibold px-4 py-2.5 bg-[#C0603E] text-white rounded-xl hover:bg-[#9C4C31]">
+                  <label className="cursor-pointer inline-block text-xs font-semibold px-4 py-2.5 bg-[var(--brand)] text-white rounded-xl hover:bg-[var(--brand-hover)]">
                     {t('uploadLogo', lang)}
                     <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleLetterheadUpload} className="hidden" />
                   </label>
@@ -365,11 +365,11 @@ export default function ProfilePage() {
               </div>
 
               {/* FOOTER */}
-              <div className="pt-4 border-t border-[#F1EAE0]">
+              <div className="pt-4 border-t border-[var(--line-soft)]">
                 <p className="text-xs font-semibold text-stone-700 mb-2">{t('footerLabel', lang)}</p>
                 {letterheadFooter ? (
                   <div className="flex flex-col gap-3">
-                    <img src={letterheadFooter} alt="footer" className="w-full max-w-md h-24 object-contain border border-[#E8DFD3] rounded-xl bg-[#FAF7F2]" />
+                    <img src={letterheadFooter} alt="footer" className="w-full max-w-md h-24 object-contain border border-[var(--line)] rounded-xl bg-[var(--bg-soft)]" />
                     <div className="flex gap-2">
                       <label className="cursor-pointer text-xs font-semibold px-4 py-2 bg-stone-100 text-stone-700 rounded-lg hover:bg-stone-200">
                         {t('replaceLogo', lang)}
@@ -382,7 +382,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  <label className="cursor-pointer inline-block text-xs font-semibold px-4 py-2.5 bg-[#C0603E] text-white rounded-xl hover:bg-[#9C4C31]">
+                  <label className="cursor-pointer inline-block text-xs font-semibold px-4 py-2.5 bg-[var(--brand)] text-white rounded-xl hover:bg-[var(--brand-hover)]">
                     {t('uploadFooter', lang)}
                     <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFooterUpload} className="hidden" />
                   </label>
@@ -415,7 +415,7 @@ export default function ProfilePage() {
               </div>
             )}
             <button onClick={handleChangePassword}
-              className="w-full py-2.5 rounded-xl text-sm font-bold bg-[#8A7B6C] hover:bg-[#6F6255] text-white transition-colors">
+              className="w-full py-2.5 rounded-xl text-sm font-bold bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white transition-colors">
               {t('savePass', lang)}
             </button>
           </div>
@@ -424,13 +424,13 @@ export default function ProfilePage() {
         {/* ACCOUNT DETAILS */}
         <SectionCard title={t('account', lang)}>
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-4">
+            <div className="bg-[var(--bg-soft)] border border-[var(--line)] rounded-xl p-4">
               <p className="text-[10px] text-stone-400 mb-1">{t('role', lang)}</p>
-              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full ${user.userType === 'contractor' ? 'bg-[#F3EAE0] text-[#C0603E]' : 'bg-stone-100 text-stone-600'}`}>
+              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full ${user.userType === 'contractor' ? 'bg-[var(--tint)] text-[var(--brand-strong)]' : 'bg-stone-100 text-stone-600'}`}>
                 {user.userType === 'contractor' ? '👷' : '🏢'} {user.userType === 'contractor' ? t('contractor', lang) : t('supplier', lang)}
               </span>
             </div>
-            <div className="bg-[#FAF7F2] border border-[#E8DFD3] rounded-xl p-4">
+            <div className="bg-[var(--bg-soft)] border border-[var(--line)] rounded-xl p-4">
               <p className="text-[10px] text-stone-400 mb-1">{t('memberSince', lang)}</p>
               <p className="text-sm font-bold text-stone-700">{memberSince}</p>
             </div>
@@ -442,10 +442,10 @@ export default function ProfilePage() {
           <p className="text-xs text-stone-500 leading-relaxed mb-4">{t('backupNote', lang)}</p>
           <div className="grid grid-cols-2 gap-3">
             <button onClick={downloadBackup}
-              className="py-2.5 rounded-xl text-sm font-bold bg-[#C0603E] hover:bg-[#9C4C31] text-white transition-colors">
+              className="py-2.5 rounded-xl text-sm font-bold bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white transition-colors">
               {t('exportBtn', lang)}
             </button>
-            <label className="py-2.5 rounded-xl text-sm font-bold bg-white text-[#8A7B6C] border-2 border-[#8A7B6C] hover:bg-[#FAF7F2] transition-colors text-center cursor-pointer">
+            <label className="py-2.5 rounded-xl text-sm font-bold bg-white text-[var(--sec)] border-2 border-[var(--sec)] hover:bg-[var(--bg-soft)] transition-colors text-center cursor-pointer">
               {t('importBtn', lang)}
               <input type="file" accept="application/json,.json" onChange={handleImportBackup} className="hidden" />
             </label>

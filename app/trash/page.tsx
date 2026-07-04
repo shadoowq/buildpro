@@ -127,15 +127,15 @@ export default function Trash() {
     return getDraftName(d).toLowerCase().includes(q) || (d.location || '').toLowerCase().includes(q);
   });
 
-  if (!user) return <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center"><div className="text-stone-400">Loading...</div></div>;
+  if (!user) return <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center"><div className="text-stone-400">Loading...</div></div>;
 
   return (
-    <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
+    <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
 
       <ContractorNav lang={lang} setLang={handleLangChange} userName={userName} active="/trash" />
 
       {/* ── HERO ── */}
-      <div className="bg-[#C0603E] px-7 pt-6 pb-5">
+      <div className="bg-[var(--chrome)] px-7 pt-6 pb-5">
         <h1 className="text-white text-xl font-bold mb-1">{t('سلة المهملات', 'Trash', lang)}</h1>
         <p className="text-white/50 text-xs">
           {t(`الطلبات المحذوفة تُحذف نهائيًا بعد ${RETENTION_DAYS} يومًا`, `Deleted requests are permanently removed after ${RETENTION_DAYS} days`, lang)}
@@ -144,7 +144,7 @@ export default function Trash() {
 
       {/* ── STATS ── */}
       <div className="grid grid-cols-1 gap-3 px-7 py-5 max-w-xs">
-        <div className="bg-white border border-[#E8DFD3] rounded-xl p-4">
+        <div className="bg-white border border-[var(--line)] rounded-xl p-4">
           <div className="w-9 h-9 bg-stone-100 rounded-lg flex items-center justify-center text-base mb-3">🗑</div>
           <div className="text-2xl font-bold text-stone-900">{items.length + draftItems.length}</div>
           <div className="text-[11px] text-stone-500 mt-1">{t('عنصر في السلة', 'Items in trash', lang)}</div>
@@ -153,12 +153,12 @@ export default function Trash() {
 
       {/* ── CONTENT ── */}
       <div className="px-7 pb-10">
-        <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
+        <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
 
           {/* search bar */}
-          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F1EAE0]">
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--line-soft)]">
             <span className="text-sm font-bold text-stone-900">{t('الطلبات المحذوفة', 'Deleted Requests', lang)}</span>
-            <div className="flex items-center gap-2 bg-[#FAF7F2] border border-[#E8DFD3] rounded-lg px-3 py-1.5 w-56">
+            <div className="flex items-center gap-2 bg-[var(--bg-soft)] border border-[var(--line)] rounded-lg px-3 py-1.5 w-56">
               <span className="text-stone-300 text-sm">🔍</span>
               <input type="text" value={search} onChange={e => setSearch(e.target.value)}
                 placeholder={t('ابحث...', 'Search...', lang)}
@@ -177,7 +177,7 @@ export default function Trash() {
                 {t('ستظهر هنا الطلبات والمسودات المحذوفة', 'Deleted requests and drafts will appear here', lang)}
               </p>
               <Link href="/my-requests"
-                className="bg-[#C0603E] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#9C4C31] transition-colors">
+                className="bg-[var(--brand)] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[var(--brand-hover)] transition-colors">
                 {t('← طلباتي', '← My Requests', lang)}
               </Link>
             </div>
@@ -185,11 +185,11 @@ export default function Trash() {
 
           {/* list */}
           {filtered.length > 0 && (
-            <div className="divide-y divide-[#FAF7F2]">
+            <div className="divide-y divide-[var(--line-soft)]">
               {filtered.map(req => {
                 const left = daysLeft(req.deletedAt);
                 return (
-                  <div key={req.id} className="px-5 py-4 hover:bg-[#FFFDF9] transition-colors">
+                  <div key={req.id} className="px-5 py-4 hover:bg-[var(--bg-soft)] transition-colors">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className="w-10 h-10 bg-stone-100 border border-stone-200 rounded-xl flex items-center justify-center text-lg shrink-0 mt-0.5">
@@ -209,7 +209,7 @@ export default function Trash() {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <button onClick={() => handleRestore(req.id)}
-                          className="text-xs font-semibold px-4 py-2 bg-[#C0603E] text-white rounded-xl hover:bg-[#9C4C31] transition-colors">
+                          className="text-xs font-semibold px-4 py-2 bg-[var(--brand)] text-white rounded-xl hover:bg-[var(--brand-hover)] transition-colors">
                           {t('استرجاع', 'Restore', lang)}
                         </button>
                         <button onClick={() => handlePermanentDelete(req.id)}
@@ -227,15 +227,15 @@ export default function Trash() {
 
         {/* ── DELETED DRAFTS ── */}
         {filteredDrafts.length > 0 && (
-          <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden mt-4">
-            <div className="px-5 py-3.5 border-b border-[#F1EAE0]">
+          <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden mt-4">
+            <div className="px-5 py-3.5 border-b border-[var(--line-soft)]">
               <span className="text-sm font-bold text-stone-900">{t('المسودات المحذوفة', 'Deleted Drafts', lang)}</span>
             </div>
-            <div className="divide-y divide-[#FAF7F2]">
+            <div className="divide-y divide-[var(--line-soft)]">
               {filteredDrafts.map(draft => {
                 const left = daysLeft(draft.deletedAt);
                 return (
-                  <div key={draft.id} className="px-5 py-4 hover:bg-[#FFFDF9] transition-colors">
+                  <div key={draft.id} className="px-5 py-4 hover:bg-[var(--bg-soft)] transition-colors">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <div className="w-10 h-10 bg-amber-50 border border-amber-100 rounded-xl flex items-center justify-center text-lg shrink-0 mt-0.5">
@@ -255,7 +255,7 @@ export default function Trash() {
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <button onClick={() => handleRestoreDraft(draft.id)}
-                          className="text-xs font-semibold px-4 py-2 bg-[#C0603E] text-white rounded-xl hover:bg-[#9C4C31] transition-colors">
+                          className="text-xs font-semibold px-4 py-2 bg-[var(--brand)] text-white rounded-xl hover:bg-[var(--brand-hover)] transition-colors">
                           {t('استرجاع', 'Restore', lang)}
                         </button>
                         <button onClick={() => handlePermanentDeleteDraft(draft.id)}

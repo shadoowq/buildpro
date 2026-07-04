@@ -104,12 +104,12 @@ export default function SignupPage() {
     <div className="min-h-screen flex font-cairo" dir={dir}>
 
       {/* ── LEFT / BRAND PANEL ── */}
-      <div className="hidden lg:flex flex-col justify-between w-[42%] bg-[#C0603E] px-12 py-10 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-72 h-72 bg-[#8A7B6C]/20 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+      <div className="hidden lg:flex flex-col justify-between w-[42%] bg-[var(--chrome)] px-12 py-10 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-[var(--sec)]/20 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-56 h-56 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
         <Link href="/" className="text-xl font-extrabold text-white relative z-10">
-          Build<span className="text-[#8A7B6C]">Pro</span>
+          Build<span className="text-[var(--sec)]">Pro</span>
         </Link>
 
         <div className="relative z-10">
@@ -123,7 +123,7 @@ export default function SignupPage() {
                 onClick={() => setFormData(prev => ({ ...prev, userType: item.type }))}
                 className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all text-sm font-bold ${
                   formData.userType === item.type
-                    ? 'bg-[#8A7B6C] border-[#8A7B6C] text-white'
+                    ? 'bg-[var(--sec)] border-[var(--sec)] text-white'
                     : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'
                 }`}>
                 <span className="text-2xl">{item.icon}</span>
@@ -180,14 +180,14 @@ export default function SignupPage() {
       {/* ── RIGHT / FORM PANEL ── */}
       <div className="flex-1 bg-white flex flex-col">
         {/* top bar */}
-        <div className="flex items-center justify-between px-8 py-4 border-b border-[#F1EAE0]">
-          <Link href="/" className="lg:hidden text-[16px] font-extrabold text-[#C0603E]">
-            Build<span className="text-[#8A7B6C]">Pro</span>
+        <div className="flex items-center justify-between px-8 py-4 border-b border-[var(--line-soft)]">
+          <Link href="/" className="lg:hidden text-[16px] font-extrabold text-[var(--brand-strong)]">
+            Build<span className="text-[var(--sec)]">Pro</span>
           </Link>
           <div className="flex items-center gap-1 bg-stone-100 rounded-xl p-1 mr-auto">
             {(['ar', 'en'] as Lang[]).map(l => (
               <button key={l} onClick={() => switchLang(l)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[#C0603E] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[var(--brand-strong)] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
                 <img src={l === 'ar' ? 'https://flagcdn.com/w20/sa.png' : 'https://flagcdn.com/w20/us.png'}
                   width="20" height="14" alt={l} className="rounded-sm" />
                 {l.toUpperCase()}
@@ -218,8 +218,8 @@ export default function SignupPage() {
                   onClick={() => setFormData(prev => ({ ...prev, userType: item.type }))}
                   className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-xs font-bold transition-all ${
                     formData.userType === item.type
-                      ? 'bg-[#C0603E] border-[#C0603E] text-white'
-                      : 'border-[#E8DFD3] text-stone-500 hover:bg-[#F7F2EC]'
+                      ? 'bg-[var(--brand)] border-[var(--brand-strong)] text-white'
+                      : 'border-[var(--line)] text-stone-500 hover:bg-[var(--bg)]'
                   }`}>
                   <span>{item.icon}</span> {lang === 'ar' ? item.ar : item.en}
                 </button>
@@ -235,7 +235,7 @@ export default function SignupPage() {
                   </label>
                   <input type="text" name="name" value={formData.name} onChange={handleChange}
                     placeholder={t('اسمك', 'Your name')}
-                    className="w-full border border-[#E8DFD3] bg-[#FAF7F2] rounded-xl px-3 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8A7B6C] focus:border-transparent transition-all" />
+                    className="w-full border border-[var(--line)] bg-[var(--bg-soft)] rounded-xl px-3 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--sec)] focus:border-transparent transition-all" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-stone-700 mb-1.5">
@@ -243,7 +243,7 @@ export default function SignupPage() {
                   </label>
                   <input type="text" name="company" value={formData.company} onChange={handleChange}
                     placeholder={t('اسم الشركة', 'Company name')}
-                    className="w-full border border-[#E8DFD3] bg-[#FAF7F2] rounded-xl px-3 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8A7B6C] focus:border-transparent transition-all" />
+                    className="w-full border border-[var(--line)] bg-[var(--bg-soft)] rounded-xl px-3 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--sec)] focus:border-transparent transition-all" />
                 </div>
               </div>
 
@@ -254,7 +254,7 @@ export default function SignupPage() {
                 </label>
                 <input type="tel" name="phone" value={formData.phone} onChange={handleChange}
                   placeholder={t('+966 5X XXX XXXX', '+966 5X XXX XXXX')}
-                  className="w-full border border-[#E8DFD3] bg-[#FAF7F2] rounded-xl px-4 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8A7B6C] focus:border-transparent transition-all"
+                  className="w-full border border-[var(--line)] bg-[var(--bg-soft)] rounded-xl px-4 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--sec)] focus:border-transparent transition-all"
                   dir="ltr" />
               </div>
 
@@ -265,7 +265,7 @@ export default function SignupPage() {
                 </label>
                 <input type="email" name="email" value={formData.email} onChange={handleChange}
                   placeholder="example@email.com"
-                  className="w-full border border-[#E8DFD3] bg-[#FAF7F2] rounded-xl px-4 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8A7B6C] focus:border-transparent transition-all"
+                  className="w-full border border-[var(--line)] bg-[var(--bg-soft)] rounded-xl px-4 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--sec)] focus:border-transparent transition-all"
                   dir="ltr" />
               </div>
 
@@ -277,7 +277,7 @@ export default function SignupPage() {
                 <div className="relative">
                   <input type={showPass ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange}
                     placeholder={t('6 أحرف على الأقل', 'At least 6 characters')}
-                    className="w-full border border-[#E8DFD3] bg-[#FAF7F2] rounded-xl px-4 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#8A7B6C] focus:border-transparent transition-all"
+                    className="w-full border border-[var(--line)] bg-[var(--bg-soft)] rounded-xl px-4 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--sec)] focus:border-transparent transition-all"
                     dir="ltr" />
                   <button type="button" onClick={() => setShowPass(p => !p)}
                     className="absolute top-1/2 -translate-y-1/2 left-3 text-stone-400 hover:text-stone-600 text-xs">
@@ -295,7 +295,7 @@ export default function SignupPage() {
 
               {/* submit */}
               <button type="submit"
-                className="w-full bg-[#C0603E] hover:bg-[#9C4C31] text-white font-bold py-3 rounded-xl text-sm transition-colors mt-1">
+                className="w-full bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white font-bold py-3 rounded-xl text-sm transition-colors mt-1">
                 {t('إنشاء الحساب', 'Create Account')}
               </button>
             </form>
@@ -303,12 +303,12 @@ export default function SignupPage() {
             <div className="text-center mt-4 space-y-2">
               <p className="text-stone-500 text-xs">
                 {t('لديك حساب بالفعل؟', 'Already have an account?')}{' '}
-                <Link href="/login" className="text-[#C0603E] font-semibold hover:underline">
+                <Link href="/login" className="text-[var(--brand-strong)] font-semibold hover:underline">
                   {t('سجّل دخولك', 'Sign in')}
                 </Link>
               </p>
               <p>
-                <Link href="/" className="text-stone-400 hover:text-[#C0603E] text-xs transition-colors">
+                <Link href="/" className="text-stone-400 hover:text-[var(--brand-strong)] text-xs transition-colors">
                   ← {t('العودة للصفحة الرئيسية', 'Back to homepage')}
                 </Link>
               </p>
