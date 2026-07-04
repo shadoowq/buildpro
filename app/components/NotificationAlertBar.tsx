@@ -17,6 +17,7 @@ const alertAccent: Record<NotifType, { border: string; ring: string }> = {
   rated:       { border: 'border-amber-500', ring: 'bg-amber-500' },
   invite:      { border: 'border-[#C0603E]', ring: 'bg-[#C0603E]' },
   editRequest: { border: 'border-amber-500', ring: 'bg-amber-500' },
+  withdrawn:   { border: 'border-stone-400', ring: 'bg-stone-400' },
 };
 
 /**

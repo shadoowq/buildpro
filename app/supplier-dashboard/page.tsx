@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import SupplierNav from '../components/SupplierNav'
-import { displayVal, getDeadlineUrgency } from '../lib/requestHelpers'
+import { displayVal, getDeadlineUrgency, formatDay } from '../lib/requestHelpers'
 import { getCityName } from '../lib/translations'
 
 type Lang = 'ar' | 'en'
@@ -29,6 +29,9 @@ const T = {
   view:         { ar: 'عرض',                 en: 'View'                 },
   quoted:       { ar: 'تم التقديم',           en: 'Quoted'               },
   notQuoted:    { ar: 'لم يُقدَّم بعد',        en: 'Not Quoted'           },
+  needsAction:  { ar: 'يتطلب إجراء',          en: 'Action Needed'        },
+  revisionBanner: { ar: (n: number) => `لديك ${n === 1 ? 'طلب تعديل واحد ينتظر' : `${n} طلبات تعديل تنتظر`} ردك`, en: (n: number) => `${n} revision request${n > 1 ? 's are' : ' is'} waiting for your reply` },
+  reviewNow:    { ar: 'راجعها الآن ←',         en: 'Review now →'         },
   perf:         { ar: 'أداء عروضي',           en: 'My Quote Performance' },
   pending:      { ar: 'قيد الانتظار',         en: 'Pending'              },
   accepted:     { ar: 'مقبولة',               en: 'Accepted'             },
@@ -46,7 +49,15 @@ function tStr(key: keyof typeof T, lang: Lang, n?: number): string {
   return typeof val === 'function' ? val(n ?? 0) : val
 }
 
-function ReqStatusPill({ quoted, urgent, lang }: { quoted: boolean; urgent: boolean; lang: Lang }) {
+function ReqStatusPill({ quoted, urgent, lang, needsAction }: { quoted: boolean; urgent: boolean; lang: Lang; needsAction?: boolean }) {
+  if (needsAction) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+        {tStr('needsAction', lang)}
+      </span>
+    )
+  }
   if (quoted) {
     return (
       <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
@@ -133,8 +144,12 @@ export default function SupplierDashboardPage() {
     { icon: '📨', bg: 'bg-[#F3EAE0]', val: notYetQuotedCount, label: tStr('newAvail', lang), badge: notYetQuotedCount > 0 ? (lang === 'ar' ? 'جديد' : 'new') : null },
   ]
 
-  /* ── table rows: not-yet-quoted first ── */
-  const tableRows = [...availableRequests].sort((a, b) => Number(hasQuoted(a.id)) - Number(hasQuoted(b.id)))
+  /* ── action needed: quotes the contractor asked me to revise ── */
+  const needsActionReqIds = new Set(revisionQ.map(q => q.requestId))
+
+  /* ── table rows: action-needed first, then not-yet-quoted ── */
+  const rowRank = (r: any) => needsActionReqIds.has(r.id) ? 0 : hasQuoted(r.id) ? 2 : 1
+  const tableRows = [...availableRequests].sort((a, b) => rowRank(a) - rowRank(b))
 
   /* ── performance bars ── */
   const totalQ = Math.max(myQuotes.length, 1)
@@ -172,6 +187,19 @@ export default function SupplierDashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* ACTION REQUIRED BANNER */}
+      {revisionQ.length > 0 && (
+        <div className="mx-4 md:mx-7 mt-5 bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600 shrink-0">✏</div>
+            <p className="text-amber-900 font-semibold text-sm">{tStr('revisionBanner', lang, revisionQ.length)}</p>
+          </div>
+          <Link href="/my-quotes" className="text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 px-4 py-2 rounded-lg transition-colors">
+            {tStr('reviewNow', lang)}
+          </Link>
+        </div>
+      )}
 
       {/* STATS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
@@ -232,6 +260,7 @@ export default function SupplierDashboardPage() {
                 tableRows.map(r => {
                   const quoted = hasQuoted(r.id)
                   const urgency = getDeadlineUrgency(r.deadline, false)
+                  const needsAction = needsActionReqIds.has(r.id)
                   return (
                     <tr key={r.id} className="border-b border-[#FAF7F2] hover:bg-[#FFFDF9] transition-colors">
                       <td className="px-4 py-3">
@@ -241,10 +270,10 @@ export default function SupplierDashboardPage() {
                         <div className="text-[13px] font-semibold text-stone-900 truncate">{getReqName(r)}</div>
                       </td>
                       <td className="px-4 py-3 text-xs text-stone-600">{getCityName(r.location, lang)}</td>
-                      <td className="px-4 py-3"><ReqStatusPill quoted={quoted} urgent={urgency === 'soon' || urgency === 'overdue'} lang={lang} /></td>
+                      <td className="px-4 py-3"><ReqStatusPill quoted={quoted} urgent={urgency === 'soon' || urgency === 'overdue'} lang={lang} needsAction={needsAction} /></td>
                       <td className="px-4 py-3">
                         <span className={`text-xs font-semibold ${urgency === 'overdue' ? 'text-red-600' : urgency === 'soon' ? 'text-amber-600' : 'text-stone-600 font-normal'}`}>
-                          {urgency === 'overdue' ? '🔴' : urgency === 'soon' ? '🟠' : '⏱'} {r.deadline || '—'}
+                          {urgency === 'overdue' ? '🔴' : urgency === 'soon' ? '🟠' : '⏱'} {formatDay(r.deadline, lang)}
                         </span>
                       </td>
                       <td className="px-4 py-3">

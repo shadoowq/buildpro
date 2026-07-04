@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import SupplierNav from '../components/SupplierNav';
-import { displayVal, getDeadlineUrgency } from '../lib/requestHelpers';
+import { displayVal, getDeadlineUrgency, formatDay, quoteDraftKey } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
 
@@ -45,6 +45,8 @@ const T = {
   submitQuote:  { ar: 'تقديم عرض سعر',       en: 'Submit Quote' },
   continueDraft:{ ar: 'متابعة العرض (مسودة محفوظة)', en: 'Continue Quote (Draft Saved)' },
   quoteSubmitted:{ ar: '✓ تم تقديم عرض السعر', en: '✓ Quote Submitted' },
+  needsRevision: { ar: '✏ مطلوب تعديل عرضك — عدّل الآن', en: '✏ Revision requested — edit now' },
+  deadlinePassed:{ ar: 'انتهى الموعد', en: 'Deadline passed' },
   viewQuote:    { ar: 'عرض التفاصيل',        en: 'View Details' },
   viewTable:    { ar: 'جدول',                en: 'Table'        },
   viewCards:    { ar: 'كروت',                en: 'Cards'        },
@@ -135,8 +137,8 @@ export default function SupplierRequests() {
   const hasQuoted = (requestId: number) => allQuotes.some((q: any) => q.requestId === requestId && q.supplierId === user?.email);
   const myQuoteFor = (requestId: number) => allQuotes.find((q: any) => q.requestId === requestId && q.supplierId === user?.email);
   const hasDraft = (requestId: number) => {
-    if (typeof window === 'undefined') return false;
-    return !!localStorage.getItem(`quoteDraft_${requestId}`);
+    if (typeof window === 'undefined' || !user?.email) return false;
+    return !!localStorage.getItem(quoteDraftKey(user.email, requestId)) || !!localStorage.getItem(`quoteDraft_${requestId}`);
   };
 
   const getReqName = (r: Request) => {
@@ -205,6 +207,15 @@ export default function SupplierRequests() {
   ];
 
   const renderQuoteAction = (request: Request, compact?: boolean) => {
+    const myQuote = myQuoteFor(request.id);
+    if (myQuote?.status === 'revision') {
+      return (
+        <Link href={`/supplier-requests/quote/${request.id}?editQuoteId=${myQuote.id}`} onClick={e => e.stopPropagation()}
+          className={`${compact ? '' : 'w-full'} py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs transition-colors text-center block`}>
+          {tStr('needsRevision', language)}
+        </Link>
+      );
+    }
     const quoted = hasQuoted(request.id);
     if (quoted) {
       return (
@@ -345,7 +356,9 @@ export default function SupplierRequests() {
                       <td className="px-4 py-3 text-stone-500 max-w-[220px] truncate">{getReqMaterialLines(request).join(' · ') || tStr('noValue', language)}</td>
                       <td className="px-4 py-3 text-stone-500 whitespace-nowrap">📍 {getCityName(request.location, language)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span className={urgency === 'overdue' ? 'text-red-600 font-semibold' : urgency === 'soon' ? 'text-amber-600 font-semibold' : 'text-stone-600'}>{request.deadline || tStr('noValue', language)}</span>
+                        <span className={urgency === 'overdue' ? 'text-red-600 font-semibold' : urgency === 'soon' ? 'text-amber-600 font-semibold' : 'text-stone-600'}>
+                          {formatDay(request.deadline, language)}{urgency === 'overdue' ? ` — ${tStr('deadlinePassed', language)}` : ''}
+                        </span>
                       </td>
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <div className="min-w-[140px]">{renderQuoteAction(request, true)}</div>
@@ -374,7 +387,9 @@ export default function SupplierRequests() {
                   <p className="text-xs text-stone-500 mb-1"><span className="font-semibold text-stone-600">{tStr('location', language)}</span> {getCityName(request.location, language)}</p>
                   <p className="text-xs text-stone-500 mb-3">
                     <span className="font-semibold text-stone-600">{tStr('deadline', language)}</span>{' '}
-                    <span className={urgency === 'overdue' ? 'text-red-600 font-semibold' : urgency === 'soon' ? 'text-amber-600 font-semibold' : ''}>{request.deadline}</span>
+                    <span className={urgency === 'overdue' ? 'text-red-600 font-semibold' : urgency === 'soon' ? 'text-amber-600 font-semibold' : ''}>
+                      {formatDay(request.deadline, language)}{urgency === 'overdue' ? ` — ${tStr('deadlinePassed', language)}` : ''}
+                    </span>
                   </p>
 
                   <div className="bg-[#FAF7F2] rounded-lg p-3 mb-3">
@@ -407,7 +422,7 @@ export default function SupplierRequests() {
                 <h2 className="text-lg font-bold text-stone-900">{tStr('previewTitle', language)}</h2>
                 <span className="text-[#8A7B6C] font-bold text-sm">{getReqName(previewRequest)}</span>
                 <span className="text-stone-400 text-sm">📍 {getCityName(previewRequest.location, language)}</span>
-                {previewRequest.deadline && <span className="text-stone-400 text-sm">⏱ {previewRequest.deadline}</span>}
+                {previewRequest.deadline && <span className="text-stone-400 text-sm">⏱ {formatDay(previewRequest.deadline, language)}</span>}
               </div>
               <button onClick={() => setPreviewRequest(null)} aria-label={tStr('close', language)}
                 className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center font-bold hover:bg-red-100 text-lg">✕</button>

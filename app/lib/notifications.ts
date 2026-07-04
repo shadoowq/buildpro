@@ -1,5 +1,7 @@
+import { getRequestDisplayName, RequestLike } from './requestHelpers';
+
 export type Lang = 'ar' | 'en';
-export type NotifType = 'quote' | 'accepted' | 'rejected' | 'revision' | 'close' | 'open' | 'rated' | 'invite' | 'editRequest';
+export type NotifType = 'quote' | 'accepted' | 'rejected' | 'revision' | 'close' | 'open' | 'rated' | 'invite' | 'editRequest' | 'withdrawn';
 
 export interface NotifItem {
   id: string;
@@ -21,6 +23,7 @@ export const notifIconMap: Record<NotifType, { bg: string; icon: string; color: 
   rated:    { bg: 'bg-amber-50',   icon: '⭐', color: 'text-amber-500'   },
   invite:   { bg: 'bg-[#F3EAE0]',  icon: '📨', color: 'text-[#C0603E]'   },
   editRequest: { bg: 'bg-amber-50', icon: '🔏', color: 'text-amber-500' },
+  withdrawn: { bg: 'bg-stone-100', icon: '↩', color: 'text-stone-500' },
 };
 
 export function notifHref(n: Pick<NotifItem, 'type' | 'requestId'>, role?: 'contractor' | 'supplier'): string {
@@ -49,10 +52,18 @@ export function timeAgo(ts: string, lang: Lang): string {
 export function buildNotifications(
   allQuotes: any[],
   allActivityLogs: any[],
-  requestIds: number[],
+  myRequests: (RequestLike | number)[],
   opts?: { includeLogs?: boolean; limit?: number }
 ): NotifItem[] {
-  const idSet = new Set(requestIds);
+  /* accepts full request objects (preferred — enables project names) or bare ids (legacy) */
+  const reqById = new Map<number, RequestLike>();
+  const idSet = new Set<number>();
+  for (const r of myRequests) {
+    if (typeof r === 'number') { idSet.add(r); }
+    else { idSet.add(r.id); reqById.set(r.id, r); }
+  }
+  const nameAr = (id: number) => getRequestDisplayName(reqById.get(id), 'ar', id);
+  const nameEn = (id: number) => getRequestDisplayName(reqById.get(id), 'en', id);
   const includeLogs = opts?.includeLogs !== false;
 
   const quoteItems: NotifItem[] = allQuotes
@@ -67,11 +78,11 @@ export function buildNotifications(
         id: `q-${q.id}-${q.status}-${q.statusChangedAt || ''}`,
         type,
         requestId: q.requestId,
-        textAr: type === 'quote'    ? `${q.supplierCompany} أرسل عرض سعر على طلب #${q.requestId}`
+        textAr: type === 'quote'    ? `${q.supplierCompany} أرسل عرض سعر على «${nameAr(q.requestId)}»`
               : type === 'accepted' ? `تم قبول عرض ${q.supplierCompany} بسعر ${Number(q.totalPrice).toLocaleString()} ر.س`
               : type === 'rejected' ? `تم رفض عرض ${q.supplierCompany}`
               :                       `طلب تعديل على عرض ${q.supplierCompany}`,
-        textEn: type === 'quote'    ? `${q.supplierCompany} sent a quote on request #${q.requestId}`
+        textEn: type === 'quote'    ? `${q.supplierCompany} sent a quote on "${nameEn(q.requestId)}"`
               : type === 'accepted' ? `Accepted quote from ${q.supplierCompany} at ${Number(q.totalPrice).toLocaleString()} SAR`
               : type === 'rejected' ? `Rejected quote from ${q.supplierCompany}`
               :                       `Revision requested on ${q.supplierCompany} quote`,
@@ -86,8 +97,8 @@ export function buildNotifications(
       id: `editreq-${q.id}-${q.editRequestedAt || ''}`,
       type: 'editRequest' as NotifType,
       requestId: q.requestId,
-      textAr: `${q.supplierCompany} يطلب إذنًا بتعديل عرضه على طلب #${q.requestId}`,
-      textEn: `${q.supplierCompany} is requesting permission to edit their quote on request #${q.requestId}`,
+      textAr: `${q.supplierCompany} يطلب إذنًا بتعديل عرضه على «${nameAr(q.requestId)}»`,
+      textEn: `${q.supplierCompany} is requesting permission to edit their quote on "${nameEn(q.requestId)}"`,
       timestamp: q.createdAt,
       unread: true,
     }));
@@ -99,6 +110,7 @@ export function buildNotifications(
         l.action.includes('إغلاق') || l.action.includes('closed')   ? 'close'
         : l.action.includes('فتح') || l.action.includes('reopened') ? 'open'
         : l.action.includes('تقييم') || l.action.includes('Rated')  ? 'rated'
+        : l.action.includes('سحب')  || l.actionEn?.includes('withdrew') ? 'withdrawn'
         : null;
       if (!type) return null;
       return {
@@ -128,6 +140,9 @@ export function buildSupplierNotifications(
   opts?: { limit?: number }
 ): NotifItem[] {
   const myQuotes = allQuotes.filter(q => q.supplierId === supplierEmail);
+  const reqById = new Map<number, RequestLike>(allRequests.map((r: RequestLike) => [r.id, r]));
+  const nameAr = (id: number) => getRequestDisplayName(reqById.get(id), 'ar', id);
+  const nameEn = (id: number) => getRequestDisplayName(reqById.get(id), 'en', id);
 
   const statusItems: NotifItem[] = myQuotes
     .filter(q => q.status !== 'pending')
@@ -137,12 +152,12 @@ export function buildSupplierNotifications(
         id: `q-${q.id}-${q.status}-${q.statusChangedAt || ''}`,
         type,
         requestId: q.requestId,
-        textAr: type === 'accepted' ? `تم قبول عرضك على طلب #${q.requestId} بسعر ${Number(q.totalPrice).toLocaleString()} ر.س`
-              : type === 'rejected' ? `تم رفض عرضك على طلب #${q.requestId}`
-              :                       `طلب تعديل على عرضك بخصوص طلب #${q.requestId}`,
-        textEn: type === 'accepted' ? `Your quote on request #${q.requestId} was accepted at ${Number(q.totalPrice).toLocaleString()} SAR`
-              : type === 'rejected' ? `Your quote on request #${q.requestId} was rejected`
-              :                       `Revision requested on your quote for request #${q.requestId}`,
+        textAr: type === 'accepted' ? `تم قبول عرضك على «${nameAr(q.requestId)}» بسعر ${Number(q.totalPrice).toLocaleString()} ر.س`
+              : type === 'rejected' ? `تم رفض عرضك على «${nameAr(q.requestId)}»`
+              :                       `طلب تعديل على عرضك بخصوص «${nameAr(q.requestId)}»`,
+        textEn: type === 'accepted' ? `Your quote on "${nameEn(q.requestId)}" was accepted at ${Number(q.totalPrice).toLocaleString()} SAR`
+              : type === 'rejected' ? `Your quote on "${nameEn(q.requestId)}" was rejected`
+              :                       `Revision requested on your quote for "${nameEn(q.requestId)}"`,
         timestamp: q.statusChangedAt || q.createdAt,
         unread: true,
       };
@@ -154,8 +169,8 @@ export function buildSupplierNotifications(
       id: `editreq-declined-${q.id}-${q.editRequestedAt || ''}`,
       type: 'rejected' as NotifType,
       requestId: q.requestId,
-      textAr: `تم رفض طلبك بتعديل العرض على طلب #${q.requestId}`,
-      textEn: `Your request to edit the quote on request #${q.requestId} was declined`,
+      textAr: `تم رفض طلبك بتعديل العرض على «${nameAr(q.requestId)}»`,
+      textEn: `Your request to edit the quote on "${nameEn(q.requestId)}" was declined`,
       timestamp: q.createdAt,
       unread: true,
     }));
@@ -167,8 +182,8 @@ export function buildSupplierNotifications(
       id: `invite-${r.id}`,
       type: 'invite' as NotifType,
       requestId: r.id,
-      textAr: `تمت دعوتك لتقديم عرض سعر على طلب #${r.id}`,
-      textEn: `You were invited to quote request #${r.id}`,
+      textAr: `تمت دعوتك لتقديم عرض سعر على «${nameAr(r.id)}»`,
+      textEn: `You were invited to quote "${nameEn(r.id)}"`,
       timestamp: r.createdAt,
       unread: true,
     }));
@@ -179,8 +194,8 @@ export function buildSupplierNotifications(
       id: `rating-${r.id}`,
       type: 'rated' as NotifType,
       requestId: r.requestId,
-      textAr: `تلقيت تقييم ${r.rating}★ على طلب #${r.requestId}`,
-      textEn: `You received a ${r.rating}★ rating on request #${r.requestId}`,
+      textAr: `تلقيت تقييم ${r.rating}★ على «${nameAr(r.requestId)}»`,
+      textEn: `You received a ${r.rating}★ rating on "${nameEn(r.requestId)}"`,
       timestamp: r.createdAt,
       unread: true,
     }));

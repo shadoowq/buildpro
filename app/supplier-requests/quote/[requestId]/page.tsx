@@ -13,6 +13,7 @@ import {
 } from '../../../lib/materialOptions';
 import {
   appendActivityLog, getSupplierData, generateQuoteNumber, resubmitQuote, updateQuoteFields, displayVal,
+  formatDay, getDeadlineUrgency, quoteDraftKey, readQuoteDraft, removeQuoteDraft,
   Quote, QuoteLineItem, QuoteAttachment,
 } from '../../../lib/requestHelpers';
 import { isValidImageFile, isValidAttachmentFile } from '../../../lib/auth';
@@ -159,6 +160,7 @@ const T = {
   editBack:     { ar: 'رجوع للتعديل',            en: 'Back to Edit' },
   noValue:      { ar: '—',                       en: '—' },
   legacyToast:  { ar: 'هذا عرض قديم — الرجاء إعادة إدخال أسعار البنود', en: 'This is a legacy quote — please re-enter item prices' },
+  overdueWarn:  { ar: 'انتهى الموعد النهائي لهذا الطلب — ننصح بالتواصل مع المقاول للتأكد أنه ما زال بحاجة للتوريد قبل إرسال العرض.', en: "This request's deadline has passed — check with the contractor that they still need the supply before sending a quote." },
   cannotEdit:   { ar: 'لا يمكن تعديل هذا العرض',  en: 'This quote cannot be edited' },
   notAvailable: { ar: 'الطلب غير متاح',          en: 'Request not available' },
   alreadyQuoted:{ ar: 'لقد قدمت عرض سعر لهذا الطلب من قبل', en: 'You already submitted a quote for this request' },
@@ -296,8 +298,7 @@ export default function SupplierQuoteBuilder() {
         router.push('/supplier-requests');
         return;
       }
-      let draft: any = null;
-      try { draft = JSON.parse(localStorage.getItem(`quoteDraft_${requestId}`) || 'null'); } catch {}
+      const draft: any = readQuoteDraft(parsedUser.email, requestId);
       setQuoteNumber(generateQuoteNumber(parsedUser.email));
       setClientName(draft?.clientName ?? contractor?.name ?? '');
       setLocation(draft?.location ?? req.location ?? '');
@@ -315,15 +316,15 @@ export default function SupplierQuoteBuilder() {
   }, [requestId, router]);
 
   useEffect(() => {
-    if (skipSaveRef.current || !ready) return;
+    if (skipSaveRef.current || !ready || !user?.email) return;
     try {
       const lightLineItems = lineItems.map(li => ({ ...li, images: [] }));
-      localStorage.setItem(`quoteDraft_${requestId}`, JSON.stringify({
+      localStorage.setItem(quoteDraftKey(user.email, requestId), JSON.stringify({
         clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount,
         lineItems: lightLineItems, description, savedAt: new Date().toISOString(),
       }));
     } catch { /* draft autosave is best-effort; ignore quota errors silently */ }
-  }, [ready, requestId, clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount, lineItems, description]);
+  }, [ready, user, requestId, clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount, lineItems, description]);
 
   const handleLangChange = (l: Lang) => { setLanguage(l); localStorage.setItem('language', l); };
 
@@ -385,7 +386,7 @@ export default function SupplierQuoteBuilder() {
     if (!deliveryDays || Number(deliveryDays) <= 0) { showToast(tx('needDelivery', language), 'error'); return false; }
     if (!clientName.trim()) { showToast(tx('needClient', language), 'error'); return false; }
     if (!location) { showToast(tx('needLocation', language), 'error'); return false; }
-    if (paymentTerms === OTHER && !paymentTermsOther.trim()) { showToast(tx('needTerms', language), 'error'); return false; }
+    if (!paymentTerms || (paymentTerms === OTHER && !paymentTermsOther.trim())) { showToast(tx('needTerms', language), 'error'); return false; }
     return true;
   };
 
@@ -440,7 +441,7 @@ export default function SupplierQuoteBuilder() {
         return;
       }
       appendActivityLog(requestId, 'تم تعديل عرض السعر', 'Quote edited');
-      localStorage.removeItem(`quoteDraft_${requestId}`);
+      removeQuoteDraft(user.email, requestId);
       showToast(tx('updated', language));
       router.push('/my-quotes');
       return;
@@ -460,7 +461,7 @@ export default function SupplierQuoteBuilder() {
       return;
     }
     appendActivityLog(requestId, 'تم تقديم عرض سعر', 'Quote submitted');
-    localStorage.removeItem(`quoteDraft_${requestId}`);
+    removeQuoteDraft(user.email, requestId);
     showToast(tx('submitted', language));
     router.push('/supplier-requests');
   };
@@ -486,7 +487,7 @@ export default function SupplierQuoteBuilder() {
   const handleSaveDraft = () => {
     try {
       const lightLineItems = lineItems.map(li => ({ ...li, images: [] }));
-      localStorage.setItem(`quoteDraft_${requestId}`, JSON.stringify({
+      localStorage.setItem(quoteDraftKey(user.email, requestId), JSON.stringify({
         clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount,
         lineItems: lightLineItems, description, savedAt: new Date().toISOString(),
       }));
@@ -532,13 +533,21 @@ export default function SupplierQuoteBuilder() {
 
       <div className="px-4 md:px-7 py-6 max-w-5xl mx-auto space-y-5">
 
+        {/* OVERDUE WARNING */}
+        {getDeadlineUrgency(request.deadline, false) === 'overdue' && (
+          <div className="bg-amber-50 border border-amber-300 rounded-2xl px-5 py-4 flex items-start gap-3">
+            <span className="text-xl leading-none mt-0.5">⚠️</span>
+            <p className="text-sm text-amber-800 font-semibold">{tx('overdueWarn', language)}</p>
+          </div>
+        )}
+
         {/* REQUEST REFERENCE */}
         <div className="bg-white border border-[#E8DFD3] rounded-2xl p-5">
           <h2 className="text-sm font-bold text-stone-900 mb-3">{tx('refCard', language)}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <p className="text-xs text-stone-600"><span className="font-semibold text-stone-700">{tx('project', language)}:</span> {reqName}</p>
             <p className="text-xs text-stone-600"><span className="font-semibold text-stone-700">{tx('city', language)}:</span> {getCityName(request.location, language)}</p>
-            <p className="text-xs text-stone-600"><span className="font-semibold text-stone-700">{tx('deadline', language)}:</span> {request.deadline || tx('noValue', language)}</p>
+            <p className="text-xs text-stone-600"><span className="font-semibold text-stone-700">{tx('deadline', language)}:</span> {formatDay(request.deadline, language)}</p>
           </div>
           {reqMaterialLines.length > 0 && (
             <div className="bg-[#FAF7F2] rounded-lg p-3">
@@ -808,7 +817,7 @@ export default function SupplierQuoteBuilder() {
               <p><strong>{tx('location', language)}:</strong> {getCityName(location, language)}</p>
               <p><strong>{tx('deliveryDays', language)}:</strong> {deliveryDays}</p>
               <p><strong>{tx('paymentTerms', language)}:</strong> {paymentTerms === OTHER ? paymentTermsOther : paymentTerms || tx('noValue', language)}</p>
-              <p><strong>{tx('validUntil', language)}:</strong> {validUntil || tx('noValue', language)}</p>
+              <p><strong>{tx('validUntil', language)}:</strong> {formatDay(validUntil, language)}</p>
             </div>
 
             <div className="overflow-x-auto border border-[#E8DFD3] rounded-xl mb-4">

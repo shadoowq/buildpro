@@ -7,7 +7,7 @@ import ContractorNav from '../components/ContractorNav';
 import SupplierNav from '../components/SupplierNav';
 import StatusBadge from '../components/StatusBadge';
 import QuoteCompareTable from '../components/QuoteCompareTable';
-import { formatDate, appendActivityLog, setQuoteStatus, displayVal, withdrawQuote, requestQuoteEdit, approveQuoteEdit, declineQuoteEdit, clearEditRequestFlag, getEffectiveQuoteStatus, isQuoteExpired } from '../lib/requestHelpers';
+import { formatDate, formatDay, appendActivityLog, setQuoteStatus, displayVal, withdrawQuote, requestQuoteEdit, approveQuoteEdit, declineQuoteEdit, clearEditRequestFlag, getEffectiveQuoteStatus, isQuoteExpired } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
@@ -93,11 +93,10 @@ const T = {
   acceptedValue:{ ar: 'قيمة العروض المقبولة', en: 'Accepted Value'        },
   withdrawBtn:  { ar: 'سحب العرض',           en: 'Withdraw'              },
   editResubmitBtn:{ ar: 'تعديل وإعادة الإرسال', en: 'Edit & Resubmit'    },
-  confirmWithdraw:{ ar: 'هل أنت متأكد من سحب هذا العرض؟', en: 'Withdraw this quote?' },
+  confirmWithdraw:{ ar: 'هل أنت متأكد من سحب هذا العرض؟ سيتم إشعار المقاول بالسحب.', en: 'Withdraw this quote? The contractor will be notified.' },
   print:        { ar: 'طباعة',                en: 'Print'                 },
-  withdrawnToTrash: { ar: 'تم نقل العرض لسلة المهملات', en: 'Quote moved to trash' },
+  withdrawnToTrash: { ar: 'تم سحب العرض ونقله لسلة المهملات — تم إشعار المقاول', en: 'Quote withdrawn to trash — the contractor was notified' },
   view:         { ar: 'عرض',                  en: 'View'                  },
-  withdrawLocked: { ar: 'لا يمكن سحب العرض إلا بعد انتهاء صلاحيته', en: "Can't withdraw until the quote's validity expires" },
   approve:      { ar: 'موافقة',               en: 'Approve'               },
   editReqNotice:{ ar: 'المورد يطلب إذنًا بتعديل العرض:', en: 'Supplier requests permission to edit:' },
   requestEditBtn:{ ar: 'طلب إذن بالتعديل',    en: 'Request Edit Permission' },
@@ -346,7 +345,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                       <p className="text-[10px] text-stone-400">
                         {quotes.length} {lang === 'ar' ? 'عرض' : 'quotes'}
                         {req?.location ? ` · ${getCityName(req.location, lang)}` : ''}
-                        {req?.deadline ? ` · ⏱ ${req.deadline}` : ''}
+                        {req?.deadline ? ` · ⏱ ${formatDay(req.deadline, lang)}` : ''}
                       </p>
                     </div>
                   </div>
@@ -536,15 +535,17 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
     return `#${requestId}`;
   };
 
-  const isWithdrawable = (q: Quote) => !q.validUntil || q.validUntil < new Date().toISOString().slice(0, 10);
-
+  /* A live (undecided) quote can always be withdrawn — a supplier must be able to
+     pull a mispriced offer before the contractor accepts it. Decided quotes can't. */
   const handleWithdraw = async (quoteId: number, requestId: number) => {
     if (!(await confirmDialog(tFn('confirmWithdraw', lang), { confirmText: tFn('withdrawBtn', lang), danger: true }))) return;
-    const { quotes: updated } = withdrawQuote(quoteId);
+    const { quotes: updated, quote } = withdrawQuote(quoteId);
     const userData = localStorage.getItem('currentUser');
     const user = userData ? JSON.parse(userData) : null;
     setQuotes(user ? updated.filter((q: Quote) => q.supplierId === user.email) : updated);
-    appendActivityLog(requestId, `تم سحب عرض المورد`, `Supplier withdrew their quote`);
+    appendActivityLog(requestId,
+      `تم سحب عرض ${quote?.supplierCompany || 'المورد'}`,
+      `${quote?.supplierCompany || 'Supplier'} withdrew their quote`);
     showToast(tFn('withdrawnToTrash', lang));
   };
 
@@ -635,7 +636,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                       <p className="text-sm font-bold text-stone-900">{getReqDisplayName(req, q.requestId)}</p>
                       {q.quoteNumber && <span className="text-[10px] font-mono font-semibold text-[#8A7B6C] bg-[#F3EAE0] px-1.5 py-0.5 rounded">{q.quoteNumber}</span>}
                     </div>
-                    {req && <p className="text-xs text-stone-400 mt-0.5">📍 {getCityName(req.location, lang)} {req.deadline ? `· ⏱ ${req.deadline}` : ''}</p>}
+                    {req && <p className="text-xs text-stone-400 mt-0.5">📍 {getCityName(req.location, lang)} {req.deadline ? `· ⏱ ${formatDay(req.deadline, lang)}` : ''}</p>}
                   </div>
                   <StatusBadge status={getEffectiveQuoteStatus(q)} lang={lang} />
                 </div>
@@ -677,17 +678,10 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                   <p className="text-[10px] text-stone-400">{tFn('submittedOn', lang)} {formatDate(q.createdAt, lang)}</p>
                   <div className="flex gap-2">
                     {(q.status === 'pending' || q.status === 'revision') && (
-                      isWithdrawable(q) ? (
-                        <button onClick={() => handleWithdraw(q.id, q.requestId)}
-                          className="text-[11px] font-semibold px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors">
-                          {tFn('withdrawBtn', lang)}
-                        </button>
-                      ) : (
-                        <span title={tFn('withdrawLocked', lang)}
-                          className="text-[11px] font-semibold px-3 py-1.5 bg-stone-50 text-stone-300 border border-stone-100 rounded-lg cursor-not-allowed">
-                          {tFn('withdrawBtn', lang)}
-                        </span>
-                      )
+                      <button onClick={() => handleWithdraw(q.id, q.requestId)}
+                        className="text-[11px] font-semibold px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors">
+                        {tFn('withdrawBtn', lang)}
+                      </button>
                     )}
                     {q.status === 'revision' && (
                       <Link href={`/supplier-requests/quote/${q.requestId}?editQuoteId=${q.id}`}
@@ -695,7 +689,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                         {tFn('editResubmitBtn', lang)}
                       </Link>
                     )}
-                    {q.status !== 'revision' && !q.editRequestStatus && (
+                    {q.status === 'pending' && !q.editRequestStatus && (
                       <button onClick={() => { setEditReqQuoteId(q.id); setEditReqNote(''); }}
                         className="text-[11px] font-semibold px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors">
                         {tFn('requestEditBtn', lang)}

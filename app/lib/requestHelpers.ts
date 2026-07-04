@@ -69,8 +69,18 @@ export function getSupplierData(supplierId: string): any | null {
   return safe;
 }
 
+/* One Gregorian formatter for the whole app — 'ar-SA' defaults to the Hijri calendar
+   in some engines, and raw ISO strings render backwards in RTL, so neither is safe. */
 export function formatDate(ts: string, lang: Lang): string {
-  return new Date(ts).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US');
+  const d = new Date(ts);
+  if (isNaN(d.getTime())) return ts || '—';
+  return d.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+/** Formats a date-only string (deadline, validUntil). Falls back to the raw value if unparseable. */
+export function formatDay(dateStr: string | undefined, lang: Lang): string {
+  if (!dateStr) return '—';
+  return formatDate(dateStr, lang);
 }
 
 export type DeadlineUrgency = 'overdue' | 'soon' | null;
@@ -250,12 +260,65 @@ export function persistUserUpdate(updates: Record<string, any>): any {
   return merged;
 }
 
-/** Sequential-looking quote number, e.g. QT-2026-0007. Purely client-side/localStorage-derived. */
+/**
+ * Sequential quote number, e.g. QT-2026-0007 — per supplier, per year.
+ * Uses a persistent counter reconciled against every stored quote (active AND
+ * trashed) so withdrawing a quote can never cause a number to be reused.
+ */
 export function generateQuoteNumber(supplierId: string): string {
-  const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
-  const count = allQuotes.filter(q => q.supplierId === supplierId).length;
-  const seq = String(count + 1).padStart(4, '0');
-  return `QT-${new Date().getFullYear()}-${seq}`;
+  const year = new Date().getFullYear();
+  const re = new RegExp(`^QT-${year}-(\\d+)$`);
+  const maxSeq = (list: Quote[]) => list.reduce((max, q) => {
+    if (q.supplierId !== supplierId) return max;
+    const m = q.quoteNumber?.match(re);
+    return m ? Math.max(max, Number(m[1])) : max;
+  }, 0);
+  const active: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+  const trashed: Quote[] = JSON.parse(localStorage.getItem('deletedQuotes') || '[]');
+  const counterKey = `quoteCounter_${supplierId}_${year}`;
+  const stored = Number(localStorage.getItem(counterKey)) || 0;
+  const next = Math.max(stored, maxSeq(active), maxSeq(trashed)) + 1;
+  localStorage.setItem(counterKey, String(next));
+  return `QT-${year}-${String(next).padStart(4, '0')}`;
+}
+
+/* ── quote drafts (autosave), scoped per supplier ── */
+
+/** Draft key is scoped by supplier so two suppliers on one machine never overwrite each other. */
+export function quoteDraftKey(supplierEmail: string, requestId: number): string {
+  return `quoteDraft_${supplierEmail}_${requestId}`;
+}
+
+/** Reads a draft, transparently migrating any legacy unscoped `quoteDraft_<id>` entry. */
+export function readQuoteDraft(supplierEmail: string, requestId: number): any | null {
+  const scopedKey = quoteDraftKey(supplierEmail, requestId);
+  try {
+    const scoped = localStorage.getItem(scopedKey);
+    if (scoped) return JSON.parse(scoped);
+    const legacyKey = `quoteDraft_${requestId}`;
+    const legacy = localStorage.getItem(legacyKey);
+    if (!legacy) return null;
+    localStorage.setItem(scopedKey, legacy);
+    localStorage.removeItem(legacyKey);
+    return JSON.parse(legacy);
+  } catch { return null; }
+}
+
+export function removeQuoteDraft(supplierEmail: string, requestId: number): void {
+  localStorage.removeItem(quoteDraftKey(supplierEmail, requestId));
+  localStorage.removeItem(`quoteDraft_${requestId}`); // clear any legacy leftover too
+}
+
+/** Resolves a request's human name the same way every list page does: project name → material types → #id. */
+export function getRequestDisplayName(req: RequestLike | null | undefined, lang: Lang, fallbackId?: number): string {
+  const id = req?.id ?? fallbackId;
+  if (!req) return `#${id ?? '—'}`;
+  if (req.projectName?.trim()) return req.projectName.trim();
+  if (req.materials?.length) {
+    const types = [...new Set(req.materials.map((m: any) => m.type || m.typePending).filter(Boolean))] as string[];
+    if (types.length) return types.map(tp => displayVal(tp, lang)).join(' — ');
+  }
+  return `#${String(id).slice(-4)}`;
 }
 
 

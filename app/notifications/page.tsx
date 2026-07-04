@@ -50,7 +50,7 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
     try { setSeenIds(new Set(JSON.parse(localStorage.getItem(`notifSeen_${userEmail}`) || '[]'))); } catch {}
   }, [userEmail]);
 
-  const notifs: NotifItem[] = buildNotifications(quotes, activityLogs, requests.map(r => r.id), { includeLogs: true });
+  const notifs: NotifItem[] = buildNotifications(quotes, activityLogs, requests, { includeLogs: true });
 
   const filteredNotifs = notifs.filter(n => {
     if (filter === 'unread') return n.unread && !seenIds.has(n.id);

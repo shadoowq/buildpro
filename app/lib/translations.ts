@@ -94,17 +94,6 @@ export const translations = {
 export const getTranslation = (key: string, lang: 'ar' | 'en') => {
   return (translations[lang] as any)[key] || key;
 };
-import { translate } from 'google-translate-api-x';
-
-export const translateText = async (text: string, targetLang: string) => {
-  try {
-    const result = await translate(text, { to: targetLang });
-    return result.text;
-  } catch (error) {
-    console.log('Translation error:', error);
-    return text; // إذا فشلت الترجمة، رجع النص الأصلي
-  }
-};
 export const saudiCities = [
   'الرياض',
   'جدة',

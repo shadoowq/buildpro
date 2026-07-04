@@ -48,11 +48,10 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
 
       const allReqs = (JSON.parse(localStorage.getItem('requests') || '[]') as any[])
         .filter(r => r.contractorId === user.email);
-      const reqIds = allReqs.map(r => r.id);
 
       const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
       const allLogs   = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-      setNotifs(buildNotifications(allQuotes, allLogs, reqIds, { limit: 10 }));
+      setNotifs(buildNotifications(allQuotes, allLogs, allReqs, { limit: 10 }));
 
       purgeExpiredTrash();
       const deletedRequests = (JSON.parse(localStorage.getItem('deletedRequests') || '[]') as any[])
