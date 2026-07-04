@@ -45,21 +45,30 @@ export interface QuoteTotals {
   grandTotal: number;
 }
 
-/** Line total (before tax) = quantity*unitPrice minus that line's own discount, floored at 0. */
-export function lineSubtotal(li: { quantity: number | string; unitPrice: number | string; discount?: number | string }): number {
-  const raw = (Number(li.quantity) || 0) * (Number(li.unitPrice) || 0);
-  const discount = Number(li.discount) || 0;
-  return Math.max(raw - discount, 0);
+/** Parses a form value as a non-negative number — garbage and negatives (typed past the min="0" input guard) become 0. */
+function nonNegative(value: number | string | undefined): number {
+  return Math.max(Number(value) || 0, 0);
 }
 
-/** Sums all line subtotals, applies the overall discount, then computes VAT on what remains. */
+/** Line total (before tax) = quantity*unitPrice minus that line's own discount, floored at 0. */
+export function lineSubtotal(li: { quantity: number | string; unitPrice: number | string; discount?: number | string }): number {
+  const raw = nonNegative(li.quantity) * nonNegative(li.unitPrice);
+  return Math.max(raw - nonNegative(li.discount), 0);
+}
+
+/** Rounds to 2 decimal places, avoiding float noise like 323245.45000000004 in stored totals. */
+export function roundMoney(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+/** Sums all line subtotals, applies the overall discount, then computes VAT on what remains. All outputs rounded to 2 decimals. */
 export function computeQuoteTotals(
   lineItems: { quantity: number | string; unitPrice: number | string; discount?: number | string }[],
   overallDiscount: number | string = 0
 ): QuoteTotals {
-  const itemsSubtotal = lineItems.reduce((s, li) => s + lineSubtotal(li), 0);
-  const subtotalBeforeTax = Math.max(itemsSubtotal - (Number(overallDiscount) || 0), 0);
-  const taxAmount = subtotalBeforeTax * VAT_RATE;
-  const grandTotal = subtotalBeforeTax + taxAmount;
+  const itemsSubtotal = roundMoney(lineItems.reduce((s, li) => s + lineSubtotal(li), 0));
+  const subtotalBeforeTax = roundMoney(Math.max(itemsSubtotal - nonNegative(overallDiscount), 0));
+  const taxAmount = roundMoney(subtotalBeforeTax * VAT_RATE);
+  const grandTotal = roundMoney(subtotalBeforeTax + taxAmount);
   return { itemsSubtotal, subtotalBeforeTax, taxAmount, grandTotal };
 }
