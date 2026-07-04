@@ -95,7 +95,7 @@ export default function SupplierTrash() {
     return getReqName(q).toLowerCase().includes(s) || (req?.location || '').toLowerCase().includes(s) || (q.quoteNumber || '').toLowerCase().includes(s);
   });
 
-  if (!user) return <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center"><div className="text-stone-400">Loading...</div></div>;
+  if (!user) return <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center"><div className="text-stone-500">Loading...</div></div>;
 
   return (
     <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
@@ -105,7 +105,7 @@ export default function SupplierTrash() {
       {/* HERO */}
       <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-5">
         <h1 className="text-white text-xl font-bold mb-1">{t('سلة المهملات', 'Trash', lang)}</h1>
-        <p className="text-white/50 text-xs">
+        <p className="text-white/70 text-xs">
           {t(`العروض المسحوبة تُحذف نهائيًا بعد ${RETENTION_DAYS} يومًا`, `Withdrawn quotes are permanently removed after ${RETENTION_DAYS} days`, lang)}
         </p>
       </div>
@@ -115,7 +115,7 @@ export default function SupplierTrash() {
         <div className="bg-white border border-[#E8DFD3] rounded-xl p-4">
           <div className="w-9 h-9 bg-stone-100 rounded-lg flex items-center justify-center text-base mb-3">🗑</div>
           <div className="text-2xl font-bold text-stone-900">{items.length}</div>
-          <div className="text-[11px] text-stone-500 mt-1">{t('عرض في السلة', 'Quotes in trash', lang)}</div>
+          <div className="text-xs text-stone-500 mt-1">{t('عرض في السلة', 'Quotes in trash', lang)}</div>
         </div>
       </div>
 
@@ -139,7 +139,7 @@ export default function SupplierTrash() {
               <h3 className="text-stone-700 font-bold text-base mb-1">
                 {search ? t('لا توجد نتائج', 'No results found', lang) : t('السلة فارغة', 'Trash is Empty', lang)}
               </h3>
-              <p className="text-stone-400 text-sm mb-5">
+              <p className="text-stone-500 text-sm mb-5">
                 {t('ستظهر هنا العروض التي تسحبها', 'Quotes you withdraw will appear here', lang)}
               </p>
               <Link href="/my-quotes"
@@ -164,12 +164,12 @@ export default function SupplierTrash() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap mb-1">
                             <span className="text-[13px] font-bold text-stone-900 truncate">{getReqName(q)}</span>
-                            {q.quoteNumber && <span className="text-[10px] font-mono font-semibold text-[#8A7B6C] bg-[#F3EAE0] px-1.5 py-0.5 rounded">{q.quoteNumber}</span>}
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${left <= 3 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-stone-100 text-stone-600 border-stone-200'}`}>
+                            {q.quoteNumber && <span className="text-[11px] font-mono font-semibold text-[#8A7B6C] bg-[#F3EAE0] px-1.5 py-0.5 rounded">{q.quoteNumber}</span>}
+                            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border shrink-0 ${left <= 3 ? 'bg-red-50 text-red-700 border-red-200' : 'bg-stone-100 text-stone-600 border-stone-200'}`}>
                               {t(`${left} يوم متبقي`, `${left}d left`, lang)}
                             </span>
                           </div>
-                          <div className="flex items-center gap-3 flex-wrap text-[11px] text-stone-400">
+                          <div className="flex items-center gap-3 flex-wrap text-xs text-stone-500">
                             <span>{Number(q.totalPrice).toLocaleString()} {t('ر.س', 'SAR', lang)}</span>
                             <span>{t('مدة التوريد:', 'Delivery:', lang)} {q.deliveryDays} {t('يوم', 'days', lang)}</span>
                             {req?.location && <span className="flex items-center gap-1">📍 {getCityName(req.location, lang)}</span>}

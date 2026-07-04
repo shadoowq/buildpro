@@ -106,7 +106,7 @@ export default function SupplierNav({ lang, setLang, userName, active }: Supplie
           <div className="hidden sm:flex items-center gap-1 bg-stone-100 rounded-xl p-1">
             {(['ar', 'en'] as Lang[]).map(l => (
               <button key={l} onClick={() => setLang(l)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[#C0603E] shadow-sm' : 'text-stone-400 hover:text-stone-600'}`}>
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${lang === l ? 'bg-white text-[#C0603E] shadow-sm' : 'text-stone-500 hover:text-stone-600'}`}>
                 <img src={l === 'ar' ? 'https://flagcdn.com/w20/sa.png' : 'https://flagcdn.com/w20/us.png'} width="18" height="13" alt={l} className="rounded-sm" />
                 <span className="hidden lg:inline">{l.toUpperCase()}</span>
               </button>
@@ -119,7 +119,7 @@ export default function SupplierNav({ lang, setLang, userName, active }: Supplie
               className="relative w-9 h-9 rounded-lg border border-[#E8DFD3] flex items-center justify-center hover:bg-[#F7F2EC] transition-colors">
               🔔
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 rounded-full text-white text-[9px] font-bold flex items-center justify-center px-0.5 border-2 border-white">
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 rounded-full text-white text-[10px] font-bold flex items-center justify-center px-0.5 border-2 border-white">
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
@@ -130,7 +130,7 @@ export default function SupplierNav({ lang, setLang, userName, active }: Supplie
                 <div className="flex items-center justify-between px-4 py-3 border-b border-[#F1EAE0]">
                   <span className="text-sm font-bold text-stone-900">{lang === 'ar' ? 'الإشعارات' : 'Notifications'}</span>
                   <Link href="/notifications" onClick={() => setBellOpen(false)}
-                    className="text-[10px] text-[#8A7B6C] font-semibold hover:underline">
+                    className="text-[11px] text-[#8A7B6C] font-semibold hover:underline">
                     {lang === 'ar' ? 'عرض الكل' : 'View all'}
                   </Link>
                 </div>
@@ -138,7 +138,7 @@ export default function SupplierNav({ lang, setLang, userName, active }: Supplie
                 {notifs.length === 0 ? (
                   <div className="py-8 text-center">
                     <p className="text-2xl mb-2">🔔</p>
-                    <p className="text-xs text-stone-400">{lang === 'ar' ? 'لا توجد إشعارات بعد' : 'No notifications yet'}</p>
+                    <p className="text-xs text-stone-500">{lang === 'ar' ? 'لا توجد إشعارات بعد' : 'No notifications yet'}</p>
                   </div>
                 ) : (
                   <div className="max-h-72 overflow-y-auto divide-y divide-[#FAF7F2]">
@@ -152,8 +152,8 @@ export default function SupplierNav({ lang, setLang, userName, active }: Supplie
                             {icon.icon}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-[11px] text-stone-700 leading-relaxed">{lang === 'ar' ? n.textAr : n.textEn}</p>
-                            <p className="text-[10px] text-stone-400 mt-0.5">{timeAgo(n.timestamp, lang)}</p>
+                            <p className="text-xs text-stone-700 leading-relaxed">{lang === 'ar' ? n.textAr : n.textEn}</p>
+                            <p className="text-[11px] text-stone-500 mt-0.5">{timeAgo(n.timestamp, lang)}</p>
                           </div>
                           {isNew && <span className="w-1.5 h-1.5 rounded-full bg-[#8A7B6C] shrink-0 mt-1.5" />}
                         </Link>
@@ -213,7 +213,7 @@ export default function SupplierNav({ lang, setLang, userName, active }: Supplie
               <div className="flex gap-1 px-4 py-2">
                 {(['ar', 'en'] as Lang[]).map(l => (
                   <button key={l} onClick={() => { setLang(l); setMenuOpen(false); }}
-                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border transition-all ${lang === l ? 'bg-[#F3EAE0] text-[#C0603E] border-[#C0603E]/20' : 'border-[#E8DFD3] text-stone-400'}`}>
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-bold border transition-all ${lang === l ? 'bg-[#F3EAE0] text-[#C0603E] border-[#C0603E]/20' : 'border-[#E8DFD3] text-stone-500'}`}>
                     <img src={l === 'ar' ? 'https://flagcdn.com/w20/sa.png' : 'https://flagcdn.com/w20/us.png'} width="18" height="13" alt={l} className="rounded-sm" />
                     {l.toUpperCase()}
                   </button>

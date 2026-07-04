@@ -7,10 +7,11 @@ import ContractorNav from '../components/ContractorNav';
 import SupplierNav from '../components/SupplierNav';
 import StatusBadge from '../components/StatusBadge';
 import QuoteCompareTable from '../components/QuoteCompareTable';
-import { formatDate, formatDay, appendActivityLog, setQuoteStatus, displayVal, withdrawQuote, requestQuoteEdit, approveQuoteEdit, declineQuoteEdit, clearEditRequestFlag, getEffectiveQuoteStatus, isQuoteExpired } from '../lib/requestHelpers';
+import { formatDate, formatDay, appendActivityLog, setQuoteStatus, displayVal, withdrawQuote, requestQuoteEdit, approveQuoteEdit, declineQuoteEdit, clearEditRequestFlag, getEffectiveQuoteStatus, isQuoteExpired, quoteValidityDaysLeft, updateQuoteFields } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
+import { downloadCsv } from '../lib/exportCsv';
 import HelpTooltip from '../components/HelpTooltip';
 
 type Lang = 'ar' | 'en';
@@ -107,6 +108,13 @@ const T = {
   dismiss:      { ar: 'حسنًا',                 en: 'Dismiss'               },
   expiredNote:  { ar: 'انتهت صلاحية العرض',    en: 'Quote expired'         },
   cantAcceptExpired: { ar: 'لا يمكن قبول عرض منتهي الصلاحية', en: "Can't accept an expired quote" },
+  expiryExpired: { ar: 'انتهت صلاحية هذا العرض — لن يتمكن المقاول من قبوله حتى تمددها', en: "This quote has expired — the contractor can't accept it until you extend it" },
+  expirySoon:   { ar: (n: number) => n === 0 ? 'صلاحية هذا العرض تنتهي اليوم' : `صلاحية هذا العرض تنتهي خلال ${n} يوم`, en: (n: number) => n === 0 ? 'This quote expires today' : `This quote expires in ${n} day${n > 1 ? 's' : ''}` },
+  extendBtn:    { ar: 'تمديد الصلاحية 30 يومًا', en: 'Extend 30 days' },
+  extended:     { ar: (n: number) => `تم تمديد صلاحية العرض ${n} يومًا من اليوم`, en: (n: number) => `Quote validity extended ${n} days from today` },
+  validUntilLbl:{ ar: 'صالح حتى:',              en: 'Valid until:'          },
+  exportCsv:    { ar: '⬇ تصدير CSV',           en: '⬇ Export CSV'          },
+  csvEmpty:     { ar: 'لا توجد عروض للتصدير',  en: 'No quotes to export'   },
 };
 
 function tFn(key: keyof typeof T, lang: Lang, n?: number): string {
@@ -261,7 +269,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
       <div className="bg-[#C0603E] px-7 pt-6 pb-0">
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-white/50 text-xs mb-1">
+            <p className="text-white/70 text-xs mb-1">
               {new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
             <h1 className="text-white text-xl font-bold mb-1 flex items-center gap-2">
@@ -270,7 +278,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                 textAr="قبول أحد العروض لا يؤدي إلى رفض باقي العروض تلقائيًا — يجب التعامل مع كل عرض على حدة. ويمكن التراجع عن أي قرار (قبول أو رفض) باستخدام زر «إلغاء القرار»."
                 textEn='Accepting a quote does not auto-reject the others — you handle each one individually. Any decision (accept/reject) can be undone with the "Undo" button.' />
             </h1>
-            <p className="text-white/50 text-xs">
+            <p className="text-white/70 text-xs">
               {allQuotes.length > 0
                 ? `${allQuotes.length} ${lang === 'ar' ? 'عرض على جميع طلباتك' : 'quotes across all your requests'}`
                 : lang === 'ar' ? 'لا توجد عروض بعد' : 'No quotes yet'}
@@ -284,7 +292,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
             const label = tFn(tab === 'all' ? 'all' : tab, lang);
             return (
               <button key={tab} onClick={() => setFilter(tab)}
-                className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${filter === tab ? 'text-white border-[#8A7B6C]' : 'text-white/40 border-transparent hover:text-white/70'}`}>
+                className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${filter === tab ? 'text-white border-[#8A7B6C]' : 'text-white/60 border-transparent hover:text-white/70'}`}>
                 {label} ({count})
               </button>
             );
@@ -298,8 +306,8 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
           <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4 relative">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
             <div className="text-2xl font-bold text-stone-900">{s.val}</div>
-            <div className="text-[11px] text-stone-500 mt-1">{s.label}</div>
-            {s.badge && <span className="absolute top-3 left-3 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">{s.badge}</span>}
+            <div className="text-xs text-stone-500 mt-1">{s.label}</div>
+            {s.badge && <span className="absolute top-3 left-3 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">{s.badge}</span>}
           </div>
         ))}
       </div>
@@ -319,7 +327,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
           <div className="bg-white border border-[#E8DFD3] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
             <span className="text-4xl">📭</span>
             <p className="text-stone-900 font-bold text-base">{tFn('noQuotes', lang)}</p>
-            <p className="text-stone-400 text-sm max-w-xs">{tFn('noQuotesSub', lang)}</p>
+            <p className="text-stone-500 text-sm max-w-xs">{tFn('noQuotesSub', lang)}</p>
             <Link href="/my-requests" className="mt-2 bg-[#C0603E] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-[#9C4C31] transition-colors">
               {tFn('goRequests', lang)}
             </Link>
@@ -342,7 +350,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                     <div className="w-8 h-8 bg-[#F3EAE0] rounded-lg flex items-center justify-center text-[#C0603E] text-sm">📋</div>
                     <div>
                       <p className="text-sm font-bold text-stone-900">{reqName}</p>
-                      <p className="text-[10px] text-stone-400">
+                      <p className="text-[11px] text-stone-500">
                         {quotes.length} {lang === 'ar' ? 'عرض' : 'quotes'}
                         {req?.location ? ` · ${getCityName(req.location, lang)}` : ''}
                         {req?.deadline ? ` · ⏱ ${formatDay(req.deadline, lang)}` : ''}
@@ -358,7 +366,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                       </button>
                     )}
                     <Link href={`/request/${reqId}`}
-                      className="text-[11px] text-[#8A7B6C] font-semibold hover:underline">
+                      className="text-xs text-[#8A7B6C] font-semibold hover:underline">
                       {lang === 'ar' ? 'فتح الطلب' : 'Open Request'} ↗
                     </Link>
                   </div>
@@ -393,11 +401,11 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="text-sm font-bold text-stone-900">{q.supplierCompany}</p>
-                              <p className="text-[11px] text-stone-400">{q.supplierName}</p>
+                              <p className="text-xs text-stone-500">{q.supplierName}</p>
                               <StatusBadge status={getEffectiveQuoteStatus(q)} lang={lang} />
-                              {isNew && <span className="text-[9px] bg-[#C0603E] text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
-                              {q.id === cheapestId && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{tFn('cheapest', lang)}</span>}
-                              {q.id === fastestId && <span className="text-[9px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded-full font-bold">{tFn('fastest', lang)}</span>}
+                              {isNew && <span className="text-[10px] bg-[#C0603E] text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
+                              {q.id === cheapestId && <span className="text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{tFn('cheapest', lang)}</span>}
+                              {q.id === fastestId && <span className="text-[10px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded-full font-bold">{tFn('fastest', lang)}</span>}
                             </div>
                             <div className="flex gap-4 mt-1.5">
                               <span className="text-base font-bold text-stone-900">{Number(q.totalPrice).toLocaleString()} <span className="text-xs font-medium text-stone-500">{tFn('sar', lang)}</span></span>
@@ -411,8 +419,8 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                               <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-2.5" onClick={e => e.stopPropagation()}>
                                 <p className="text-xs text-amber-800"><strong>{tFn('editReqNotice', lang)}</strong> {q.editRequestNote}</p>
                                 <div className="flex gap-2 mt-1.5">
-                                  <button onClick={() => handleApproveEditRequest(q.id)} className="text-[11px] font-semibold px-3 py-1 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors">{tFn('approve', lang)}</button>
-                                  <button onClick={() => handleRejectEditRequest(q.id)} className="text-[11px] font-semibold px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">{tFn('reject', lang)}</button>
+                                  <button onClick={() => handleApproveEditRequest(q.id)} className="text-xs font-semibold px-3 py-1 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors">{tFn('approve', lang)}</button>
+                                  <button onClick={() => handleRejectEditRequest(q.id)} className="text-xs font-semibold px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">{tFn('reject', lang)}</button>
                                 </div>
                               </div>
                             )}
@@ -421,34 +429,34 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                           {/* actions */}
                           <div className="flex flex-col gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
                             {expired ? (
-                              <span className="text-[10px] text-stone-400 text-center px-3 py-1.5">{tFn('expiredNote', lang)}</span>
+                              <span className="text-[11px] text-stone-500 text-center px-3 py-1.5">{tFn('expiredNote', lang)}</span>
                             ) : q.status === 'pending' ? (
                               <>
                                 <button onClick={() => handleQuoteAction(q.id, 'accepted')}
-                                  className="text-[11px] font-semibold px-3 py-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
+                                  className="text-xs font-semibold px-3 py-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
                                   {tFn('accept', lang)}
                                 </button>
                                 <button onClick={() => handleQuoteAction(q.id, 'rejected')}
-                                  className="text-[11px] font-semibold px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                                  className="text-xs font-semibold px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
                                   {tFn('reject', lang)}
                                 </button>
                                 <button onClick={() => { setRevisionQuoteId(q.id); setRevisionNote(''); }}
-                                  className="text-[11px] font-semibold px-3 py-1.5 bg-amber-400 text-white rounded-lg hover:bg-amber-500 transition-colors">
+                                  className="text-xs font-semibold px-3 py-1.5 bg-amber-400 text-white rounded-lg hover:bg-amber-500 transition-colors">
                                   {tFn('revisionBtn', lang)}
                                 </button>
                               </>
                             ) : (
                               <button onClick={() => handleQuoteAction(q.id, 'pending')}
-                                className="text-[11px] font-semibold px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors">
+                                className="text-xs font-semibold px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors">
                                 {tFn('undo', lang)}
                               </button>
                             )}
                             <a href={`/print/quote/${q.id}`} target="_blank" rel="noopener noreferrer"
-                              className="text-[11px] font-semibold px-3 py-1.5 bg-[#F3EAE0] text-[#C0603E] rounded-lg hover:bg-[#EADFCF] transition-colors text-center">
+                              className="text-xs font-semibold px-3 py-1.5 bg-[#F3EAE0] text-[#C0603E] rounded-lg hover:bg-[#EADFCF] transition-colors text-center">
                               👁 {tFn('view', lang)}
                             </a>
                             <a href={`/print/quote/${q.id}?autoprint=1`} target="_blank" rel="noopener noreferrer"
-                              className="text-[11px] font-semibold px-3 py-1.5 bg-stone-50 text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors text-center">
+                              className="text-xs font-semibold px-3 py-1.5 bg-stone-50 text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-100 transition-colors text-center">
                               🖨 {lang === 'ar' ? 'طباعة' : 'Print'}
                             </a>
                           </div>
@@ -569,6 +577,37 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
     refreshQuotes(updated);
   };
 
+  /* Extending validity only pushes the date — price and terms are untouched, so no contractor permission is needed. */
+  const handleExtendValidity = (quoteId: number, requestId: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    const { quotes: updated } = updateQuoteFields(quoteId, { validUntil: d.toISOString().slice(0, 10) });
+    refreshQuotes(updated);
+    appendActivityLog(requestId, 'قام المورد بتمديد صلاحية عرضه 30 يومًا', 'Supplier extended their quote validity by 30 days');
+    showToast(tFn('extended', lang, 30));
+  };
+
+  const handleExportCsv = () => {
+    if (quotes.length === 0) { showToast(tFn('csvEmpty', lang), 'error'); return; }
+    const headers = lang === 'ar'
+      ? ['رقم العرض', 'المشروع', 'المدينة', 'الحالة', 'السعر الإجمالي', 'مدة التوريد (أيام)', 'تاريخ التقديم', 'صالح حتى']
+      : ['Quote #', 'Project', 'City', 'Status', 'Total Price', 'Delivery (days)', 'Submitted', 'Valid Until'];
+    const rows = quotes.map(q => {
+      const req = getRequest(q.requestId);
+      return [
+        q.quoteNumber || String(q.id),
+        getReqDisplayName(req, q.requestId),
+        req ? getCityName(req.location, lang) : '',
+        tFn(getEffectiveQuoteStatus(q) === 'expired' ? 'expiredNote' : q.status, lang),
+        Number(q.totalPrice) || 0,
+        q.deliveryDays,
+        q.createdAt?.slice(0, 10) || '',
+        q.validUntil || '',
+      ];
+    });
+    downloadCsv(`quotes-${new Date().toISOString().slice(0, 10)}.csv`, headers, rows);
+  };
+
   const filteredQuotes = filter === 'all' ? quotes : quotes.filter(q => q.status === filter);
   const acceptedValue = quotes.filter(q => q.status === 'accepted').reduce((s, q) => s + (Number(q.totalPrice) || 0), 0);
 
@@ -588,8 +627,16 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
       </Suspense>
 
       <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-0">
-        <h1 className="text-white text-xl font-bold mb-1">{tFn('titleSupp', lang)}</h1>
-        <p className="text-white/50 text-xs">{quotes.length} {lang === 'ar' ? 'عرض مقدَّم' : 'submitted quotes'}</p>
+        <div className="flex items-end justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-white text-xl font-bold mb-1">{tFn('titleSupp', lang)}</h1>
+            <p className="text-white/70 text-xs">{quotes.length} {lang === 'ar' ? 'عرض مقدَّم' : 'submitted quotes'}</p>
+          </div>
+          <button onClick={handleExportCsv}
+            className="mb-1 bg-white/10 hover:bg-white/20 border border-white/25 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors">
+            {tFn('exportCsv', lang)}
+          </button>
+        </div>
         {/* filter tabs */}
         <div className="flex gap-0 mt-4 border-t border-white/10">
           {(['all', 'pending', 'accepted', 'rejected', 'revision'] as FilterTab[]).map(tab => {
@@ -597,7 +644,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
             const label = tFn(tab === 'all' ? 'all' : tab, lang);
             return (
               <button key={tab} onClick={() => setFilter(tab)}
-                className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${filter === tab ? 'text-white border-[#8A7B6C]' : 'text-white/40 border-transparent hover:text-white/70'}`}>
+                className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${filter === tab ? 'text-white border-[#8A7B6C]' : 'text-white/60 border-transparent hover:text-white/70'}`}>
                 {label} ({count})
               </button>
             );
@@ -611,7 +658,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
           <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
             <div className="text-2xl font-bold text-stone-900">{s.val}</div>
-            <div className="text-[11px] text-stone-500 mt-1">{s.label}</div>
+            <div className="text-xs text-stone-500 mt-1">{s.label}</div>
           </div>
         ))}
       </div>
@@ -634,20 +681,20 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold text-stone-900">{getReqDisplayName(req, q.requestId)}</p>
-                      {q.quoteNumber && <span className="text-[10px] font-mono font-semibold text-[#8A7B6C] bg-[#F3EAE0] px-1.5 py-0.5 rounded">{q.quoteNumber}</span>}
+                      {q.quoteNumber && <span className="text-[11px] font-mono font-semibold text-[#8A7B6C] bg-[#F3EAE0] px-1.5 py-0.5 rounded">{q.quoteNumber}</span>}
                     </div>
-                    {req && <p className="text-xs text-stone-400 mt-0.5">📍 {getCityName(req.location, lang)} {req.deadline ? `· ⏱ ${formatDay(req.deadline, lang)}` : ''}</p>}
+                    {req && <p className="text-xs text-stone-500 mt-0.5">📍 {getCityName(req.location, lang)} {req.deadline ? `· ⏱ ${formatDay(req.deadline, lang)}` : ''}</p>}
                   </div>
                   <StatusBadge status={getEffectiveQuoteStatus(q)} lang={lang} />
                 </div>
 
                 <div className="flex gap-6">
                   <div>
-                    <p className="text-[10px] text-stone-400">{tFn('yourPrice', lang)}</p>
+                    <p className="text-[11px] text-stone-500">{tFn('yourPrice', lang)}</p>
                     <p className="text-xl font-bold text-stone-900">{Number(q.totalPrice).toLocaleString()} <span className="text-sm font-medium text-stone-500">{tFn('sar', lang)}</span></p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-stone-400">{tFn('delivery', lang)}</p>
+                    <p className="text-[11px] text-stone-500">{tFn('delivery', lang)}</p>
                     <p className="text-sm font-semibold text-stone-700">{q.deliveryDays} {tFn('days', lang)}</p>
                   </div>
                 </div>
@@ -664,43 +711,60 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                     <p className="text-xs text-stone-600">⏳ {tFn('editReqPendingBadge', lang)}</p>
                   </div>
                 )}
+                {q.status === 'pending' && (() => {
+                  const daysLeft = quoteValidityDaysLeft(q);
+                  if (daysLeft === null || daysLeft > 3) return null;
+                  const expired = isQuoteExpired(q);
+                  return (
+                    <div className={`mt-2 rounded-lg px-3 py-2 flex items-center justify-between gap-3 flex-wrap border ${expired ? 'bg-red-50 border-red-200' : 'bg-orange-50 border-orange-200'}`}>
+                      <p className={`text-xs font-semibold ${expired ? 'text-red-700' : 'text-orange-700'}`}>
+                        ⏳ {expired ? tFn('expiryExpired', lang) : tFn('expirySoon', lang, daysLeft)}
+                        <span className="font-normal text-stone-500"> · {tFn('validUntilLbl', lang)} {formatDay(q.validUntil, lang)}</span>
+                      </p>
+                      <button onClick={() => handleExtendValidity(q.id, q.requestId)}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-lg text-white transition-colors shrink-0 ${expired ? 'bg-red-500 hover:bg-red-600' : 'bg-orange-500 hover:bg-orange-600'}`}>
+                        {tFn('extendBtn', lang)}
+                      </button>
+                    </div>
+                  );
+                })()}
                 {q.editRequestStatus === 'rejected' && (
                   <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 flex items-center justify-between gap-3">
                     <p className="text-xs text-red-700">{tFn('editReqRejectedNotice', lang)}</p>
                     <button onClick={() => handleDismissEditRejection(q.id)}
-                      className="text-[11px] font-semibold px-2.5 py-1 bg-white border border-red-200 text-red-600 rounded-md hover:bg-red-100 transition-colors shrink-0">
+                      className="text-xs font-semibold px-2.5 py-1 bg-white border border-red-200 text-red-600 rounded-md hover:bg-red-100 transition-colors shrink-0">
                       {tFn('dismiss', lang)}
                     </button>
                   </div>
                 )}
 
                 <div className="flex items-center justify-between mt-3">
-                  <p className="text-[10px] text-stone-400">{tFn('submittedOn', lang)} {formatDate(q.createdAt, lang)}</p>
+                  <p className="text-[11px] text-stone-500">{tFn('submittedOn', lang)} {formatDate(q.createdAt, lang)}</p>
                   <div className="flex gap-2">
                     {(q.status === 'pending' || q.status === 'revision') && (
                       <button onClick={() => handleWithdraw(q.id, q.requestId)}
-                        className="text-[11px] font-semibold px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors">
+                        className="text-xs font-semibold px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors">
                         {tFn('withdrawBtn', lang)}
                       </button>
                     )}
                     {q.status === 'revision' && (
                       <Link href={`/supplier-requests/quote/${q.requestId}?editQuoteId=${q.id}`}
-                        className="text-[11px] font-semibold px-3 py-1.5 bg-amber-400 text-white rounded-lg hover:bg-amber-500 transition-colors inline-block text-center">
+                        className="text-xs font-semibold px-3 py-1.5 bg-amber-400 text-white rounded-lg hover:bg-amber-500 transition-colors inline-block text-center">
                         {tFn('editResubmitBtn', lang)}
                       </Link>
                     )}
                     {q.status === 'pending' && !q.editRequestStatus && (
                       <button onClick={() => { setEditReqQuoteId(q.id); setEditReqNote(''); }}
-                        className="text-[11px] font-semibold px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors">
+                        className="text-xs font-semibold px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors">
                         {tFn('requestEditBtn', lang)}
                       </button>
                     )}
                     <a href={`/print/quote/${q.id}`} target="_blank" rel="noopener noreferrer" title={tFn('view', lang)}
-                      className="text-[11px] font-semibold px-3 py-1.5 bg-[#F3EAE0] text-[#C0603E] rounded-lg hover:bg-[#EADFCF] transition-colors">
+                      className="text-xs font-semibold px-3 py-1.5 bg-[#F3EAE0] text-[#C0603E] rounded-lg hover:bg-[#EADFCF] transition-colors">
                       👁 {tFn('view', lang)}
                     </a>
                     <a href={`/print/quote/${q.id}?autoprint=1`} target="_blank" rel="noopener noreferrer" title={tFn('print', lang)}
-                      className="text-[11px] font-semibold px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors">
+                      className="text-xs font-semibold px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors">
                       🖨 {tFn('print', lang)}
                     </a>
                   </div>
@@ -752,7 +816,7 @@ export default function MyQuotesPage() {
 
   if (!userType) return (
     <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center font-cairo">
-      <div className="text-stone-400 text-sm">{lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
+      <div className="text-stone-500 text-sm">{lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
     </div>
   );
 

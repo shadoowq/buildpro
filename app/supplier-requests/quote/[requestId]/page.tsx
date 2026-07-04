@@ -8,7 +8,7 @@ import { useConfirm } from '../../../components/ConfirmDialog';
 import { useEscapeKey } from '../../../components/useEscapeKey';
 import { saudiCities, getCityName } from '../../../lib/translations';
 import {
-  MATERIAL_OPTIONS, CURRENCY_OPTIONS, PAYMENT_TERMS_OPTIONS, currencyLabel, OTHER_VALUE, resolveOther,
+  MATERIAL_OPTIONS, PAYMENT_TERMS_OPTIONS, currencyLabel, OTHER_VALUE, resolveOther,
   VAT_RATE, lineSubtotal, computeQuoteTotals,
 } from '../../../lib/materialOptions';
 import {
@@ -17,6 +17,7 @@ import {
   Quote, QuoteLineItem, QuoteAttachment,
 } from '../../../lib/requestHelpers';
 import { isValidImageFile, isValidAttachmentFile } from '../../../lib/auth';
+import { compressImageToDataUrl, readFileAsDataUrl } from '../../../lib/images';
 
 type Lang = 'ar' | 'en';
 const OTHER = OTHER_VALUE;
@@ -343,13 +344,12 @@ export default function SupplierQuoteBuilder() {
       showToast(language === 'ar' ? 'صور PNG/JPG/WebP فقط وبحد أقصى 1.5MB للصورة' : 'PNG/JPG/WebP images only, max 1.5MB each', 'error');
     }
     const remaining = 2 - row.images.length;
-    valid.slice(0, remaining).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        setLineItems(prev => prev.map(r => (r.id === id && r.images.length < 2) ? { ...r, images: [...r.images, result] } : r));
-      };
-      reader.readAsDataURL(file);
+    valid.slice(0, remaining).forEach(async file => {
+      // compress before storing — base64 photos eat the shared localStorage quota fast
+      let dataUrl: string;
+      try { dataUrl = await compressImageToDataUrl(file); }
+      catch { try { dataUrl = await readFileAsDataUrl(file); } catch { return; } }
+      setLineItems(prev => prev.map(r => (r.id === id && r.images.length < 2) ? { ...r, images: [...r.images, dataUrl] } : r));
     });
     e.target.value = '';
   };
@@ -501,7 +501,7 @@ export default function SupplierQuoteBuilder() {
 
   if (!ready || !request || !user) return (
     <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center font-cairo">
-      <div className="text-stone-400 text-sm">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
+      <div className="text-stone-500 text-sm">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
     </div>
   );
 
@@ -509,9 +509,33 @@ export default function SupplierQuoteBuilder() {
   const reqMaterialLines: string[] = (request.materials?.length ? request.materials : legacyMaterialRows(request))
     .map((m: any) => `${displayVal(m.type || m.typePending, language)} — ${m.quantity ?? 0} ${displayVal(m.unit, language) !== '—' ? displayVal(m.unit, language) : 'm²'}`);
 
+  /* shared between the desktop table cell and the mobile card */
+  const renderRowImages = (row: FormLineItem) => (
+    <>
+      <div className="flex gap-1 flex-wrap mb-1">
+        {row.images.map((img, i) => (
+          <div key={i} className="relative inline-block">
+            <img src={img} alt="" onClick={() => { setLightboxImg(img); setZoomLevel(1); }}
+              className="w-9 h-9 object-cover rounded border border-[#E8DFD3] cursor-zoom-in" />
+            <button type="button" onClick={() => removeRowImage(row.id, i)}
+              className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white rounded-full text-[8px] flex items-center justify-center leading-none">✕</button>
+          </div>
+        ))}
+      </div>
+      {row.images.length < 2 ? (
+        <label className="inline-block px-1.5 py-1 bg-[#8A7B6C] text-white rounded text-[11px] font-bold cursor-pointer">
+          {tx('uploadImage', language)}
+          <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={e => handleRowImageUpload(row.id, e)} />
+        </label>
+      ) : (
+        <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">{tx('maxImages', language)}</span>
+      )}
+    </>
+  );
+
   const inputCls = 'w-full text-sm border border-[#E8DFD3] rounded-xl px-4 py-2.5 outline-none font-cairo bg-white text-stone-800 placeholder-stone-300 focus:border-[#8A7B6C] focus:ring-2 focus:ring-[#8A7B6C]/10 transition-all';
   const labelCls = 'block text-xs font-semibold text-stone-600 mb-1.5';
-  const th = 'px-3 py-2 text-[11px] font-semibold text-stone-500 whitespace-nowrap text-center bg-[#FAF7F2] border-b border-[#F1EAE0]';
+  const th = 'px-3 py-2 text-xs font-semibold text-stone-500 whitespace-nowrap text-center bg-[#FAF7F2] border-b border-[#F1EAE0]';
   const td = 'px-2 py-2 align-top border-b border-[#F1EAE0]';
 
   return (
@@ -551,7 +575,7 @@ export default function SupplierQuoteBuilder() {
           </div>
           {reqMaterialLines.length > 0 && (
             <div className="bg-[#FAF7F2] rounded-lg p-3">
-              <p className="text-[11px] font-semibold text-stone-500 mb-1">{tx('requestedMaterials', language)}</p>
+              <p className="text-xs font-semibold text-stone-500 mb-1">{tx('requestedMaterials', language)}</p>
               {reqMaterialLines.map((line, i) => <p key={i} className="text-xs text-stone-700 my-0.5">• {line}</p>)}
             </div>
           )}
@@ -601,13 +625,95 @@ export default function SupplierQuoteBuilder() {
             <h2 className="text-sm font-bold text-stone-900">{tx('lineItems', language)}</h2>
             <div className="flex items-center gap-2">
               <label className="text-xs font-semibold text-stone-600">{tx('currency', language)}</label>
-              <select value={currency} onChange={e => setCurrency(e.target.value)}
-                className="text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 bg-white text-stone-700 outline-none focus:border-[#8A7B6C]">
-                {CURRENCY_OPTIONS.map(c => <option key={c.value} value={c.value}>{currencyLabel(c.value, language)}</option>)}
-              </select>
+              {/* Fixed to SAR for now: the contractor-side comparisons ("cheapest" badge,
+                  lowest-price stats) compare raw numbers, so mixed currencies would mislead. */}
+              <span className="text-xs font-semibold text-stone-700 bg-[#FAF7F2] border border-[#E8DFD3] rounded-lg px-3 py-1.5">
+                {currencyLabel(currency, language)}
+              </span>
             </div>
           </div>
-          <div className="overflow-x-auto border border-[#E8DFD3] rounded-xl">
+          {/* MOBILE: one card per line item — the 15-column table is unusable on small screens */}
+          <div className="md:hidden flex flex-col gap-3">
+            {lineItems.map((row, idx) => (
+              <div key={row.id} className="border border-[#E8DFD3] rounded-xl bg-[#FFFDF9] p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-[#C0603E]">{tx('lineItems', language)} #{idx + 1}</span>
+                  <button type="button" onClick={() => removeRow(row.id)}
+                    className="w-6 h-6 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs">✕</button>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('material', language)}</label>
+                    <SelectOther value={row.type} other={row.typeOther}
+                      onValue={v => updateRow(row.id, 'type', v)} onOther={v => updateRow(row.id, 'typeOther', v)}
+                      options={MATERIAL_OPTIONS.types} lang={language} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('size', language)}</label>
+                    <SelectOther value={row.size} other={row.sizeOther}
+                      onValue={v => updateRow(row.id, 'size', v)} onOther={v => updateRow(row.id, 'sizeOther', v)}
+                      options={MATERIAL_OPTIONS.sizes} lang={language} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('thickness', language)}</label>
+                    <SelectOther value={row.thickness} other={row.thicknessOther}
+                      onValue={v => updateRow(row.id, 'thickness', v)} onOther={v => updateRow(row.id, 'thicknessOther', v)}
+                      options={MATERIAL_OPTIONS.thicknesses} lang={language} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('finish', language)}</label>
+                    <SelectOther value={row.finish} other={row.finishOther}
+                      onValue={v => updateRow(row.id, 'finish', v)} onOther={v => updateRow(row.id, 'finishOther', v)}
+                      options={MATERIAL_OPTIONS.finishes} lang={language} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('color', language)}</label>
+                    <SelectOther value={row.color} other={row.colorOther}
+                      onValue={v => updateRow(row.id, 'color', v)} onOther={v => updateRow(row.id, 'colorOther', v)}
+                      options={MATERIAL_OPTIONS.colors} lang={language} />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('unit', language)}</label>
+                    <SelectOther value={row.unit} other={row.unitOther}
+                      onValue={v => updateRow(row.id, 'unit', v)} onOther={v => updateRow(row.id, 'unitOther', v)}
+                      options={MATERIAL_OPTIONS.units} lang={language} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mb-2">
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('qty', language)}</label>
+                    <input type="number" min="0" inputMode="decimal" value={row.quantity} onChange={e => updateRow(row.id, 'quantity', e.target.value)}
+                      className="w-full text-sm border border-[#E8DFD3] rounded-lg px-2 py-2 outline-none bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('unitPrice', language)}</label>
+                    <input type="number" min="0" inputMode="decimal" value={row.unitPrice} onChange={e => updateRow(row.id, 'unitPrice', e.target.value)}
+                      className="w-full text-sm border border-[#E8DFD3] rounded-lg px-2 py-2 outline-none bg-white" />
+                    {row.targetPriceHint && (
+                      <p className="text-[11px] text-stone-500 mt-0.5">{tx('targetHint', language)}: {row.targetPriceHint}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('itemDiscount', language)}</label>
+                    <input type="number" min="0" inputMode="decimal" value={row.discount} onChange={e => updateRow(row.id, 'discount', e.target.value)}
+                      className="w-full text-sm border border-[#E8DFD3] rounded-lg px-2 py-2 outline-none bg-white" />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2 bg-[#F3EAE0] rounded-lg px-3 py-2 mb-2 text-xs">
+                  <span className="text-stone-600">{tx('beforeTax', language)}: <b>{rowSubtotal(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</b></span>
+                  <span className="text-stone-500">{tx('taxCol', language)}: {rowTax(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                  <span className="font-bold text-[#C0603E]">{tx('lineTotal', language)}: {rowTotal(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                </div>
+                <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('itemNote', language)}</label>
+                <textarea value={row.description} onChange={e => updateRow(row.id, 'description', e.target.value)}
+                  rows={2} className="w-full text-sm border border-[#E8DFD3] rounded-lg px-2 py-1.5 outline-none resize-none bg-white mb-2" />
+                {renderRowImages(row)}
+              </div>
+            ))}
+          </div>
+
+          {/* DESKTOP: full table */}
+          <div className="hidden md:block overflow-x-auto border border-[#E8DFD3] rounded-xl">
             <table className="w-full border-collapse">
               <thead>
                 <tr>
@@ -669,7 +775,7 @@ export default function SupplierQuoteBuilder() {
                       <input type="number" min="0" value={row.unitPrice} onChange={e => updateRow(row.id, 'unitPrice', e.target.value)}
                         className="w-full text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 outline-none" />
                       {row.targetPriceHint && (
-                        <p className="text-[9px] text-stone-400 mt-0.5">{tx('targetHint', language)}: {row.targetPriceHint}</p>
+                        <p className="text-[10px] text-stone-500 mt-0.5">{tx('targetHint', language)}: {row.targetPriceHint}</p>
                       )}
                     </td>
                     <td className={td} style={{ minWidth: 90 }}>
@@ -690,24 +796,7 @@ export default function SupplierQuoteBuilder() {
                         rows={2} className="w-full text-xs border border-[#E8DFD3] rounded-lg px-2 py-1.5 outline-none resize-none" />
                     </td>
                     <td className={td} style={{ minWidth: 110 }}>
-                      <div className="flex gap-1 flex-wrap mb-1">
-                        {row.images.map((img, i) => (
-                          <div key={i} className="relative inline-block">
-                            <img src={img} alt="" onClick={() => { setLightboxImg(img); setZoomLevel(1); }}
-                              className="w-9 h-9 object-cover rounded border border-[#E8DFD3] cursor-zoom-in" />
-                            <button type="button" onClick={() => removeRowImage(row.id, i)}
-                              className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-red-500 text-white rounded-full text-[8px] flex items-center justify-center leading-none">✕</button>
-                          </div>
-                        ))}
-                      </div>
-                      {row.images.length < 2 ? (
-                        <label className="inline-block px-1.5 py-1 bg-[#8A7B6C] text-white rounded text-[10px] font-bold cursor-pointer">
-                          {tx('uploadImage', language)}
-                          <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={e => handleRowImageUpload(row.id, e)} />
-                        </label>
-                      ) : (
-                        <span className="text-[9px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">{tx('maxImages', language)}</span>
-                      )}
+                      {renderRowImages(row)}
                     </td>
                     <td className={td} style={{ textAlign: 'center' }}>
                       <button type="button" onClick={() => removeRow(row.id)}
@@ -943,7 +1032,7 @@ export default function SupplierQuoteBuilder() {
               <button onClick={e => { e.stopPropagation(); setLightboxImg(null); setZoomLevel(1); }}
                 className="px-3.5 py-1.5 bg-red-500 text-white rounded-lg text-xs font-bold">{tx('close', language)}</button>
             </div>
-            <p className="text-stone-400 text-xs">{tx('zoomHint', language)}</p>
+            <p className="text-stone-500 text-xs">{tx('zoomHint', language)}</p>
           </div>
         </div>
       )}

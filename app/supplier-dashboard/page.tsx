@@ -52,7 +52,7 @@ function tStr(key: keyof typeof T, lang: Lang, n?: number): string {
 function ReqStatusPill({ quoted, urgent, lang, needsAction }: { quoted: boolean; urgent: boolean; lang: Lang; needsAction?: boolean }) {
   if (needsAction) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
         {tStr('needsAction', lang)}
       </span>
@@ -60,14 +60,14 @@ function ReqStatusPill({ quoted, urgent, lang, needsAction }: { quoted: boolean;
   }
   if (quoted) {
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
         {tStr('quoted', lang)}
       </span>
     )
   }
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${urgent ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-orange-50 text-orange-800 border border-orange-200'}`}>
+    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${urgent ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-orange-50 text-orange-800 border border-orange-200'}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${urgent ? 'bg-amber-400' : 'bg-orange-400'}`} />
       {tStr('notQuoted', lang)}
     </span>
@@ -173,11 +173,11 @@ export default function SupplierDashboardPage() {
       <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-6">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
-            <p className="text-white/50 text-xs mb-1">
+            <p className="text-white/70 text-xs mb-1">
               {new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
             <h1 className="text-white text-xl font-bold mb-1">{tStr('hello', lang)} {userName}</h1>
-            <p className="text-white/50 text-xs">
+            <p className="text-white/70 text-xs">
               {notYetQuotedCount > 0 ? tStr('heroSubN', lang, notYetQuotedCount) : tStr('heroSubZero', lang)}
             </p>
           </div>
@@ -207,9 +207,9 @@ export default function SupplierDashboardPage() {
           <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4 relative">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
             <div className="text-2xl font-bold text-stone-900">{s.val}</div>
-            <div className="text-[11px] text-stone-500 mt-1">{s.label}</div>
+            <div className="text-xs text-stone-500 mt-1">{s.label}</div>
             {s.badge && (
-              <span className="absolute top-3 start-3 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
+              <span className="absolute top-3 start-3 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600">
                 {s.badge}
               </span>
             )}
@@ -224,7 +224,7 @@ export default function SupplierDashboardPage() {
         <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
           <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#F1EAE0]">
             <span className="text-sm font-bold text-stone-900">{tStr('availReqs', lang)}</span>
-            <Link href="/supplier-requests" className="text-[11px] text-[#8A7B6C] font-semibold hover:underline">
+            <Link href="/supplier-requests" className="text-xs text-[#8A7B6C] font-semibold hover:underline">
               {tStr('viewAll', lang)}
             </Link>
           </div>
@@ -240,7 +240,7 @@ export default function SupplierDashboardPage() {
             <thead>
               <tr className="bg-[#FFFDF9] border-b border-[#F1EAE0]">
                 {[tStr('reqId', lang), tStr('reqName', lang), tStr('city', lang), tStr('status', lang), tStr('deadline', lang), ''].map((h, i) => (
-                  <th key={i} className={`text-[10px] font-semibold uppercase tracking-wider text-stone-400 px-4 py-2.5 ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
+                  <th key={i} className={`text-[11px] font-semibold uppercase tracking-wider text-stone-500 px-4 py-2.5 ${lang === 'ar' ? 'text-right' : 'text-left'}`}>
                     {h}
                   </th>
                 ))}
@@ -249,7 +249,7 @@ export default function SupplierDashboardPage() {
             <tbody>
               {tableRows.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center text-stone-400 text-sm py-12">
+                  <td colSpan={6} className="text-center text-stone-500 text-sm py-12">
                     <div className="flex flex-col items-center gap-2">
                       <span className="text-3xl">📭</span>
                       {tStr('noRequests', lang)}
@@ -264,7 +264,7 @@ export default function SupplierDashboardPage() {
                   return (
                     <tr key={r.id} className="border-b border-[#FAF7F2] hover:bg-[#FFFDF9] transition-colors">
                       <td className="px-4 py-3">
-                        <span className="text-[10px] text-[#8A7B6C] font-semibold font-mono">{String(r.id).slice(-6)}</span>
+                        <span className="text-[11px] text-[#8A7B6C] font-semibold font-mono">{String(r.id).slice(-6)}</span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-[13px] font-semibold text-stone-900 truncate">{getReqName(r)}</div>
@@ -278,7 +278,7 @@ export default function SupplierDashboardPage() {
                       </td>
                       <td className="px-4 py-3">
                         <Link href={`/supplier-requests?reqId=${r.id}`}
-                          className="text-[11px] font-semibold text-[#C0603E] bg-[#F3EAE0] border border-[#E8DFD3] rounded-md px-2.5 py-1 hover:bg-[#EDE0D2] transition-colors">
+                          className="text-xs font-semibold text-[#C0603E] bg-[#F3EAE0] border border-[#E8DFD3] rounded-md px-2.5 py-1 hover:bg-[#EDE0D2] transition-colors">
                           {tStr('view', lang)}
                         </Link>
                       </td>
@@ -301,15 +301,15 @@ export default function SupplierDashboardPage() {
             {myQuotes.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center px-4">
                 <span className="text-2xl mb-2">📄</span>
-                <p className="text-[11px] text-stone-400">{tStr('noQuotesYet', lang)}</p>
+                <p className="text-xs text-stone-500">{tStr('noQuotesYet', lang)}</p>
               </div>
             ) : (
               <div className="px-3.5 py-3 flex flex-col gap-3">
                 {perfBars.map(p => (
                   <div key={p.key}>
                     <div className="flex justify-between mb-1.5">
-                      <span className="text-[11px] text-stone-700 font-medium">{tStr(p.key, lang)}</span>
-                      <span className="text-[11px] text-stone-400" dir="ltr">{p.val} / {myQuotes.length}</span>
+                      <span className="text-xs text-stone-700 font-medium">{tStr(p.key, lang)}</span>
+                      <span className="text-xs text-stone-500" dir="ltr">{p.val} / {myQuotes.length}</span>
                     </div>
                     <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden">
                       <div className={`h-1.5 rounded-full transition-all ${p.color}`} style={{ width: `${Math.round((p.val / totalQ) * 100)}%` }} />
@@ -327,23 +327,23 @@ export default function SupplierDashboardPage() {
               {myRatings.length > 0 && (
                 <span className="text-xs text-amber-400 flex items-center gap-1">
                   <span>{'★'.repeat(Math.round(avgRating)) + '☆'.repeat(5 - Math.round(avgRating))}</span>
-                  <span className="text-[9px] text-stone-400">({avgRating.toFixed(1)})</span>
+                  <span className="text-[10px] text-stone-500">({avgRating.toFixed(1)})</span>
                 </span>
               )}
             </div>
             {recentRatings.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 text-center px-4">
                 <span className="text-2xl mb-2">⭐</span>
-                <p className="text-[11px] text-stone-400">{tStr('noRatings', lang)}</p>
+                <p className="text-xs text-stone-500">{tStr('noRatings', lang)}</p>
               </div>
             ) : (
               recentRatings.map(r => (
                 <div key={r.id} className="px-3.5 py-2.5 border-b border-[#FAF7F2] last:border-0">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-amber-400">{'★'.repeat(r.rating) + '☆'.repeat(5 - r.rating)}</span>
-                    <span className="text-[9px] text-stone-400">{tStr('req', lang)} #{String(r.requestId).slice(-4)}</span>
+                    <span className="text-[10px] text-stone-500">{tStr('req', lang)} #{String(r.requestId).slice(-4)}</span>
                   </div>
-                  {r.comment && <p className="text-[11px] text-stone-600 mt-1 truncate">{r.comment}</p>}
+                  {r.comment && <p className="text-xs text-stone-600 mt-1 truncate">{r.comment}</p>}
                 </div>
               ))
             )}

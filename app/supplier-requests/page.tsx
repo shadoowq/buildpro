@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import SupplierNav from '../components/SupplierNav';
 import { displayVal, getDeadlineUrgency, formatDay, quoteDraftKey } from '../lib/requestHelpers';
+import { MATERIAL_OPTIONS } from '../lib/materialOptions';
 import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
 
@@ -30,7 +31,7 @@ interface Request {
 
 const T = {
   title:        { ar: 'الطلبات المتاحة لك',   en: 'Requests Available to You' },
-  search:       { ar: 'ابحث برقم الطلب أو المدينة أو المادة...', en: 'Search by ID, city, or material...' },
+  search:       { ar: 'ابحث بالرقم أو المدينة أو المادة أو الوصف...', en: 'Search by ID, city, material, or description...' },
   filterAll:    { ar: 'الكل',                 en: 'All'        },
   filterNotQ:   { ar: 'لم يُقدَّم عرض',        en: 'Not Quoted' },
   filterQ:      { ar: 'تم التقديم',           en: 'Quoted'     },
@@ -53,6 +54,8 @@ const T = {
   sortLabel:    { ar: 'الترتيب:',            en: 'Sort:'        },
   sortNewest:   { ar: 'الأحدث',              en: 'Newest'       },
   sortDeadline: { ar: 'الأقرب ميعادًا',       en: 'Soonest Deadline' },
+  allCities:    { ar: 'كل المدن',            en: 'All cities'   },
+  allMaterials: { ar: 'كل المواد',           en: 'All materials' },
   preview:      { ar: 'معاينة سريعة',        en: 'Quick Preview' },
   reqId:        { ar: 'رقم الطلب',           en: 'Request #'    },
   name:         { ar: 'الاسم',               en: 'Name'         },
@@ -97,6 +100,8 @@ export default function SupplierRequests() {
   const [allQuotes, setAllQuotes] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterTab>('all');
+  const [cityFilter, setCityFilter] = useState('');
+  const [materialFilter, setMaterialFilter] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('cards');
   const [sortBy, setSortBy] = useState<SortBy>('newest');
   const [previewRequest, setPreviewRequest] = useState<Request | null>(null);
@@ -167,7 +172,7 @@ export default function SupplierRequests() {
 
   if (!user) return (
     <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center font-cairo">
-      <div className="text-stone-400 text-sm">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
+      <div className="text-stone-500 text-sm">{language === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
     </div>
   );
 
@@ -177,17 +182,30 @@ export default function SupplierRequests() {
     return u === 'soon' || u === 'overdue';
   }).map(r => r.id));
 
+  /* material types present on a request — covers both the materials[] shape and legacy flat fields */
+  const requestMaterialTypes = (r: Request): string[] => {
+    if (r.materials?.length) return r.materials.map((m: any) => m.type || m.typePending).filter(Boolean);
+    const legacy: [number, string][] = [[r.ceramic, 'سيراميك'], [r.porcelain, 'بورسلان'], [r.marble, 'رخام'], [r.granite, 'جرانيت'], [r.terrazzo, 'تيرازو']];
+    return legacy.filter(([qty]) => qty > 0).map(([, type]) => type);
+  };
+
+  const cityOptions = [...new Set(openRequests.map(r => r.location).filter(Boolean))];
+
   const filtered = openRequests.filter(r => {
+    const q = search.toLowerCase();
     const matchSearch = !search
       || String(r.id).includes(search)
-      || getCityName(r.location, language).toLowerCase().includes(search.toLowerCase())
-      || getReqName(r).toLowerCase().includes(search.toLowerCase());
+      || getCityName(r.location, language).toLowerCase().includes(q)
+      || getReqName(r).toLowerCase().includes(q)
+      || (r.description || '').toLowerCase().includes(q);
     const matchFilter =
       filter === 'all' ? true :
       filter === 'notQuoted' ? !hasQuoted(r.id) :
       filter === 'quoted' ? hasQuoted(r.id) :
       urgentIds.has(r.id);
-    return matchSearch && matchFilter;
+    const matchCity = !cityFilter || r.location === cityFilter;
+    const matchMaterial = !materialFilter || requestMaterialTypes(r).includes(materialFilter);
+    return matchSearch && matchFilter && matchCity && matchMaterial;
   });
 
   const sorted = [...filtered].sort((a, b) => {
@@ -260,13 +278,13 @@ export default function SupplierRequests() {
       <div className="bg-[#C0603E] px-4 md:px-7 pt-6 pb-0">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
-            <p className="text-white/50 text-xs mb-1">
+            <p className="text-white/70 text-xs mb-1">
               {new Date().toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
             <h1 className="text-white text-xl font-bold mb-1">{tStr('title', language)}</h1>
           </div>
           <div className="flex items-center gap-2 bg-white/10 border border-white/20 rounded-lg px-3 py-1.5 w-64 mb-1">
-            <span className="text-white/40 text-sm">🔍</span>
+            <span className="text-white/60 text-sm">🔍</span>
             <input type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder={tStr('search', language)}
               className="bg-transparent border-none outline-none text-xs font-cairo w-full placeholder-white/40 text-white" />
@@ -281,7 +299,7 @@ export default function SupplierRequests() {
             ['urgent', tStr('filterUrgent', language)],
           ] as [FilterTab, string][]).map(([val, label]) => (
             <button key={val} onClick={() => setFilter(val)}
-              className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${filter === val ? 'text-white border-[#8A7B6C]' : 'text-white/40 border-transparent hover:text-white/70'}`}>
+              className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${filter === val ? 'text-white border-[#8A7B6C]' : 'text-white/60 border-transparent hover:text-white/70'}`}>
               {label}
             </button>
           ))}
@@ -294,15 +312,15 @@ export default function SupplierRequests() {
           <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
             <div className="text-2xl font-bold text-stone-900">{s.val}</div>
-            <div className="text-[11px] text-stone-500 mt-1">{s.label}</div>
+            <div className="text-xs text-stone-500 mt-1">{s.label}</div>
           </div>
         ))}
       </div>
 
-      {/* TOOLBAR: sort + view toggle */}
+      {/* TOOLBAR: sort + filters + view toggle */}
       <div className="flex items-center justify-between flex-wrap gap-3 px-4 md:px-7 pb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-stone-400 font-semibold">{tStr('sortLabel', language)}</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-stone-500 font-semibold">{tStr('sortLabel', language)}</span>
           <div className="flex items-center gap-1 bg-white border border-[#E8DFD3] rounded-lg p-0.5">
             {([['newest', tStr('sortNewest', language)], ['deadline', tStr('sortDeadline', language)]] as [SortBy, string][]).map(([v, l]) => (
               <button key={v} onClick={() => setSortBy(v)}
@@ -311,6 +329,16 @@ export default function SupplierRequests() {
               </button>
             ))}
           </div>
+          <select value={cityFilter} onChange={e => setCityFilter(e.target.value)}
+            className={`text-xs border rounded-lg px-2.5 py-1.5 bg-white outline-none font-cairo ${cityFilter ? 'border-[#C0603E] text-[#C0603E] font-semibold' : 'border-[#E8DFD3] text-stone-600'}`}>
+            <option value="">📍 {tStr('allCities', language)}</option>
+            {cityOptions.map(c => <option key={c} value={c}>{getCityName(c, language)}</option>)}
+          </select>
+          <select value={materialFilter} onChange={e => setMaterialFilter(e.target.value)}
+            className={`text-xs border rounded-lg px-2.5 py-1.5 bg-white outline-none font-cairo ${materialFilter ? 'border-[#C0603E] text-[#C0603E] font-semibold' : 'border-[#E8DFD3] text-stone-600'}`}>
+            <option value="">🧱 {tStr('allMaterials', language)}</option>
+            {MATERIAL_OPTIONS.types.map(m => <option key={m} value={m}>{displayVal(m, language)}</option>)}
+          </select>
         </div>
         <div className="flex items-center gap-1 bg-white border border-[#E8DFD3] rounded-xl p-1">
           {([
@@ -318,7 +346,7 @@ export default function SupplierRequests() {
             { mode: 'table' as ViewMode, icon: '☰', label: tStr('viewTable', language) },
           ]).map(v => (
             <button key={v.mode} onClick={() => setViewMode(v.mode)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === v.mode ? 'bg-[#F3EAE0] text-[#C0603E]' : 'text-stone-400 hover:text-stone-600'}`}>
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === v.mode ? 'bg-[#F3EAE0] text-[#C0603E]' : 'text-stone-500 hover:text-stone-600'}`}>
               <span className="text-sm">{v.icon}</span>
               {v.label}
             </button>
@@ -338,7 +366,7 @@ export default function SupplierRequests() {
               <thead>
                 <tr className="bg-[#FAF7F2] border-b border-[#F1EAE0]">
                   {['#', tStr('name', language), tStr('materials', language), tStr('location', language), tStr('deadline', language), tStr('action', language)].map((h, i) => (
-                    <th key={i} className="px-4 py-2.5 text-[11px] font-semibold text-stone-500 whitespace-nowrap text-start">{h}</th>
+                    <th key={i} className="px-4 py-2.5 text-xs font-semibold text-stone-500 whitespace-nowrap text-start">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -379,7 +407,7 @@ export default function SupplierRequests() {
                   onClick={() => setPreviewRequest(request)}>
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-bold text-stone-900">{getReqName(request)}</h3>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${urgency === 'overdue' ? 'bg-red-50 text-red-700 border border-red-200' : urgency === 'soon' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${urgency === 'overdue' ? 'bg-red-50 text-red-700 border border-red-200' : urgency === 'soon' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
                       {urgency === 'overdue' ? '🔴' : urgency === 'soon' ? '🟠' : '🟢'} {String(request.id).slice(-6)}
                     </span>
                   </div>
@@ -400,7 +428,7 @@ export default function SupplierRequests() {
 
                   <div className="flex items-center justify-between mb-3">
                     <button onClick={e => { e.stopPropagation(); setPreviewRequest(request); }}
-                      className="text-[11px] font-semibold text-[#8A7B6C] hover:underline">
+                      className="text-xs font-semibold text-[#8A7B6C] hover:underline">
                       👁 {tStr('preview', language)}
                     </button>
                   </div>
@@ -421,8 +449,8 @@ export default function SupplierRequests() {
               <div className="flex items-center gap-3 flex-wrap">
                 <h2 className="text-lg font-bold text-stone-900">{tStr('previewTitle', language)}</h2>
                 <span className="text-[#8A7B6C] font-bold text-sm">{getReqName(previewRequest)}</span>
-                <span className="text-stone-400 text-sm">📍 {getCityName(previewRequest.location, language)}</span>
-                {previewRequest.deadline && <span className="text-stone-400 text-sm">⏱ {formatDay(previewRequest.deadline, language)}</span>}
+                <span className="text-stone-500 text-sm">📍 {getCityName(previewRequest.location, language)}</span>
+                {previewRequest.deadline && <span className="text-stone-500 text-sm">⏱ {formatDay(previewRequest.deadline, language)}</span>}
               </div>
               <button onClick={() => setPreviewRequest(null)} aria-label={tStr('close', language)}
                 className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center font-bold hover:bg-red-100 text-lg">✕</button>

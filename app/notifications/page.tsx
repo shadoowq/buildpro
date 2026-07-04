@@ -84,7 +84,7 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-white text-xl font-bold mb-1">{t('title', lang)}</h1>
-            <p className="text-white/50 text-xs">{t('subtitle', lang)}</p>
+            <p className="text-white/70 text-xs">{t('subtitle', lang)}</p>
           </div>
           {notifs.length > 0 && (
             <button onClick={markAllRead}
@@ -103,7 +103,7 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
           ] as [FilterTab, string, number][]).map(([val, label, count]) => (
             <button key={val} onClick={() => setFilter(val)}
               className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${
-                filter === val ? 'text-white border-[#8A7B6C]' : 'text-white/40 border-transparent hover:text-white/70'
+                filter === val ? 'text-white border-[#8A7B6C]' : 'text-white/60 border-transparent hover:text-white/70'
               }`}>
               {label} ({count})
             </button>
@@ -117,7 +117,7 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
             <div className="flex flex-col items-center justify-center py-16 text-center px-4">
               <span className="text-3xl mb-3">🔔</span>
               <p className="text-sm font-bold text-stone-700">{notifs.length === 0 ? t('noNotifs', lang) : t('noFilterResults', lang)}</p>
-              {notifs.length === 0 && <p className="text-xs text-stone-400 mt-1">{t('noNotifsSub', lang)}</p>}
+              {notifs.length === 0 && <p className="text-xs text-stone-500 mt-1">{t('noNotifsSub', lang)}</p>}
             </div>
           ) : (
             filteredNotifs.map(n => {
@@ -131,7 +131,7 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-stone-700 leading-relaxed">{lang === 'ar' ? n.textAr : n.textEn}</p>
-                    <p className="text-[11px] text-stone-400 mt-1">{timeAgo(n.timestamp, lang)}</p>
+                    <p className="text-xs text-stone-500 mt-1">{timeAgo(n.timestamp, lang)}</p>
                   </div>
                   {isNew && <span className="w-2 h-2 rounded-full bg-[#8A7B6C] shrink-0 mt-1.5" />}
                 </Link>
@@ -197,7 +197,7 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-white text-xl font-bold mb-1">{t('title', lang)}</h1>
-            <p className="text-white/50 text-xs">{t('subtitleSupp', lang)}</p>
+            <p className="text-white/70 text-xs">{t('subtitleSupp', lang)}</p>
           </div>
           {notifs.length > 0 && (
             <button onClick={markAllRead}
@@ -216,7 +216,7 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
           ] as [SupplierFilterTab, string, number][]).map(([val, label, count]) => (
             <button key={val} onClick={() => setFilter(val)}
               className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors font-cairo ${
-                filter === val ? 'text-white border-[#8A7B6C]' : 'text-white/40 border-transparent hover:text-white/70'
+                filter === val ? 'text-white border-[#8A7B6C]' : 'text-white/60 border-transparent hover:text-white/70'
               }`}>
               {label} ({count})
             </button>
@@ -230,7 +230,7 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
             <div className="flex flex-col items-center justify-center py-16 text-center px-4">
               <span className="text-3xl mb-3">🔔</span>
               <p className="text-sm font-bold text-stone-700">{notifs.length === 0 ? t('noNotifs', lang) : t('noFilterResults', lang)}</p>
-              {notifs.length === 0 && <p className="text-xs text-stone-400 mt-1">{t('noNotifsSubSupp', lang)}</p>}
+              {notifs.length === 0 && <p className="text-xs text-stone-500 mt-1">{t('noNotifsSubSupp', lang)}</p>}
             </div>
           ) : (
             filteredNotifs.map(n => {
@@ -244,7 +244,7 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-stone-700 leading-relaxed">{lang === 'ar' ? n.textAr : n.textEn}</p>
-                    <p className="text-[11px] text-stone-400 mt-1">{timeAgo(n.timestamp, lang)}</p>
+                    <p className="text-xs text-stone-500 mt-1">{timeAgo(n.timestamp, lang)}</p>
                   </div>
                   {isNew && <span className="w-2 h-2 rounded-full bg-[#8A7B6C] shrink-0 mt-1.5" />}
                 </Link>
@@ -281,7 +281,7 @@ export default function NotificationsPage() {
 
   if (!userType) return (
     <div className="min-h-screen bg-[#F7F2EC] flex items-center justify-center font-cairo">
-      <div className="text-stone-400 text-sm">{lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
+      <div className="text-stone-500 text-sm">{lang === 'ar' ? 'جاري التحميل...' : 'Loading...'}</div>
     </div>
   );
 

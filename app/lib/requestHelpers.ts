@@ -105,6 +105,16 @@ export function isQuoteExpired(q: Pick<Quote, 'status' | 'validUntil'>): boolean
   return d.getTime() < Date.now();
 }
 
+/** Whole days until the quote's validity ends (validity runs through the end of its last day).
+    0 = ends today (still valid), negative = already expired, null = no/invalid date. */
+export function quoteValidityDaysLeft(q: Pick<Quote, 'validUntil'>): number | null {
+  if (!q.validUntil) return null;
+  const end = new Date(q.validUntil);
+  if (isNaN(end.getTime())) return null;
+  end.setHours(23, 59, 59, 999);
+  return Math.floor((end.getTime() - Date.now()) / 86400000);
+}
+
 export type EffectiveQuoteStatus = Quote['status'] | 'expired';
 
 /** Display status: same as stored status, except pending-past-validity shows as 'expired'. */

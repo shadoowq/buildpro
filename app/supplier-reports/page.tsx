@@ -24,9 +24,9 @@ const REPORT_TABS = [
 function t(ar: string, en: string, lang: Lang) { return lang === 'ar' ? ar : en; }
 function fmtN(n: number, lang: Lang) { return Math.round(n).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US'); }
 
-const TH = (lang: Lang) => `border border-stone-200 bg-[#C0603E] px-3 py-2.5 ${lang === 'ar' ? 'text-right' : 'text-left'} text-white font-semibold text-[11px] whitespace-nowrap`;
-const TD = 'border border-stone-200 px-3 py-2 text-[11px] text-stone-700';
-const TDE = 'border border-stone-200 px-3 py-2 text-[11px] text-stone-700 bg-[#FAF7F2]';
+const TH = (lang: Lang) => `border border-stone-200 bg-[#C0603E] px-3 py-2.5 ${lang === 'ar' ? 'text-right' : 'text-left'} text-white font-semibold text-xs whitespace-nowrap`;
+const TD = 'border border-stone-200 px-3 py-2 text-xs text-stone-700';
+const TDE = 'border border-stone-200 px-3 py-2 text-xs text-stone-700 bg-[#FAF7F2]';
 
 export default function SupplierReportsPage() {
   const router = useRouter();
@@ -155,9 +155,9 @@ export default function SupplierReportsPage() {
       <div className="bg-[#C0603E] px-4 md:px-7 pt-5 pb-0">
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
-            <p className="text-white/50 text-xs mb-1">{printDate}</p>
+            <p className="text-white/70 text-xs mb-1">{printDate}</p>
             <h1 className="text-white text-xl font-bold">{t('التقارير والتحليلات', 'Reports & Analytics', lang)}</h1>
-            <p className="text-white/50 text-xs mt-0.5">{quotes.length} {t('عرض مقدَّم', 'quotes submitted', lang)}</p>
+            <p className="text-white/70 text-xs mt-0.5">{quotes.length} {t('عرض مقدَّم', 'quotes submitted', lang)}</p>
           </div>
           <button onClick={() => window.print()} className="mb-4 text-xs font-semibold px-3 py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl transition-colors">
             🖨 {t('طباعة التقرير الحالي', 'Print Current Report', lang)}
@@ -166,7 +166,7 @@ export default function SupplierReportsPage() {
         <div className="flex gap-0 mt-4 border-t border-white/10 overflow-x-auto">
           {REPORT_TABS.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'text-white border-[#8A7B6C]' : 'text-white/40 border-transparent hover:text-white/70'}`}>
+              className={`text-xs font-medium px-4 py-2.5 border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id ? 'text-white border-[#8A7B6C]' : 'text-white/60 border-transparent hover:text-white/70'}`}>
               {tab.iconAr} {lang === 'ar' ? tab.labelAr : tab.labelEn}
             </button>
           ))}
@@ -190,7 +190,7 @@ export default function SupplierReportsPage() {
           <div className="bg-white border border-[#E8DFD3] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
             <span className="text-4xl">📊</span>
             <p className="text-stone-900 font-bold text-base">{t('لا توجد بيانات كافية بعد', 'Not enough data yet', lang)}</p>
-            <p className="text-stone-400 text-sm max-w-xs">{t('قدّم عروض أسعار على الطلبات المتاحة لتظهر تقاريرك هنا', 'Submit quotes on available requests for your reports to appear here', lang)}</p>
+            <p className="text-stone-500 text-sm max-w-xs">{t('قدّم عروض أسعار على الطلبات المتاحة لتظهر تقاريرك هنا', 'Submit quotes on available requests for your reports to appear here', lang)}</p>
           </div>
         ) : (
           <>
@@ -207,7 +207,7 @@ export default function SupplierReportsPage() {
                     <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4">
                       <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
                       <div className="text-lg font-bold text-stone-900">{s.val}</div>
-                      <div className="text-[11px] text-stone-500 mt-1">{s.label}</div>
+                      <div className="text-xs text-stone-500 mt-1">{s.label}</div>
                     </div>
                   ))}
                 </div>
@@ -221,7 +221,7 @@ export default function SupplierReportsPage() {
                   ].map((s, i) => (
                     <div key={i} className="bg-white border border-[#E8DFD3] rounded-xl p-4 text-center">
                       <div className={`text-2xl font-bold ${s.color}`}>{s.val}</div>
-                      <div className="text-[11px] text-stone-500 mt-1">{s.label}</div>
+                      <div className="text-xs text-stone-500 mt-1">{s.label}</div>
                     </div>
                   ))}
                 </div>
@@ -229,7 +229,7 @@ export default function SupplierReportsPage() {
                 <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden">
                   <div className="px-5 py-3.5 border-b border-[#F1EAE0] flex items-center justify-between">
                     <h2 className="text-sm font-bold text-stone-900">📄 {t('تفاصيل العروض', 'Quote Details', lang)}</h2>
-                    <span className="text-xs text-stone-400">{quotes.length} {t('عرض', 'quotes', lang)}</span>
+                    <span className="text-xs text-stone-500">{quotes.length} {t('عرض', 'quotes', lang)}</span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-xs">
@@ -274,7 +274,7 @@ export default function SupplierReportsPage() {
                   <h2 className="text-sm font-bold text-stone-900">🧱 {t('تفصيل حسب نوع المادة', 'Breakdown by Material Type', lang)}</h2>
                 </div>
                 {materialStats.length === 0 ? (
-                  <div className="p-10 text-center text-sm text-stone-400">{t('لا توجد بنود مفصّلة في عروضك بعد', 'No itemized line items in your quotes yet', lang)}</div>
+                  <div className="p-10 text-center text-sm text-stone-500">{t('لا توجد بنود مفصّلة في عروضك بعد', 'No itemized line items in your quotes yet', lang)}</div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-xs">
@@ -353,7 +353,7 @@ export default function SupplierReportsPage() {
                         <tr key={c.email}>
                           <td className={i % 2 === 0 ? TD : TDE}>
                             <strong>{c.company || c.name}</strong>
-                            {c.company && <div className="text-stone-400">{c.name}</div>}
+                            {c.company && <div className="text-stone-500">{c.name}</div>}
                           </td>
                           <td className={i % 2 === 0 ? TD : TDE}>{c.quoted}</td>
                           <td className={i % 2 === 0 ? TD : TDE}>{c.accepted}</td>

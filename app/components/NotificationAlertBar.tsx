@@ -18,6 +18,7 @@ const alertAccent: Record<NotifType, { border: string; ring: string }> = {
   invite:      { border: 'border-[#C0603E]', ring: 'bg-[#C0603E]' },
   editRequest: { border: 'border-amber-500', ring: 'bg-amber-500' },
   withdrawn:   { border: 'border-stone-400', ring: 'bg-stone-400' },
+  expiring:    { border: 'border-orange-500', ring: 'bg-orange-500' },
 };
 
 /**
@@ -77,7 +78,7 @@ export default function NotificationAlertBar({ notifs, lang, storageKey }: { not
           <div className={`relative w-12 h-12 rounded-xl ${icon.bg} flex items-center justify-center text-2xl`}>{icon.icon}</div>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wide mb-0.5">{lang === 'ar' ? 'إشعار جديد' : 'New Notification'}</p>
+          <p className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-0.5">{lang === 'ar' ? 'إشعار جديد' : 'New Notification'}</p>
           <p className="text-sm font-semibold text-stone-800 leading-snug">{lang === 'ar' ? current.textAr : current.textEn}</p>
         </div>
         <button

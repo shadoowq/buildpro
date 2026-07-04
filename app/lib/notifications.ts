@@ -1,7 +1,7 @@
-import { getRequestDisplayName, RequestLike } from './requestHelpers';
+import { getRequestDisplayName, isQuoteExpired, quoteValidityDaysLeft, RequestLike } from './requestHelpers';
 
 export type Lang = 'ar' | 'en';
-export type NotifType = 'quote' | 'accepted' | 'rejected' | 'revision' | 'close' | 'open' | 'rated' | 'invite' | 'editRequest' | 'withdrawn';
+export type NotifType = 'quote' | 'accepted' | 'rejected' | 'revision' | 'close' | 'open' | 'rated' | 'invite' | 'editRequest' | 'withdrawn' | 'expiring';
 
 export interface NotifItem {
   id: string;
@@ -24,10 +24,11 @@ export const notifIconMap: Record<NotifType, { bg: string; icon: string; color: 
   invite:   { bg: 'bg-[#F3EAE0]',  icon: '📨', color: 'text-[#C0603E]'   },
   editRequest: { bg: 'bg-amber-50', icon: '🔏', color: 'text-amber-500' },
   withdrawn: { bg: 'bg-stone-100', icon: '↩', color: 'text-stone-500' },
+  expiring:  { bg: 'bg-orange-50', icon: '⏳', color: 'text-orange-500' },
 };
 
 export function notifHref(n: Pick<NotifItem, 'type' | 'requestId'>, role?: 'contractor' | 'supplier'): string {
-  const quoteTypes: NotifType[] = ['quote', 'accepted', 'rejected', 'revision', 'editRequest'];
+  const quoteTypes: NotifType[] = ['quote', 'accepted', 'rejected', 'revision', 'editRequest', 'expiring'];
   if (role === 'supplier') {
     return quoteTypes.includes(n.type)
       ? `/my-quotes?reqId=${n.requestId}`
@@ -200,7 +201,30 @@ export function buildSupplierNotifications(
       unread: true,
     }));
 
-  const all = [...statusItems, ...editRequestDeclinedItems, ...inviteItems, ...ratingItems]
+  /* pending quotes about to lapse (≤3 days) or already lapsed — nudge the supplier to extend */
+  const expiryItems: NotifItem[] = myQuotes
+    .filter(q => q.status === 'pending')
+    .map((q): NotifItem | null => {
+      const daysLeft = quoteValidityDaysLeft(q);
+      if (daysLeft === null || daysLeft > 3) return null;
+      const expired = isQuoteExpired(q);
+      return {
+        id: `expiry-${q.id}-${q.validUntil}-${expired ? 'ended' : 'soon'}`,
+        type: 'expiring' as NotifType,
+        requestId: q.requestId,
+        textAr: expired
+          ? `انتهت صلاحية عرضك على «${nameAr(q.requestId)}» — مدّدها ليبقى قابلاً للقبول`
+          : `صلاحية عرضك على «${nameAr(q.requestId)}» تنتهي ${daysLeft === 0 ? 'اليوم' : `خلال ${daysLeft} يوم`}`,
+        textEn: expired
+          ? `Your quote on "${nameEn(q.requestId)}" has expired — extend it so it can still be accepted`
+          : `Your quote on "${nameEn(q.requestId)}" expires ${daysLeft === 0 ? 'today' : `in ${daysLeft} day${daysLeft > 1 ? 's' : ''}`}`,
+        timestamp: q.validUntil!,
+        unread: true,
+      };
+    })
+    .filter((x): x is NotifItem => x !== null);
+
+  const all = [...statusItems, ...editRequestDeclinedItems, ...inviteItems, ...ratingItems, ...expiryItems]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return opts?.limit ? all.slice(0, opts.limit) : all;
