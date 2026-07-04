@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { Quote, QuoteLineItem, displayVal } from '../../../lib/requestHelpers';
+import { Quote, QuoteLineItem, displayVal, getEffectiveQuoteStatus } from '../../../lib/requestHelpers';
 import { currencyLabel, resolveOther, lineSubtotal, VAT_RATE } from '../../../lib/materialOptions';
 
 type Lang = 'ar' | 'en';
@@ -101,8 +101,8 @@ export default function PrintQuote() {
   const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const quoteDate = new Date(quote.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const reqName   = req?.projectName?.trim() || `${lang === 'ar' ? 'طلب' : 'Request'} #${quote.requestId}`;
-  const statusMap = { pending: { ar: 'قيد الانتظار', en: 'Pending', color: '#D97706' }, accepted: { ar: 'مقبول', en: 'Accepted', color: '#059669' }, rejected: { ar: 'مرفوض', en: 'Rejected', color: '#DC2626' }, revision: { ar: 'طلب تعديل', en: 'Revision', color: '#D97706' } };
-  const statusInfo = statusMap[quote.status];
+  const statusMap = { pending: { ar: 'قيد الانتظار', en: 'Pending', color: '#D97706' }, accepted: { ar: 'مقبول', en: 'Accepted', color: '#059669' }, rejected: { ar: 'مرفوض', en: 'Rejected', color: '#DC2626' }, revision: { ar: 'طلب تعديل', en: 'Revision', color: '#D97706' }, expired: { ar: 'منتهي الصلاحية', en: 'Expired', color: '#78716C' } };
+  const statusInfo = statusMap[getEffectiveQuoteStatus(quote)];
 
   const getMaterials = () => {
     if (!req) return [];

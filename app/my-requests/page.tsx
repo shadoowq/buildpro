@@ -8,7 +8,7 @@ import RequestDetailModal from '../components/RequestDetailModal';
 import RatingModal from '../components/RatingModal';
 import HelpTooltip from '../components/HelpTooltip';
 import QuoteCompareTable from '../components/QuoteCompareTable';
-import { displayVal, appendActivityLog, setQuoteStatus, softDeleteRequest, softDeleteRequests, getDeadlineUrgency, approveQuoteEdit, declineQuoteEdit } from '../lib/requestHelpers';
+import { displayVal, appendActivityLog, setQuoteStatus, softDeleteRequest, softDeleteRequests, getDeadlineUrgency, approveQuoteEdit, declineQuoteEdit, isQuoteExpired } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -372,6 +372,11 @@ export default function MyRequests() {
     showToast(lang === 'ar' ? 'تم نقل الطلب لسلة المهملات' : 'Moved to trash');
   };
   const handleQuoteAction = async (quoteId: number, action: 'accepted' | 'rejected' | 'pending') => {
+    const target = quotes.find(q => q.id === quoteId);
+    if (action === 'accepted' && target && isQuoteExpired(target as any)) {
+      showToast(lang === 'ar' ? 'لا يمكن قبول عرض منتهي الصلاحية' : "Can't accept an expired quote", 'error');
+      return;
+    }
     if (action === 'accepted' || action === 'rejected') {
       const msg = action === 'accepted'
         ? (lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?')

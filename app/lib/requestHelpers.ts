@@ -86,6 +86,22 @@ export function getDeadlineUrgency(deadline: string | undefined, hasAcceptedQuot
   return null;
 }
 
+/** A pending quote whose validity date has passed is no longer binding — decided quotes (accepted/rejected/revision) keep their status. */
+export function isQuoteExpired(q: Pick<Quote, 'status' | 'validUntil'>): boolean {
+  if (q.status !== 'pending' || !q.validUntil) return false;
+  const d = new Date(q.validUntil);
+  if (isNaN(d.getTime())) return false;
+  d.setHours(23, 59, 59, 999); // the quote stays valid through its last day
+  return d.getTime() < Date.now();
+}
+
+export type EffectiveQuoteStatus = Quote['status'] | 'expired';
+
+/** Display status: same as stored status, except pending-past-validity shows as 'expired'. */
+export function getEffectiveQuoteStatus(q: Pick<Quote, 'status' | 'validUntil'>): EffectiveQuoteStatus {
+  return isQuoteExpired(q) ? 'expired' : q.status;
+}
+
 export function displayVal(val: string | undefined, lang: Lang): string {
   if (!val) return '—';
   if (lang === 'en') return val.split(' أو ').map(p => arToEn[p.trim()] || p.trim()).join(' / ');

@@ -7,7 +7,7 @@ import ContractorNav from '../components/ContractorNav';
 import SupplierNav from '../components/SupplierNav';
 import StatusBadge from '../components/StatusBadge';
 import QuoteCompareTable from '../components/QuoteCompareTable';
-import { formatDate, appendActivityLog, setQuoteStatus, displayVal, withdrawQuote, requestQuoteEdit, approveQuoteEdit, declineQuoteEdit, clearEditRequestFlag } from '../lib/requestHelpers';
+import { formatDate, appendActivityLog, setQuoteStatus, displayVal, withdrawQuote, requestQuoteEdit, approveQuoteEdit, declineQuoteEdit, clearEditRequestFlag, getEffectiveQuoteStatus, isQuoteExpired } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
@@ -106,6 +106,8 @@ const T = {
   editReqPendingBadge: { ar: 'بانتظار موافقة المقاول على التعديل', en: "Awaiting contractor's approval to edit" },
   editReqRejectedNotice: { ar: 'تم رفض طلبك بالتعديل', en: 'Your edit request was declined' },
   dismiss:      { ar: 'حسنًا',                 en: 'Dismiss'               },
+  expiredNote:  { ar: 'انتهت صلاحية العرض',    en: 'Quote expired'         },
+  cantAcceptExpired: { ar: 'لا يمكن قبول عرض منتهي الصلاحية', en: "Can't accept an expired quote" },
 };
 
 function tFn(key: keyof typeof T, lang: Lang, n?: number): string {
@@ -127,6 +129,7 @@ function ReqIdParamReader({ onFound }: { onFound: (id: number) => void }) {
 function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: string; setLang: (l: Lang) => void }) {
   const router = useRouter();
   const confirmDialog = useConfirm();
+  const showToast = useToast();
   const [allQuotes, setAllQuotes] = useState<Quote[]>([]);
   const [myRequests, setMyRequests] = useState<Request[]>([]);
   const [filter, setFilter] = useState<FilterTab>('all');
@@ -183,6 +186,11 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
   };
 
   const handleQuoteAction = async (quoteId: number, action: QuoteStatus | 'pending') => {
+    const target = allQuotes.find(q => q.id === quoteId);
+    if (action === 'accepted' && target && isQuoteExpired(target)) {
+      showToast(tFn('cantAcceptExpired', lang), 'error');
+      return;
+    }
     if (action === 'accepted' || action === 'rejected') {
       const msg = action === 'accepted'
         ? (lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?')
@@ -373,7 +381,8 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                   /* cards view */
                   <div className="divide-y divide-[#FAF7F2]">
                     {quotes.map(q => {
-                      const isNew = q.status === 'pending' && !seenQuotes.includes(q.id);
+                      const expired = isQuoteExpired(q);
+                      const isNew = q.status === 'pending' && !expired && !seenQuotes.includes(q.id);
                       return (
                         <div key={q.id}
                           className={`flex items-start gap-4 px-5 py-4 hover:bg-[#FFFDF9] transition-colors ${q.status === 'accepted' ? 'bg-emerald-50/30' : q.status === 'rejected' ? 'bg-red-50/30' : ''}`}
@@ -386,7 +395,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="text-sm font-bold text-stone-900">{q.supplierCompany}</p>
                               <p className="text-[11px] text-stone-400">{q.supplierName}</p>
-                              <StatusBadge status={q.status} lang={lang} />
+                              <StatusBadge status={getEffectiveQuoteStatus(q)} lang={lang} />
                               {isNew && <span className="text-[9px] bg-[#C0603E] text-white px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
                               {q.id === cheapestId && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{tFn('cheapest', lang)}</span>}
                               {q.id === fastestId && <span className="text-[9px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded-full font-bold">{tFn('fastest', lang)}</span>}
@@ -412,7 +421,9 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
 
                           {/* actions */}
                           <div className="flex flex-col gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
-                            {q.status === 'pending' ? (
+                            {expired ? (
+                              <span className="text-[10px] text-stone-400 text-center px-3 py-1.5">{tFn('expiredNote', lang)}</span>
+                            ) : q.status === 'pending' ? (
                               <>
                                 <button onClick={() => handleQuoteAction(q.id, 'accepted')}
                                   className="text-[11px] font-semibold px-3 py-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
@@ -626,7 +637,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                     </div>
                     {req && <p className="text-xs text-stone-400 mt-0.5">📍 {getCityName(req.location, lang)} {req.deadline ? `· ⏱ ${req.deadline}` : ''}</p>}
                   </div>
-                  <StatusBadge status={q.status} lang={lang} />
+                  <StatusBadge status={getEffectiveQuoteStatus(q)} lang={lang} />
                 </div>
 
                 <div className="flex gap-6">

@@ -7,6 +7,8 @@ import SupplierNav from '../components/SupplierNav';
 import { saudiCities, getCityName } from '../lib/translations';
 import { persistUserUpdate } from '../lib/requestHelpers';
 import { verifyPassword, setUserPassword, ALLOWED_IMAGE_TYPES } from '../lib/auth';
+import { downloadBackup, parseBackup, restoreBackup } from '../lib/backup';
+import { useConfirm } from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
 import HelpTooltip from '../components/HelpTooltip';
 
@@ -57,6 +59,13 @@ const T = {
   logoTooBig:    { ar: 'حجم الصورة كبير جداً (الحد الأقصى 800 كيلوبايت)', en: 'Image too large (max 800KB)' },
   logoSaved:     { ar: 'تم حفظ الهيدر ✓',          en: 'Header saved ✓'           },
   footerSaved:   { ar: 'تم حفظ الفوتر ✓',          en: 'Footer saved ✓'           },
+  backup:        { ar: 'النسخ الاحتياطي',           en: 'Backup'                   },
+  backupNote:    { ar: 'بياناتك محفوظة على هذا الجهاز فقط — صدّر نسخة احتياطية بانتظام واحتفظ بها في مكان آمن. مسح بيانات المتصفح يعني فقدان كل شيء بدونها.', en: 'Your data lives on this device only — export a backup regularly and keep it somewhere safe. Clearing browser data means losing everything without one.' },
+  exportBtn:     { ar: '⬇ تصدير نسخة احتياطية',    en: '⬇ Export Backup'          },
+  importBtn:     { ar: '⬆ استيراد نسخة احتياطية',  en: '⬆ Import Backup'          },
+  importConfirm: { ar: 'سيتم استرجاع البيانات من النسخة الاحتياطية وقد تستبدل البيانات الحالية المطابقة. هل أنت متأكد؟', en: 'Data will be restored from the backup and may overwrite matching current data. Are you sure?' },
+  importDone:    { ar: 'تم استرجاع النسخة الاحتياطية بنجاح — جاري إعادة التحميل...', en: 'Backup restored successfully — reloading...' },
+  importInvalid: { ar: 'الملف ليس نسخة احتياطية صالحة من BuildPro', en: 'This file is not a valid BuildPro backup' },
 };
 
 function t(key: keyof typeof T, lang: Lang): string {
@@ -104,6 +113,7 @@ const readonlyCls = 'w-full text-sm border border-[#E8DFD3] rounded-xl px-4 py-2
 export default function ProfilePage() {
   const router = useRouter();
   const showToast = useToast();
+  const confirmDialog = useConfirm();
   const [lang, setLang] = useState<Lang>('ar');
   const [user, setUser] = useState<any>(null);
 
@@ -228,6 +238,23 @@ export default function ProfilePage() {
   const handleLogout = () => {
     localStorage.removeItem('currentUser');
     router.push('/login');
+  };
+
+  const handleImportBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    let backup;
+    try {
+      backup = parseBackup(await file.text());
+    } catch {
+      showToast(t('importInvalid', lang), 'error');
+      return;
+    }
+    if (!(await confirmDialog(t('importConfirm', lang), { danger: true }))) return;
+    restoreBackup(backup);
+    showToast(t('importDone', lang));
+    setTimeout(() => window.location.reload(), 1200);
   };
 
   const contractorNav = user?.userType === 'contractor';
@@ -407,6 +434,21 @@ export default function ProfilePage() {
               <p className="text-[10px] text-stone-400 mb-1">{t('memberSince', lang)}</p>
               <p className="text-sm font-bold text-stone-700">{memberSince}</p>
             </div>
+          </div>
+        </SectionCard>
+
+        {/* BACKUP */}
+        <SectionCard title={t('backup', lang)}>
+          <p className="text-xs text-stone-500 leading-relaxed mb-4">{t('backupNote', lang)}</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button onClick={downloadBackup}
+              className="py-2.5 rounded-xl text-sm font-bold bg-[#C0603E] hover:bg-[#9C4C31] text-white transition-colors">
+              {t('exportBtn', lang)}
+            </button>
+            <label className="py-2.5 rounded-xl text-sm font-bold bg-white text-[#8A7B6C] border-2 border-[#8A7B6C] hover:bg-[#FAF7F2] transition-colors text-center cursor-pointer">
+              {t('importBtn', lang)}
+              <input type="file" accept="application/json,.json" onChange={handleImportBackup} className="hidden" />
+            </label>
           </div>
         </SectionCard>
 

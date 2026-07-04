@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import ContractorNav from '../components/ContractorNav'
 import RequestDetailModal from '../components/RequestDetailModal'
 import RatingModal from '../components/RatingModal'
-import { appendActivityLog, setQuoteStatus, softDeleteRequest, displayVal, getUnfinishedAutosave, getDeadlineUrgency, approveQuoteEdit, declineQuoteEdit } from '../lib/requestHelpers'
+import { appendActivityLog, setQuoteStatus, softDeleteRequest, displayVal, getUnfinishedAutosave, getDeadlineUrgency, approveQuoteEdit, declineQuoteEdit, isQuoteExpired } from '../lib/requestHelpers'
 import HelpTooltip from '../components/HelpTooltip'
 import { useToast } from '../components/Toast'
 import { useConfirm } from '../components/ConfirmDialog'
@@ -385,6 +385,11 @@ export default function DashboardPage() {
   }
 
   const handleQuoteAction = async (quoteId: number, action: 'accepted' | 'rejected' | 'pending') => {
+    const target = allQuotes.find((q: any) => q.id === quoteId)
+    if (action === 'accepted' && target && isQuoteExpired(target)) {
+      showToast(lang === 'ar' ? 'لا يمكن قبول عرض منتهي الصلاحية' : "Can't accept an expired quote", 'error')
+      return
+    }
     if (action === 'accepted' || action === 'rejected') {
       const msg = action === 'accepted'
         ? (lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?')

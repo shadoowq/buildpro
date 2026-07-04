@@ -9,7 +9,7 @@ import RatingModal from '../../components/RatingModal';
 import HelpTooltip from '../../components/HelpTooltip';
 import QuoteCompareTable from '../../components/QuoteCompareTable';
 import { useEscapeKey } from '../../components/useEscapeKey';
-import { formatDate, displayVal, arToEn, appendActivityLog, setQuoteStatus, softDeleteRequest, getDeadlineUrgency } from '../../lib/requestHelpers';
+import { formatDate, displayVal, arToEn, appendActivityLog, setQuoteStatus, softDeleteRequest, getDeadlineUrgency, getEffectiveQuoteStatus, isQuoteExpired } from '../../lib/requestHelpers';
 import { getCityName } from '../../lib/translations';
 import { useConfirm } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
@@ -42,6 +42,7 @@ interface Quote {
   status: QuoteStatus;
   revisionNote?: string;
   createdAt: string;
+  validUntil?: string;
 }
 
 interface ActivityLog {
@@ -181,6 +182,11 @@ export default function RequestDetailPage() {
   };
 
   const handleQuoteAction = async (quoteId: number, action: QuoteStatus | 'pending') => {
+    const target = quotes.find(q => q.id === quoteId);
+    if (action === 'accepted' && target && isQuoteExpired(target)) {
+      showToast(lang === 'ar' ? 'لا يمكن قبول عرض منتهي الصلاحية' : "Can't accept an expired quote", 'error');
+      return;
+    }
     if (action === 'accepted' || action === 'rejected') {
       const msg = action === 'accepted'
         ? (lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?')
@@ -522,7 +528,7 @@ export default function RequestDetailPage() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-bold text-stone-900">{q.supplierCompany}</p>
                         <p className="text-[11px] text-stone-400">{q.supplierName}</p>
-                        <StatusBadge status={q.status} lang={lang} />
+                        <StatusBadge status={getEffectiveQuoteStatus(q)} lang={lang} />
                         {q.id === cheapestId && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{t('cheapest', lang)}</span>}
                         {q.id === fastestId  && <span className="text-[9px] bg-[#F3EAE0] text-[#C0603E] px-1.5 py-0.5 rounded-full font-bold">{t('fastest', lang)}</span>}
                       </div>
@@ -538,7 +544,9 @@ export default function RequestDetailPage() {
                     </div>
                     {/* actions */}
                     <div className="flex gap-1.5 shrink-0 flex-wrap print:hidden">
-                      {q.status === 'pending' ? (
+                      {isQuoteExpired(q) ? (
+                        <span className="text-[10px] text-stone-400 self-center">{lang === 'ar' ? 'انتهت صلاحية العرض' : 'Quote expired'}</span>
+                      ) : q.status === 'pending' ? (
                         <>
                           <button onClick={() => handleQuoteAction(q.id, 'accepted')}
                             className="text-[11px] font-semibold px-3 py-1.5 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">

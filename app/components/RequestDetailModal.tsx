@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { displayVal, formatDate, getSupplierData, arToEn, Lang, Quote, ActivityLog, RequestLike } from '../lib/requestHelpers';
+import { displayVal, formatDate, getSupplierData, arToEn, Lang, Quote, ActivityLog, RequestLike, isQuoteExpired } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
 import { useEscapeKey } from './useEscapeKey';
 import QuoteCompareTable from './QuoteCompareTable';
@@ -156,6 +156,7 @@ export default function RequestDetailModal({
             ) : (
               <div className="space-y-3">
                 {quotes.map((quote: Quote) => {
+                  const expired = isQuoteExpired(quote);
                   const supplierData = quote.status === 'accepted' ? getSupplierData(quote.supplierId) : null;
                   return (
                     <div key={quote.id} className={`border rounded-xl p-4 ${quote.status === 'accepted' ? 'bg-emerald-50 border-emerald-200' : quote.status === 'rejected' ? 'bg-red-50 border-red-200' : quote.status === 'revision' ? 'bg-amber-50 border-amber-200' : 'bg-white border-stone-200'}`}>
@@ -165,8 +166,8 @@ export default function RequestDetailModal({
                           <p className="text-stone-400 text-xs">{quote.supplierName}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${quote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : quote.status === 'rejected' ? 'bg-red-100 text-red-700' : quote.status === 'revision' ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-600'}`}>
-                            {quote.status === 'accepted' ? tr('مقبول','Accepted') : quote.status === 'rejected' ? tr('مرفوض','Rejected') : quote.status === 'revision' ? tr('طلب تعديل','Revision Requested') : tr('قيد الانتظار','Pending')}
+                          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${expired ? 'bg-stone-100 text-stone-500' : quote.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' : quote.status === 'rejected' ? 'bg-red-100 text-red-700' : quote.status === 'revision' ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-600'}`}>
+                            {expired ? tr('منتهي','Expired') : quote.status === 'accepted' ? tr('مقبول','Accepted') : quote.status === 'rejected' ? tr('مرفوض','Rejected') : quote.status === 'revision' ? tr('طلب تعديل','Revision Requested') : tr('قيد الانتظار','Pending')}
                           </span>
                           <a href={`/print/quote/${quote.id}`} target="_blank" rel="noopener noreferrer"
                             className="text-[11px] font-semibold px-2.5 py-1 bg-stone-100 text-stone-600 rounded-full hover:bg-stone-200 transition-colors whitespace-nowrap">
@@ -201,12 +202,15 @@ export default function RequestDetailModal({
                           </div>
                         </div>
                       )}
-                      {quote.status === 'pending' && (
+                      {quote.status === 'pending' && !expired && (
                         <div className="flex gap-2 mt-3">
                           <button onClick={() => onQuoteAction(quote.id, 'accepted')} className="flex-1 bg-emerald-500 text-white text-xs font-bold py-2 rounded-lg hover:bg-emerald-600">{tr('قبول','Accept')}</button>
                           <button onClick={() => setRevisionQuoteId(quote.id)} className="flex-1 bg-amber-400 text-white text-xs font-bold py-2 rounded-lg hover:bg-amber-500">{tr('طلب تعديل','Revision')}</button>
                           <button onClick={() => onQuoteAction(quote.id, 'rejected')} className="flex-1 bg-red-500 text-white text-xs font-bold py-2 rounded-lg hover:bg-red-600">{tr('رفض','Reject')}</button>
                         </div>
+                      )}
+                      {expired && (
+                        <p className="mt-3 text-xs text-stone-400">{tr('انتهت صلاحية هذا العرض ولا يمكن قبوله.','This quote has expired and can no longer be accepted.')}</p>
                       )}
                       {revisionQuoteId === quote.id && (
                         <div className="mt-3 bg-white border border-amber-200 rounded-xl p-3">

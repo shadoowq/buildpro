@@ -1,6 +1,7 @@
 'use client';
 
 import StatusBadge from './StatusBadge';
+import { getEffectiveQuoteStatus } from '../lib/requestHelpers';
 
 type Lang = 'ar' | 'en';
 
@@ -12,6 +13,7 @@ export interface CompareQuote {
   deliveryDays: number;
   description?: string;
   status: 'pending' | 'accepted' | 'rejected' | 'revision';
+  validUntil?: string;
 }
 
 const T = {
@@ -75,6 +77,7 @@ export default function QuoteCompareTable({
         </thead>
         <tbody>
           {quotes.map((q, i) => {
+            const effectiveStatus = getEffectiveQuoteStatus(q);
             const isCheapest = q.id === cheapestId;
             const isFastest = q.id === fastestId;
             const diff = Number(q.totalPrice) - Number(cheapestPrice);
@@ -105,12 +108,14 @@ export default function QuoteCompareTable({
                       : <span className="text-red-600 font-bold">+{diff.toLocaleString()} ({diffPct}%)</span>}
                   </td>
                 )}
-                <td className="px-4 py-3"><StatusBadge status={q.status} lang={lang} /></td>
+                <td className="px-4 py-3"><StatusBadge status={effectiveStatus} lang={lang} /></td>
                 <td className="px-4 py-3 text-stone-500 max-w-[140px] truncate">{q.description || '—'}</td>
                 {variant === 'actions' && (
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 flex-wrap">
-                      {q.status === 'pending' ? (
+                      {effectiveStatus === 'expired' ? (
+                        <span className="text-[10px] text-stone-400">—</span>
+                      ) : q.status === 'pending' ? (
                         <>
                           <button onClick={() => onAccept?.(q.id)}
                             className="text-[10px] font-semibold px-2 py-1 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors">
