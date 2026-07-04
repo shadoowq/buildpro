@@ -44,6 +44,10 @@ export interface Quote {
   lineItems?: QuoteLineItem[]; attachments?: QuoteAttachment[];
   overallDiscount?: number; subtotalBeforeTax?: number; taxAmount?: number;
   deletedAt?: string;
+  editRequestStatus?: 'pending' | 'rejected';
+  editRequestNote?: string;
+  editRequestedAt?: string;
+  statusChangedAt?: string;
 }
 
 export interface ActivityLog { id: number; requestId: number; action: string; actionEn: string; timestamp: string; }
@@ -95,8 +99,9 @@ export function appendActivityLog(requestId: number, actionAr: string, actionEn:
 export function setQuoteStatus(quoteId: number, status: Quote['status'], revisionNote?: string): { quotes: Quote[]; quote: Quote | undefined } {
   const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
   const quote = allQuotes.find((q: Quote) => q.id === quoteId);
+  const statusChangedAt = new Date().toISOString();
   const updated = allQuotes.map((q: Quote) => q.id === quoteId
-    ? (status === 'revision' ? { ...q, status, revisionNote } : { ...q, status })
+    ? (status === 'revision' ? { ...q, status, revisionNote, statusChangedAt } : { ...q, status, statusChangedAt })
     : q);
   localStorage.setItem('quotes', JSON.stringify(updated));
   return { quotes: updated, quote };
@@ -133,6 +138,62 @@ export function permanentlyDeleteQuote(quoteId: number): { deleted: Quote[] } {
   return { deleted: remaining };
 }
 
+/** Supplier asks the contractor for permission to edit a quote they already sent. */
+export function requestQuoteEdit(quoteId: number, note: string): { quotes: Quote[]; quote: Quote | undefined } {
+  const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+  const quote = allQuotes.find((q: Quote) => q.id === quoteId);
+  const updated = allQuotes.map((q: Quote) => q.id === quoteId
+    ? { ...q, editRequestStatus: 'pending' as const, editRequestNote: note, editRequestedAt: new Date().toISOString() }
+    : q);
+  localStorage.setItem('quotes', JSON.stringify(updated));
+  return { quotes: updated, quote };
+}
+
+/** Contractor approves the supplier's edit request — this is equivalent to the contractor requesting a revision themselves. */
+export function approveQuoteEdit(quoteId: number): { quotes: Quote[]; quote: Quote | undefined } {
+  const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+  const quote = allQuotes.find((q: Quote) => q.id === quoteId);
+  const updated = allQuotes.map((q: Quote) => q.id === quoteId
+    ? { ...q, status: 'revision' as const, revisionNote: q.editRequestNote, editRequestStatus: undefined, editRequestNote: undefined, statusChangedAt: new Date().toISOString() }
+    : q);
+  localStorage.setItem('quotes', JSON.stringify(updated));
+  return { quotes: updated, quote };
+}
+
+/** Contractor declines the supplier's edit request; the quote stays as-is. */
+export function declineQuoteEdit(quoteId: number): { quotes: Quote[]; quote: Quote | undefined } {
+  const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+  const quote = allQuotes.find((q: Quote) => q.id === quoteId);
+  const updated = allQuotes.map((q: Quote) => q.id === quoteId
+    ? { ...q, editRequestStatus: 'rejected' as const }
+    : q);
+  localStorage.setItem('quotes', JSON.stringify(updated));
+  return { quotes: updated, quote };
+}
+
+/** Supplier dismisses the "your edit request was declined" notice. */
+export function clearEditRequestFlag(quoteId: number): { quotes: Quote[]; quote: Quote | undefined } {
+  const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+  const quote = allQuotes.find((q: Quote) => q.id === quoteId);
+  const updated = allQuotes.map((q: Quote) => q.id === quoteId
+    ? { ...q, editRequestStatus: undefined, editRequestNote: undefined }
+    : q);
+  localStorage.setItem('quotes', JSON.stringify(updated));
+  return { quotes: updated, quote };
+}
+
+/** Saves in-progress edits to a quote (e.g. during a revision) without resubmitting it — status and revisionNote are left untouched. */
+export function updateQuoteFields(
+  quoteId: number,
+  updates: Partial<Omit<Quote, 'id' | 'requestId' | 'supplierId' | 'createdAt' | 'status' | 'revisionNote'>>
+): { quotes: Quote[]; quote: Quote | undefined } {
+  const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
+  const quote = allQuotes.find((q: Quote) => q.id === quoteId);
+  const updated = allQuotes.map((q: Quote) => q.id === quoteId ? { ...q, ...updates } : q);
+  localStorage.setItem('quotes', JSON.stringify(updated));
+  return { quotes: updated, quote };
+}
+
 export function resubmitQuote(
   quoteId: number,
   updates: Partial<Omit<Quote, 'id' | 'requestId' | 'supplierId' | 'createdAt'>>
@@ -140,7 +201,7 @@ export function resubmitQuote(
   const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
   const quote = allQuotes.find((q: Quote) => q.id === quoteId);
   const updated = allQuotes.map((q: Quote) => q.id === quoteId
-    ? { ...q, ...updates, status: 'pending' as const, revisionNote: undefined }
+    ? { ...q, ...updates, status: 'pending' as const, revisionNote: undefined, statusChangedAt: new Date().toISOString() }
     : q);
   localStorage.setItem('quotes', JSON.stringify(updated));
   return { quotes: updated, quote };

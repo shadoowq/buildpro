@@ -8,7 +8,7 @@ import RequestDetailModal from '../components/RequestDetailModal';
 import RatingModal from '../components/RatingModal';
 import HelpTooltip from '../components/HelpTooltip';
 import QuoteCompareTable from '../components/QuoteCompareTable';
-import { displayVal, appendActivityLog, setQuoteStatus, softDeleteRequest, softDeleteRequests, getDeadlineUrgency } from '../lib/requestHelpers';
+import { displayVal, appendActivityLog, setQuoteStatus, softDeleteRequest, softDeleteRequests, getDeadlineUrgency, approveQuoteEdit, declineQuoteEdit } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -394,6 +394,16 @@ export default function MyRequests() {
     if (quote) addActivityLog(quote.requestId, `تم طلب تعديل على عرض ${quote.supplierCompany}: "${revisionNote}"`, `Requested revision on ${quote.supplierCompany}: "${revisionNote}"`);
     setRevisionQuoteId(null);
     setRevisionNote('');
+  };
+  const handleApproveEditRequest = (quoteId: number) => {
+    const { quotes: updated, quote } = approveQuoteEdit(quoteId);
+    setQuotes(updated);
+    if (quote) addActivityLog(quote.requestId, `تمت الموافقة على طلب ${quote.supplierCompany} بتعديل العرض`, `Approved ${quote.supplierCompany}'s request to edit their quote`);
+  };
+  const handleRejectEditRequest = (quoteId: number) => {
+    const { quotes: updated, quote } = declineQuoteEdit(quoteId);
+    setQuotes(updated);
+    if (quote) addActivityLog(quote.requestId, `تم رفض طلب ${quote.supplierCompany} بتعديل العرض`, `Declined ${quote.supplierCompany}'s request to edit their quote`);
   };
   const handleSubmitRating = (stars: number, comment: string) => {
     if (!ratingRequest || !ratingQuote) return;
@@ -1131,6 +1141,7 @@ export default function MyRequests() {
           onEdit={() => router.push(`/create-request?edit=${selectedRequest.id}`)}
           onDuplicate={() => { handleDuplicateRequest(selectedRequest); setSelectedRequest(null); }}
           onQuoteAction={handleQuoteAction} onRevisionSubmit={handleRevisionSubmit}
+          onApproveEditRequest={handleApproveEditRequest} onRejectEditRequest={handleRejectEditRequest}
           setLightboxImg={setLightboxImg}
         />
       )}

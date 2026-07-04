@@ -7,7 +7,7 @@ import ContractorNav from '../components/ContractorNav';
 import SupplierNav from '../components/SupplierNav';
 import StatusBadge from '../components/StatusBadge';
 import QuoteCompareTable from '../components/QuoteCompareTable';
-import { formatDate, appendActivityLog, setQuoteStatus, displayVal, withdrawQuote } from '../lib/requestHelpers';
+import { formatDate, appendActivityLog, setQuoteStatus, displayVal, withdrawQuote, requestQuoteEdit, approveQuoteEdit, declineQuoteEdit, clearEditRequestFlag } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
@@ -31,6 +31,8 @@ interface Quote {
   createdAt: string;
   quoteNumber?: string;
   validUntil?: string;
+  editRequestStatus?: 'pending' | 'rejected';
+  editRequestNote?: string;
 }
 
 interface Request {
@@ -96,6 +98,14 @@ const T = {
   withdrawnToTrash: { ar: 'تم نقل العرض لسلة المهملات', en: 'Quote moved to trash' },
   view:         { ar: 'عرض',                  en: 'View'                  },
   withdrawLocked: { ar: 'لا يمكن سحب العرض إلا بعد انتهاء صلاحيته', en: "Can't withdraw until the quote's validity expires" },
+  approve:      { ar: 'موافقة',               en: 'Approve'               },
+  editReqNotice:{ ar: 'المورد يطلب إذنًا بتعديل العرض:', en: 'Supplier requests permission to edit:' },
+  requestEditBtn:{ ar: 'طلب إذن بالتعديل',    en: 'Request Edit Permission' },
+  editReqPlaceholder: { ar: 'اكتب سبب طلب التعديل...', en: 'Explain why you want to edit...' },
+  sendEditReq:  { ar: 'إرسال الطلب',           en: 'Send Request'          },
+  editReqPendingBadge: { ar: 'بانتظار موافقة المقاول على التعديل', en: "Awaiting contractor's approval to edit" },
+  editReqRejectedNotice: { ar: 'تم رفض طلبك بالتعديل', en: 'Your edit request was declined' },
+  dismiss:      { ar: 'حسنًا',                 en: 'Dismiss'               },
 };
 
 function tFn(key: keyof typeof T, lang: Lang, n?: number): string {
@@ -199,6 +209,17 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
     if (q) appendActivityLog(q.requestId, `طلب تعديل على عرض ${q.supplierCompany}: "${revisionNote}"`, `Revision on ${q.supplierCompany}: "${revisionNote}"`);
     setRevisionQuoteId(null);
     setRevisionNote('');
+  };
+
+  const handleApproveEditRequest = (quoteId: number) => {
+    const { quotes: updated, quote: q } = approveQuoteEdit(quoteId);
+    setAllQuotes(updated.filter((x: Quote) => myRequests.some(r => r.id === x.requestId)));
+    if (q) appendActivityLog(q.requestId, `تمت الموافقة على طلب ${q.supplierCompany} بتعديل العرض`, `Approved ${q.supplierCompany}'s request to edit their quote`);
+  };
+  const handleRejectEditRequest = (quoteId: number) => {
+    const { quotes: updated, quote: q } = declineQuoteEdit(quoteId);
+    setAllQuotes(updated.filter((x: Quote) => myRequests.some(r => r.id === x.requestId)));
+    if (q) appendActivityLog(q.requestId, `تم رفض طلب ${q.supplierCompany} بتعديل العرض`, `Declined ${q.supplierCompany}'s request to edit their quote`);
   };
 
   const filteredQuotes = filter === 'all' ? allQuotes : allQuotes.filter(q => q.status === filter);
@@ -378,6 +399,15 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                             {q.status === 'revision' && q.revisionNote && (
                               <p className="text-xs text-amber-700 mt-1">✏ {q.revisionNote}</p>
                             )}
+                            {q.editRequestStatus === 'pending' && (
+                              <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-2.5" onClick={e => e.stopPropagation()}>
+                                <p className="text-xs text-amber-800"><strong>{tFn('editReqNotice', lang)}</strong> {q.editRequestNote}</p>
+                                <div className="flex gap-2 mt-1.5">
+                                  <button onClick={() => handleApproveEditRequest(q.id)} className="text-[11px] font-semibold px-3 py-1 bg-emerald-500 text-white rounded-md hover:bg-emerald-600 transition-colors">{tFn('approve', lang)}</button>
+                                  <button onClick={() => handleRejectEditRequest(q.id)} className="text-[11px] font-semibold px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors">{tFn('reject', lang)}</button>
+                                </div>
+                              </div>
+                            )}
                           </div>
 
                           {/* actions */}
@@ -457,6 +487,8 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [filter, setFilter] = useState<FilterTab>('all');
   const [pendingReqId, setPendingReqId] = useState<number | null>(null);
+  const [editReqQuoteId, setEditReqQuoteId] = useState<number | null>(null);
+  const [editReqNote, setEditReqNote] = useState('');
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
@@ -503,6 +535,26 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
     setQuotes(user ? updated.filter((q: Quote) => q.supplierId === user.email) : updated);
     appendActivityLog(requestId, `تم سحب عرض المورد`, `Supplier withdrew their quote`);
     showToast(tFn('withdrawnToTrash', lang));
+  };
+
+  const refreshQuotes = (updated: Quote[]) => {
+    const userData = localStorage.getItem('currentUser');
+    const user = userData ? JSON.parse(userData) : null;
+    setQuotes(user ? updated.filter((q: Quote) => q.supplierId === user.email) : updated);
+  };
+
+  const handleSendEditRequest = (quoteId: number, requestId: number) => {
+    if (!editReqNote.trim()) return;
+    const { quotes: updated } = requestQuoteEdit(quoteId, editReqNote);
+    refreshQuotes(updated);
+    appendActivityLog(requestId, `طلب المورد إذنًا بتعديل العرض: "${editReqNote}"`, `Supplier requested permission to edit their quote: "${editReqNote}"`);
+    setEditReqQuoteId(null);
+    setEditReqNote('');
+  };
+
+  const handleDismissEditRejection = (quoteId: number) => {
+    const { quotes: updated } = clearEditRequestFlag(quoteId);
+    refreshQuotes(updated);
   };
 
   const filteredQuotes = filter === 'all' ? quotes : quotes.filter(q => q.status === filter);
@@ -595,6 +647,20 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                     <p className="text-xs text-amber-700 mt-0.5">{q.revisionNote}</p>
                   </div>
                 )}
+                {q.editRequestStatus === 'pending' && (
+                  <div className="mt-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2">
+                    <p className="text-xs text-stone-600">⏳ {tFn('editReqPendingBadge', lang)}</p>
+                  </div>
+                )}
+                {q.editRequestStatus === 'rejected' && (
+                  <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 flex items-center justify-between gap-3">
+                    <p className="text-xs text-red-700">{tFn('editReqRejectedNotice', lang)}</p>
+                    <button onClick={() => handleDismissEditRejection(q.id)}
+                      className="text-[11px] font-semibold px-2.5 py-1 bg-white border border-red-200 text-red-600 rounded-md hover:bg-red-100 transition-colors shrink-0">
+                      {tFn('dismiss', lang)}
+                    </button>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between mt-3">
                   <p className="text-[10px] text-stone-400">{tFn('submittedOn', lang)} {formatDate(q.createdAt, lang)}</p>
@@ -618,6 +684,12 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                         {tFn('editResubmitBtn', lang)}
                       </Link>
                     )}
+                    {q.status !== 'revision' && !q.editRequestStatus && (
+                      <button onClick={() => { setEditReqQuoteId(q.id); setEditReqNote(''); }}
+                        className="text-[11px] font-semibold px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors">
+                        {tFn('requestEditBtn', lang)}
+                      </button>
+                    )}
                     <a href={`/print/quote/${q.id}`} target="_blank" title={tFn('view', lang)}
                       className="text-[11px] font-semibold px-3 py-1.5 bg-[#F3EAE0] text-[#C0603E] rounded-lg hover:bg-[#EADFCF] transition-colors">
                       👁 {tFn('view', lang)}
@@ -628,6 +700,23 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                     </a>
                   </div>
                 </div>
+                {editReqQuoteId === q.id && (
+                  <div className="mt-3 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <textarea value={editReqNote} onChange={e => setEditReqNote(e.target.value)}
+                      placeholder={tFn('editReqPlaceholder', lang)} rows={2}
+                      className="w-full text-xs border border-amber-200 rounded-lg px-3 py-2 outline-none font-cairo bg-white resize-none text-stone-700" />
+                    <div className="flex gap-2 mt-2">
+                      <button onClick={() => handleSendEditRequest(q.id, q.requestId)}
+                        className="text-xs font-semibold px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors">
+                        {tFn('sendEditReq', lang)}
+                      </button>
+                      <button onClick={() => { setEditReqQuoteId(null); setEditReqNote(''); }}
+                        className="text-xs font-semibold px-4 py-2 bg-white border border-amber-200 text-amber-700 rounded-lg hover:bg-amber-50 transition-colors">
+                        {tFn('cancel', lang)}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })

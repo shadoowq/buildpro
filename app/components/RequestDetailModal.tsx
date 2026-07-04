@@ -15,12 +15,15 @@ interface RequestDetailModalProps {
   onClose: () => void; onToggle: () => void; onDelete: () => void; onEdit: () => void; onDuplicate: () => void;
   onQuoteAction: (quoteId: number, action: 'accepted' | 'rejected' | 'pending') => void;
   onRevisionSubmit: (quoteId: number) => void;
+  onApproveEditRequest: (quoteId: number) => void;
+  onRejectEditRequest: (quoteId: number) => void;
   setLightboxImg: (img: string | null) => void;
 }
 
 export default function RequestDetailModal({
   req, lang, dir, quotes, logs, revisionQuoteId, revisionNote, setRevisionQuoteId, setRevisionNote,
-  onClose, onToggle, onDelete, onEdit, onDuplicate, onQuoteAction, onRevisionSubmit, setLightboxImg,
+  onClose, onToggle, onDelete, onEdit, onDuplicate, onQuoteAction, onRevisionSubmit,
+  onApproveEditRequest, onRejectEditRequest, setLightboxImg,
 }: RequestDetailModalProps) {
   const tr = (ar: string, en: string) => lang === 'ar' ? ar : en;
   const [linkCopied, setLinkCopied] = useState(false);
@@ -187,6 +190,15 @@ export default function RequestDetailModal({
                       {quote.status === 'revision' && quote.revisionNote && (
                         <div className="mt-3 bg-amber-100 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
                           <strong>{tr('ملاحظة التعديل:','Revision Note:')}</strong> {quote.revisionNote}
+                        </div>
+                      )}
+                      {quote.editRequestStatus === 'pending' && (
+                        <div className="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3">
+                          <p className="text-xs text-amber-800"><strong>{tr('المورد يطلب إذنًا بتعديل العرض:','Supplier requests permission to edit:')}</strong> {quote.editRequestNote}</p>
+                          <div className="flex gap-2 mt-2">
+                            <button onClick={() => onApproveEditRequest(quote.id)} className="flex-1 bg-emerald-500 text-white text-xs font-bold py-1.5 rounded-lg hover:bg-emerald-600">{tr('موافقة','Approve')}</button>
+                            <button onClick={() => onRejectEditRequest(quote.id)} className="flex-1 bg-red-500 text-white text-xs font-bold py-1.5 rounded-lg hover:bg-red-600">{tr('رفض','Reject')}</button>
+                          </div>
                         </div>
                       )}
                       {quote.status === 'pending' && (

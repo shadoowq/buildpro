@@ -12,7 +12,7 @@ import {
   VAT_RATE, lineSubtotal, computeQuoteTotals,
 } from '../../../lib/materialOptions';
 import {
-  appendActivityLog, getSupplierData, generateQuoteNumber, resubmitQuote, displayVal,
+  appendActivityLog, getSupplierData, generateQuoteNumber, resubmitQuote, updateQuoteFields, displayVal,
   Quote, QuoteLineItem, QuoteAttachment,
 } from '../../../lib/requestHelpers';
 
@@ -147,7 +147,9 @@ const T = {
   notesPh:      { ar: 'أي تفاصيل إضافية...',     en: 'Any additional details...' },
   reviewBtn:    { ar: 'مراجعة العرض',            en: 'Review Quote' },
   submitBtn:    { ar: 'إرسال العرض',             en: 'Submit Quote' },
-  updateBtn:    { ar: 'حفظ التعديلات',           en: 'Save Changes' },
+  updateBtn:    { ar: 'حفظ وإرسال',              en: 'Save & Send' },
+  saveOnlyBtn:  { ar: 'حفظ فقط',                en: 'Save Only' },
+  savedOnly:    { ar: 'تم حفظ التعديلات — لم يتم إرسالها للمقاول بعد', en: "Changes saved — not yet sent to the contractor" },
   saveDraftBtn: { ar: 'حفظ كمسودة',              en: 'Save as Draft' },
   printPreview: { ar: 'معاينة الطباعة',          en: 'Print Preview' },
   draftSaved:   { ar: 'تم حفظ المسودة — يمكنك إكمالها لاحقًا من نفس الطلب', en: 'Draft saved — you can continue it later from the same request' },
@@ -437,7 +439,7 @@ export default function SupplierQuoteBuilder() {
     const newQuote: Quote = {
       id: Date.now(), requestId, supplierId: user.email,
       supplierName: user.name, supplierCompany: user.company,
-      status: 'pending', createdAt: new Date().toISOString(),
+      status: 'pending', createdAt: new Date().toISOString(), statusChangedAt: new Date().toISOString(),
       ...commonFields,
     };
     try {
@@ -451,6 +453,18 @@ export default function SupplierQuoteBuilder() {
     localStorage.removeItem(`quoteDraft_${requestId}`);
     showToast(tx('submitted', language));
     router.push('/supplier-requests');
+  };
+
+  const handleSaveOnly = () => {
+    if (!editQuoteId) return;
+    const commonFields = buildQuotePayload();
+    try {
+      updateQuoteFields(editQuoteId, commonFields);
+    } catch {
+      showToast(tx('tooLarge', language), 'error');
+      return;
+    }
+    showToast(tx('savedOnly', language));
   };
 
   const confirmAndSubmit = async () => {
@@ -746,6 +760,12 @@ export default function SupplierQuoteBuilder() {
             <button type="button" onClick={handleSaveDraft}
               className="px-6 py-3 bg-transparent text-[#8A7B6C] border border-[#E8DFD3] rounded-xl font-bold text-sm hover:bg-[#FAF7F2] transition-colors">
               {tx('saveDraftBtn', language)}
+            </button>
+          )}
+          {editQuoteId && (
+            <button type="button" onClick={() => { if (validate()) handleSaveOnly(); }}
+              className="px-6 py-3 bg-transparent text-[#8A7B6C] border border-[#E8DFD3] rounded-xl font-bold text-sm hover:bg-[#FAF7F2] transition-colors">
+              {tx('saveOnlyBtn', language)}
             </button>
           )}
           <button type="button" onClick={handlePrintPreview}

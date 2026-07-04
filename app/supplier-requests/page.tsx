@@ -10,6 +10,8 @@ import { useToast } from '../components/Toast';
 
 type Lang = 'ar' | 'en';
 type FilterTab = 'all' | 'notQuoted' | 'quoted' | 'urgent';
+type ViewMode = 'cards' | 'table';
+type SortBy = 'newest' | 'deadline';
 
 interface Request {
   id: number;
@@ -44,6 +46,33 @@ const T = {
   continueDraft:{ ar: 'متابعة العرض (مسودة محفوظة)', en: 'Continue Quote (Draft Saved)' },
   quoteSubmitted:{ ar: '✓ تم تقديم عرض السعر', en: '✓ Quote Submitted' },
   viewQuote:    { ar: 'عرض التفاصيل',        en: 'View Details' },
+  viewTable:    { ar: 'جدول',                en: 'Table'        },
+  viewCards:    { ar: 'كروت',                en: 'Cards'        },
+  sortLabel:    { ar: 'الترتيب:',            en: 'Sort:'        },
+  sortNewest:   { ar: 'الأحدث',              en: 'Newest'       },
+  sortDeadline: { ar: 'الأقرب ميعادًا',       en: 'Soonest Deadline' },
+  preview:      { ar: 'معاينة سريعة',        en: 'Quick Preview' },
+  reqId:        { ar: 'رقم الطلب',           en: 'Request #'    },
+  name:         { ar: 'الاسم',               en: 'Name'         },
+  materials:    { ar: 'المواد',              en: 'Materials'    },
+  action:       { ar: 'إجراء',              en: 'Action'        },
+  previewTitle: { ar: 'معاينة الطلب',        en: 'Request Preview' },
+  close:        { ar: 'إغلاق',              en: 'Close'         },
+  reqMaterials: { ar: 'المواد المطلوبة',     en: 'Required Materials' },
+  description:  { ar: 'الوصف',              en: 'Description'   },
+  material:     { ar: 'نوع المادة',          en: 'Material'      },
+  usage:        { ar: 'الاستخدام',           en: 'Usage'         },
+  size:         { ar: 'المقاس',              en: 'Size'          },
+  thickness:    { ar: 'السماكة',             en: 'Thickness'     },
+  finish:       { ar: 'الفنش',               en: 'Finish'        },
+  color:        { ar: 'اللون',               en: 'Color'         },
+  qty:          { ar: 'الكمية',              en: 'Qty'           },
+  targetPrice:  { ar: 'السعر المستهدف',      en: 'Target Price'  },
+  origin:       { ar: 'الصناعة',             en: 'Origin'        },
+  deliveryDate: { ar: 'تاريخ التوريد',       en: 'Delivery Date' },
+  note:         { ar: 'وصف البند',           en: 'Note'          },
+  images:       { ar: 'الصور',               en: 'Images'        },
+  noValue:      { ar: '—',                   en: '—'             },
 };
 
 function tStr(key: keyof typeof T, lang: Lang): string {
@@ -66,6 +95,10 @@ export default function SupplierRequests() {
   const [allQuotes, setAllQuotes] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterTab>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>('cards');
+  const [sortBy, setSortBy] = useState<SortBy>('newest');
+  const [previewRequest, setPreviewRequest] = useState<Request | null>(null);
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [pendingReqId, setPendingReqId] = useState<number | null>(null);
   const router = useRouter();
   const showToast = useToast();
@@ -155,12 +188,54 @@ export default function SupplierRequests() {
     return matchSearch && matchFilter;
   });
 
+  const sorted = [...filtered].sort((a, b) => {
+    if (sortBy === 'deadline') {
+      const da = a.deadline ? new Date(a.deadline).getTime() : Infinity;
+      const db = b.deadline ? new Date(b.deadline).getTime() : Infinity;
+      return da - db;
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
   const stats = [
     { icon: '📋', bg: 'bg-[#F3EAE0]', val: openRequests.length, label: tStr('statAvail', language) },
     { icon: '📨', bg: 'bg-orange-50', val: openRequests.filter(r => !hasQuoted(r.id)).length, label: tStr('statNotQ', language) },
     { icon: '⏱', bg: 'bg-amber-50', val: urgentIds.size, label: tStr('statUrgent', language) },
     { icon: '✅', bg: 'bg-emerald-50', val: openRequests.filter(r => hasQuoted(r.id)).length, label: tStr('statQ', language) },
   ];
+
+  const renderQuoteAction = (request: Request, compact?: boolean) => {
+    const quoted = hasQuoted(request.id);
+    if (quoted) {
+      return (
+        <div className="flex gap-2">
+          <div className="flex-1 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-center font-bold text-xs">
+            {tStr('quoteSubmitted', language)}
+          </div>
+          {myQuoteFor(request.id) && (
+            <a href={`/print/quote/${myQuoteFor(request.id).id}`} target="_blank" onClick={e => e.stopPropagation()}
+              className="py-2.5 px-3 bg-white text-[#C0603E] border border-[#C0603E] rounded-xl font-bold text-xs hover:bg-[#FFFDF9] transition-colors text-center">
+              {tStr('viewQuote', language)}
+            </a>
+          )}
+        </div>
+      );
+    }
+    if (hasDraft(request.id)) {
+      return (
+        <Link href={`/supplier-requests/quote/${request.id}`} onClick={e => e.stopPropagation()}
+          className={`${compact ? '' : 'w-full'} py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs transition-colors text-center block`}>
+          📝 {tStr('continueDraft', language)}
+        </Link>
+      );
+    }
+    return (
+      <Link href={`/supplier-requests/quote/${request.id}`} onClick={e => e.stopPropagation()}
+        className={`${compact ? '' : 'w-full'} py-2.5 bg-[#C0603E] hover:bg-[#9C4C31] text-white rounded-xl font-bold text-xs transition-colors text-center block`}>
+        {tStr('submitQuote', language)}
+      </Link>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
@@ -213,20 +288,82 @@ export default function SupplierRequests() {
         ))}
       </div>
 
+      {/* TOOLBAR: sort + view toggle */}
+      <div className="flex items-center justify-between flex-wrap gap-3 px-4 md:px-7 pb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-stone-400 font-semibold">{tStr('sortLabel', language)}</span>
+          <div className="flex items-center gap-1 bg-white border border-[#E8DFD3] rounded-lg p-0.5">
+            {([['newest', tStr('sortNewest', language)], ['deadline', tStr('sortDeadline', language)]] as [SortBy, string][]).map(([v, l]) => (
+              <button key={v} onClick={() => setSortBy(v)}
+                className={`text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${sortBy === v ? 'bg-[#8A7B6C] text-white' : 'text-stone-500 hover:bg-stone-50'}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-1 bg-white border border-[#E8DFD3] rounded-xl p-1">
+          {([
+            { mode: 'cards' as ViewMode, icon: '⊞', label: tStr('viewCards', language) },
+            { mode: 'table' as ViewMode, icon: '☰', label: tStr('viewTable', language) },
+          ]).map(v => (
+            <button key={v.mode} onClick={() => setViewMode(v.mode)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === v.mode ? 'bg-[#F3EAE0] text-[#C0603E]' : 'text-stone-400 hover:text-stone-600'}`}>
+              <span className="text-sm">{v.icon}</span>
+              {v.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="px-4 md:px-7 pb-10">
-        {filtered.length === 0 ? (
+        {sorted.length === 0 ? (
           <div className="bg-white border border-[#E8DFD3] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
             <span className="text-4xl">📭</span>
             <p className="text-stone-900 font-bold text-base">{tStr('noRequests', language)}</p>
           </div>
+        ) : viewMode === 'table' ? (
+          <div className="bg-white border border-[#E8DFD3] rounded-2xl overflow-hidden overflow-x-auto">
+            <table className="w-full text-xs" style={{ minWidth: 760 }}>
+              <thead>
+                <tr className="bg-[#FAF7F2] border-b border-[#F1EAE0]">
+                  {['#', tStr('name', language), tStr('materials', language), tStr('location', language), tStr('deadline', language), tStr('action', language)].map((h, i) => (
+                    <th key={i} className="px-4 py-2.5 text-[11px] font-semibold text-stone-500 whitespace-nowrap text-start">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map(request => {
+                  const urgency = getDeadlineUrgency(request.deadline, false);
+                  return (
+                    <tr key={request.id} id={`avail-req-${request.id}`}
+                      className="border-b border-[#F1EAE0] last:border-0 hover:bg-[#FFFDF9] cursor-pointer transition-colors"
+                      onClick={() => setPreviewRequest(request)}>
+                      <td className="px-4 py-3 font-semibold text-[#C0603E]">
+                        {urgency === 'overdue' ? '🔴' : urgency === 'soon' ? '🟠' : '🟢'} {String(request.id).slice(-6)}
+                      </td>
+                      <td className="px-4 py-3 font-bold text-stone-900 whitespace-nowrap">{getReqName(request)}</td>
+                      <td className="px-4 py-3 text-stone-500 max-w-[220px] truncate">{getReqMaterialLines(request).join(' · ') || tStr('noValue', language)}</td>
+                      <td className="px-4 py-3 text-stone-500 whitespace-nowrap">📍 {getCityName(request.location, language)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={urgency === 'overdue' ? 'text-red-600 font-semibold' : urgency === 'soon' ? 'text-amber-600 font-semibold' : 'text-stone-600'}>{request.deadline || tStr('noValue', language)}</span>
+                      </td>
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                        <div className="min-w-[140px]">{renderQuoteAction(request, true)}</div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
           <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
-            {filtered.map(request => {
+            {sorted.map(request => {
               const urgency = getDeadlineUrgency(request.deadline, false);
-              const quoted = hasQuoted(request.id);
               return (
                 <div key={request.id} id={`avail-req-${request.id}`}
-                  className="bg-white border border-[#E8DFD3] rounded-2xl p-5 transition-shadow">
+                  className="bg-white border border-[#E8DFD3] rounded-2xl p-5 transition-shadow cursor-pointer hover:shadow-md"
+                  onClick={() => setPreviewRequest(request)}>
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-bold text-stone-900">{getReqName(request)}</h3>
                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${urgency === 'overdue' ? 'bg-red-50 text-red-700 border border-red-200' : urgency === 'soon' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
@@ -246,29 +383,14 @@ export default function SupplierRequests() {
                     ))}
                   </div>
 
-                  {quoted ? (
-                    <div className="flex gap-2">
-                      <div className="flex-1 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-center font-bold text-xs">
-                        {tStr('quoteSubmitted', language)}
-                      </div>
-                      {myQuoteFor(request.id) && (
-                        <a href={`/print/quote/${myQuoteFor(request.id).id}`} target="_blank"
-                          className="py-2.5 px-3 bg-white text-[#C0603E] border border-[#C0603E] rounded-xl font-bold text-xs hover:bg-[#FFFDF9] transition-colors text-center">
-                          {tStr('viewQuote', language)}
-                        </a>
-                      )}
-                    </div>
-                  ) : hasDraft(request.id) ? (
-                    <Link href={`/supplier-requests/quote/${request.id}`}
-                      className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs transition-colors text-center block">
-                      📝 {tStr('continueDraft', language)}
-                    </Link>
-                  ) : (
-                    <Link href={`/supplier-requests/quote/${request.id}`}
-                      className="w-full py-2.5 bg-[#C0603E] hover:bg-[#9C4C31] text-white rounded-xl font-bold text-xs transition-colors text-center block">
-                      {tStr('submitQuote', language)}
-                    </Link>
-                  )}
+                  <div className="flex items-center justify-between mb-3">
+                    <button onClick={e => { e.stopPropagation(); setPreviewRequest(request); }}
+                      className="text-[11px] font-semibold text-[#8A7B6C] hover:underline">
+                      👁 {tStr('preview', language)}
+                    </button>
+                  </div>
+
+                  {renderQuoteAction(request)}
                 </div>
               );
             })}
@@ -276,6 +398,95 @@ export default function SupplierRequests() {
         )}
       </div>
 
+      {/* QUICK PREVIEW MODAL */}
+      {previewRequest && (
+        <div className="fixed inset-0 bg-black/50 z-[1000] flex items-center justify-center p-4" onClick={() => setPreviewRequest(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" dir={dir} role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-stone-100 flex-wrap gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <h2 className="text-lg font-bold text-stone-900">{tStr('previewTitle', language)}</h2>
+                <span className="text-[#8A7B6C] font-bold text-sm">{getReqName(previewRequest)}</span>
+                <span className="text-stone-400 text-sm">📍 {getCityName(previewRequest.location, language)}</span>
+                {previewRequest.deadline && <span className="text-stone-400 text-sm">⏱ {previewRequest.deadline}</span>}
+              </div>
+              <button onClick={() => setPreviewRequest(null)} aria-label={tStr('close', language)}
+                className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center font-bold hover:bg-red-100 text-lg">✕</button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              <div>
+                <h3 className="text-sm font-bold text-stone-900 mb-3">{tStr('reqMaterials', language)}</h3>
+                {previewRequest.materials && previewRequest.materials.length > 0 ? (
+                  <div className="overflow-x-auto border border-stone-200 rounded-xl">
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          {['#', tStr('material', language), tStr('usage', language), tStr('size', language), tStr('thickness', language), tStr('finish', language), tStr('color', language), tStr('qty', language), tStr('targetPrice', language), tStr('origin', language), tStr('deliveryDate', language), tStr('note', language), tStr('images', language)].map(h => (
+                            <th key={h} style={{ padding: '8px 10px', backgroundColor: '#C0603E', color: 'white', fontWeight: 700, fontSize: 12, whiteSpace: 'nowrap', textAlign: 'center', border: '1px solid #9C4C31' }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {previewRequest.materials.map((m: any, i: number) => (
+                          <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#fff' : '#FAF7F2' }}>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{i + 1}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3', fontWeight: 700 }}>{displayVal(m.type, language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{displayVal(m.usage, language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{m.size || tStr('noValue', language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{m.thickness || tStr('noValue', language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{displayVal(m.finish, language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{displayVal(m.color, language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{m.quantity ? `${m.quantity} ${displayVal(m.unit, language) !== '—' ? displayVal(m.unit, language) : 'm²'}` : tStr('noValue', language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{m.targetPrice ? `${m.targetPrice} ${m.currency || 'ر.س'}` : tStr('noValue', language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{displayVal(m.origin, language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>{m.deliveryDate || tStr('noValue', language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 11, textAlign: 'center', border: '1px solid #E8DFD3', maxWidth: 120 }}>{m.note || tStr('noValue', language)}</td>
+                            <td style={{ padding: '7px 10px', color: '#44403C', fontSize: 12, textAlign: 'center', border: '1px solid #E8DFD3' }}>
+                              {m.images && m.images.length > 0 ? (
+                                <div className="flex gap-1 justify-center">
+                                  {m.images.map((img: string, j: number) => (
+                                    <img key={j} src={img} alt="" onClick={() => setLightboxImg(img)}
+                                      className="w-10 h-10 object-cover rounded border border-stone-200 cursor-zoom-in" />
+                                  ))}
+                                </div>
+                              ) : tStr('noValue', language)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="bg-stone-50 rounded-xl p-4 text-sm text-stone-600 space-y-1">
+                    {getReqMaterialLines(previewRequest).map((line, i) => <p key={i}>• {line}</p>)}
+                  </div>
+                )}
+              </div>
+
+              {previewRequest.description && (
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900 mb-2">{tStr('description', language)}</h3>
+                  <div className="bg-stone-50 rounded-xl p-4 text-sm text-stone-600">{previewRequest.description}</div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 p-5 border-t border-stone-100">
+              <button onClick={() => setPreviewRequest(null)} className="flex-1 bg-stone-100 text-stone-600 font-semibold py-2.5 rounded-xl text-sm hover:bg-stone-200">{tStr('close', language)}</button>
+              <div className="flex-1">{renderQuoteAction(previewRequest)}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* IMAGE LIGHTBOX */}
+      {lightboxImg && (
+        <div className="fixed inset-0 bg-black/90 z-[2000] flex items-center justify-center cursor-zoom-out" role="dialog" aria-modal="true" onClick={() => setLightboxImg(null)}>
+          <img src={lightboxImg} alt="" className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg" />
+          <button onClick={() => setLightboxImg(null)} aria-label={tStr('close', language)}
+            className="absolute top-5 right-5 bg-red-500 text-white px-4 py-2 rounded-lg font-bold text-sm">✕</button>
+        </div>
+      )}
     </div>
   );
 }

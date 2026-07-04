@@ -105,6 +105,15 @@ body {
 }
 /* ── BuildPro Global Styles ── */
 
+@keyframes bp-alert-in {
+  0%   { transform: translateY(50px) scale(0.92); opacity: 0; }
+  55%  { transform: translateY(-8px) scale(1.03); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.bp-alert-enter {
+  animation: bp-alert-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 .bp-page {
   background: #F7F2EC;
   min-height: 100vh;

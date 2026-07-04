@@ -1,20 +1,34 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { NotifItem, notifIconMap } from '../lib/notifications';
+import { NotifItem, NotifType, notifIconMap } from '../lib/notifications';
 import { playNotificationSound } from '../lib/notificationSound';
 
 type Lang = 'ar' | 'en';
 
+/** Strong accent color per notification type — used for the card border/ring so the alert reads instantly, not just its icon tint. */
+const alertAccent: Record<NotifType, { border: string; ring: string }> = {
+  quote:       { border: 'border-[#C0603E]', ring: 'bg-[#C0603E]' },
+  accepted:    { border: 'border-emerald-500', ring: 'bg-emerald-500' },
+  rejected:    { border: 'border-red-500', ring: 'bg-red-500' },
+  revision:    { border: 'border-amber-500', ring: 'bg-amber-500' },
+  close:       { border: 'border-stone-400', ring: 'bg-stone-400' },
+  open:        { border: 'border-[#C0603E]', ring: 'bg-[#C0603E]' },
+  rated:       { border: 'border-amber-500', ring: 'bg-amber-500' },
+  invite:      { border: 'border-[#C0603E]', ring: 'bg-[#C0603E]' },
+  editRequest: { border: 'border-amber-500', ring: 'bg-amber-500' },
+};
+
 /**
  * Watches `notifs` for items that weren't seen on a previous pass (tracked via
  * `storageKey`, separate from the bell's read/unread state) and surfaces each
- * one as a bottom banner + chime for 5 seconds. The very first time it runs
+ * one as a bottom banner + chime for 6 seconds. The very first time it runs
  * for a given key it snapshots the current list silently — only notifications
  * that show up *after* that baseline trigger an alert.
  */
 export default function NotificationAlertBar({ notifs, lang, storageKey }: { notifs: NotifItem[]; lang: Lang; storageKey: string }) {
   const [current, setCurrent] = useState<NotifItem | null>(null);
+  const [alertKey, setAlertKey] = useState(0);
   const queueRef = useRef<NotifItem[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -22,8 +36,9 @@ export default function NotificationAlertBar({ notifs, lang, storageKey }: { not
     const next = queueRef.current.shift();
     if (!next) { setCurrent(null); timerRef.current = null; return; }
     setCurrent(next);
+    setAlertKey(k => k + 1);
     playNotificationSound();
-    timerRef.current = setTimeout(showNext, 5000);
+    timerRef.current = setTimeout(showNext, 6000);
   };
 
   useEffect(() => {
@@ -50,15 +65,24 @@ export default function NotificationAlertBar({ notifs, lang, storageKey }: { not
 
   if (!current) return null;
   const icon = notifIconMap[current.type];
+  const accent = alertAccent[current.type];
 
   return (
-    <div className="fixed bottom-4 inset-x-0 z-[3000] flex justify-center px-4 pointer-events-none">
-      <div className="pointer-events-auto bg-white border border-[#E8DFD3] shadow-xl rounded-2xl px-4 py-3 flex items-center gap-3 max-w-sm w-full">
-        <div className={`w-9 h-9 rounded-lg ${icon.bg} flex items-center justify-center text-base shrink-0`}>{icon.icon}</div>
-        <p className="text-xs text-stone-700 leading-relaxed flex-1">{lang === 'ar' ? current.textAr : current.textEn}</p>
+    <div className="fixed bottom-6 inset-x-0 z-[3000] flex justify-center px-4 pointer-events-none">
+      <div key={alertKey}
+        className={`bp-alert-enter pointer-events-auto bg-white border-2 ${accent.border} shadow-2xl rounded-2xl px-5 py-4 flex items-center gap-4 max-w-md w-full`}>
+        <div className="relative w-12 h-12 shrink-0">
+          <span className={`absolute inset-0 rounded-xl ${accent.ring} opacity-30 animate-ping`} />
+          <div className={`relative w-12 h-12 rounded-xl ${icon.bg} flex items-center justify-center text-2xl`}>{icon.icon}</div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-bold text-stone-400 uppercase tracking-wide mb-0.5">{lang === 'ar' ? 'إشعار جديد' : 'New Notification'}</p>
+          <p className="text-sm font-semibold text-stone-800 leading-snug">{lang === 'ar' ? current.textAr : current.textEn}</p>
+        </div>
         <button
           onClick={() => { if (timerRef.current) clearTimeout(timerRef.current); showNext(); }}
-          className="text-stone-300 hover:text-stone-500 text-sm shrink-0">✕</button>
+          aria-label={lang === 'ar' ? 'إغلاق' : 'Close'}
+          className="text-stone-300 hover:text-stone-500 text-lg font-bold shrink-0 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-stone-50 transition-colors">✕</button>
       </div>
     </div>
   );

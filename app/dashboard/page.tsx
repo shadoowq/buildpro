@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import ContractorNav from '../components/ContractorNav'
 import RequestDetailModal from '../components/RequestDetailModal'
 import RatingModal from '../components/RatingModal'
-import { appendActivityLog, setQuoteStatus, softDeleteRequest, displayVal, getUnfinishedAutosave, getDeadlineUrgency } from '../lib/requestHelpers'
+import { appendActivityLog, setQuoteStatus, softDeleteRequest, displayVal, getUnfinishedAutosave, getDeadlineUrgency, approveQuoteEdit, declineQuoteEdit } from '../lib/requestHelpers'
 import HelpTooltip from '../components/HelpTooltip'
 import { useToast } from '../components/Toast'
 import { useConfirm } from '../components/ConfirmDialog'
@@ -410,6 +410,17 @@ export default function DashboardPage() {
     setRevisionNote('')
   }
 
+  const handleApproveEditRequest = (quoteId: number) => {
+    const { quotes: updated, quote } = approveQuoteEdit(quoteId)
+    setAllQuotes(updated)
+    if (quote) setActivityLogs(appendActivityLog(quote.requestId, `تمت الموافقة على طلب ${quote.supplierCompany} بتعديل العرض`, `Approved ${quote.supplierCompany}'s request to edit their quote`))
+  }
+  const handleRejectEditRequest = (quoteId: number) => {
+    const { quotes: updated, quote } = declineQuoteEdit(quoteId)
+    setAllQuotes(updated)
+    if (quote) setActivityLogs(appendActivityLog(quote.requestId, `تم رفض طلب ${quote.supplierCompany} بتعديل العرض`, `Declined ${quote.supplierCompany}'s request to edit their quote`))
+  }
+
   /* ══════════════════════════════════ RENDER ══════════════════════════════════ */
   return (
     <div className="min-h-screen bg-[#F7F2EC] font-cairo" dir={dir}>
@@ -703,6 +714,7 @@ export default function DashboardPage() {
           onEdit={() => router.push(`/create-request?edit=${selected.id}`)}
           onDuplicate={() => handleDuplicate(selected)}
           onQuoteAction={handleQuoteAction} onRevisionSubmit={handleRevisionSubmit}
+          onApproveEditRequest={handleApproveEditRequest} onRejectEditRequest={handleRejectEditRequest}
           setLightboxImg={setLightbox}
         />
       )}

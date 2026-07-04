@@ -1,5 +1,5 @@
 export type Lang = 'ar' | 'en';
-export type NotifType = 'quote' | 'accepted' | 'rejected' | 'revision' | 'close' | 'open' | 'rated' | 'invite';
+export type NotifType = 'quote' | 'accepted' | 'rejected' | 'revision' | 'close' | 'open' | 'rated' | 'invite' | 'editRequest';
 
 export interface NotifItem {
   id: string;
@@ -20,10 +20,11 @@ export const notifIconMap: Record<NotifType, { bg: string; icon: string; color: 
   open:     { bg: 'bg-[#F3EAE0]',  icon: '🔓', color: 'text-[#C0603E]'   },
   rated:    { bg: 'bg-amber-50',   icon: '⭐', color: 'text-amber-500'   },
   invite:   { bg: 'bg-[#F3EAE0]',  icon: '📨', color: 'text-[#C0603E]'   },
+  editRequest: { bg: 'bg-amber-50', icon: '🔏', color: 'text-amber-500' },
 };
 
 export function notifHref(n: Pick<NotifItem, 'type' | 'requestId'>, role?: 'contractor' | 'supplier'): string {
-  const quoteTypes: NotifType[] = ['quote', 'accepted', 'rejected', 'revision'];
+  const quoteTypes: NotifType[] = ['quote', 'accepted', 'rejected', 'revision', 'editRequest'];
   if (role === 'supplier') {
     return quoteTypes.includes(n.type)
       ? `/my-quotes?reqId=${n.requestId}`
@@ -63,7 +64,7 @@ export function buildNotifications(
         : q.status === 'revision' ? 'revision'
         : 'quote';
       return {
-        id: `q-${q.id}`,
+        id: `q-${q.id}-${q.status}-${q.statusChangedAt || ''}`,
         type,
         requestId: q.requestId,
         textAr: type === 'quote'    ? `${q.supplierCompany} أرسل عرض سعر على طلب #${q.requestId}`
@@ -74,10 +75,22 @@ export function buildNotifications(
               : type === 'accepted' ? `Accepted quote from ${q.supplierCompany} at ${Number(q.totalPrice).toLocaleString()} SAR`
               : type === 'rejected' ? `Rejected quote from ${q.supplierCompany}`
               :                       `Revision requested on ${q.supplierCompany} quote`,
-        timestamp: q.createdAt,
+        timestamp: q.statusChangedAt || q.createdAt,
         unread: q.status === 'pending',
       };
     });
+
+  const editRequestItems: NotifItem[] = allQuotes
+    .filter(q => idSet.has(q.requestId) && q.editRequestStatus === 'pending')
+    .map(q => ({
+      id: `editreq-${q.id}-${q.editRequestedAt || ''}`,
+      type: 'editRequest' as NotifType,
+      requestId: q.requestId,
+      textAr: `${q.supplierCompany} يطلب إذنًا بتعديل عرضه على طلب #${q.requestId}`,
+      textEn: `${q.supplierCompany} is requesting permission to edit their quote on request #${q.requestId}`,
+      timestamp: q.createdAt,
+      unread: true,
+    }));
 
   const logItems: NotifItem[] = !includeLogs ? [] : allActivityLogs
     .filter(l => idSet.has(l.requestId))
@@ -100,7 +113,7 @@ export function buildNotifications(
     })
     .filter((x): x is NotifItem => x !== null);
 
-  const all = [...quoteItems, ...logItems]
+  const all = [...quoteItems, ...editRequestItems, ...logItems]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return opts?.limit ? all.slice(0, opts.limit) : all;
@@ -121,7 +134,7 @@ export function buildSupplierNotifications(
     .map(q => {
       const type: NotifType = q.status === 'accepted' ? 'accepted' : q.status === 'rejected' ? 'rejected' : 'revision';
       return {
-        id: `q-${q.id}-${q.status}`,
+        id: `q-${q.id}-${q.status}-${q.statusChangedAt || ''}`,
         type,
         requestId: q.requestId,
         textAr: type === 'accepted' ? `تم قبول عرضك على طلب #${q.requestId} بسعر ${Number(q.totalPrice).toLocaleString()} ر.س`
@@ -130,10 +143,22 @@ export function buildSupplierNotifications(
         textEn: type === 'accepted' ? `Your quote on request #${q.requestId} was accepted at ${Number(q.totalPrice).toLocaleString()} SAR`
               : type === 'rejected' ? `Your quote on request #${q.requestId} was rejected`
               :                       `Revision requested on your quote for request #${q.requestId}`,
-        timestamp: q.createdAt,
+        timestamp: q.statusChangedAt || q.createdAt,
         unread: true,
       };
     });
+
+  const editRequestDeclinedItems: NotifItem[] = myQuotes
+    .filter(q => q.editRequestStatus === 'rejected')
+    .map(q => ({
+      id: `editreq-declined-${q.id}-${q.editRequestedAt || ''}`,
+      type: 'rejected' as NotifType,
+      requestId: q.requestId,
+      textAr: `تم رفض طلبك بتعديل العرض على طلب #${q.requestId}`,
+      textEn: `Your request to edit the quote on request #${q.requestId} was declined`,
+      timestamp: q.createdAt,
+      unread: true,
+    }));
 
   const invitedRequestIds = new Set(myQuotes.map(q => q.requestId));
   const inviteItems: NotifItem[] = allRequests
@@ -160,7 +185,7 @@ export function buildSupplierNotifications(
       unread: true,
     }));
 
-  const all = [...statusItems, ...inviteItems, ...ratingItems]
+  const all = [...statusItems, ...editRequestDeclinedItems, ...inviteItems, ...ratingItems]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return opts?.limit ? all.slice(0, opts.limit) : all;
