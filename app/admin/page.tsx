@@ -106,7 +106,7 @@ export default function AdminDashboard() {
         <p className="text-white/60 text-xs">{tx('subtitle', lang)}</p>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {statCards.map((s, i) => (
           <div key={i} className="bg-white border border-[var(--line)] rounded-xl p-4">
             <div className="w-9 h-9 bg-[var(--tint)] rounded-lg flex items-center justify-center text-base mb-3">{s.icon}</div>
@@ -117,7 +117,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 px-4 md:px-7 pb-8">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-4 px-4 md:px-7 pb-8">
         {/* activity */}
         <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
           <div className="px-5 py-3.5 border-b border-[var(--line-soft)]">

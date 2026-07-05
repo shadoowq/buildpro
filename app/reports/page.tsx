@@ -32,8 +32,10 @@ const REPORT_TABS = [
 ];
 
 function t(ar: string, en: string, lang: Lang) { return lang === 'ar' ? ar : en; }
-function fmtN(n: number, lang: Lang = 'ar') { return n.toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US'); }
-function fmtDate(d: string, lang: Lang) { return new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
+/* 'ar-EG' not 'ar-SA' — ar-SA renders Eastern Arabic-Indic digits (١٢٣) which clash with the
+   Western digits (123) used everywhere else in the app (dashboard, quotes, print views). */
+function fmtN(n: number, lang: Lang = 'ar') { return n.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US'); }
+function fmtDate(d: string, lang: Lang) { return new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
 
 const TH = (lang: Lang) => `border border-stone-200 bg-[var(--chrome)] px-3 py-2.5 ${lang === 'ar' ? 'text-right' : 'text-left'} text-white font-semibold text-[11px] whitespace-nowrap`;
 const TD = 'border border-stone-200 px-3 py-2 text-[11px] text-stone-700';
@@ -50,7 +52,7 @@ export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('summary');
   const [compareReqId, setCompareReqId] = useState<number | ''>('');
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
-  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   useEffect(() => {
     setLang(getLanguage());
@@ -212,7 +214,7 @@ export default function ReportsPage() {
     return { open, closed, pendQ, accQ, rejQ, totalV, avgDays, top3, avgRating };
   }, [requests, quotes, ratings, report2]);
 
-  const formatMonth = (m: string) => new Date(m + '-01').toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long' });
+  const formatMonth = (m: string) => new Date(m + '-01').toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long' });
 
   const stars = (n: number) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
 

@@ -435,10 +435,10 @@ export default function DashboardPage() {
 
       {/* HERO */}
       <div className="bg-[var(--chrome)] px-4 md:px-7 pt-6 pb-0">
-        <div className="flex items-end justify-between">
+        <div className="max-w-[1400px] mx-auto flex items-end justify-between">
           <div>
             <p className="text-white/50 text-xs mb-1">
-              {new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
             <h1 className="text-white text-xl font-bold mb-1">{tStr('hello', lang)} {userName}</h1>
             <p className="text-white/50 text-xs">
@@ -453,7 +453,7 @@ export default function DashboardPage() {
           </Link>
         </div>
         {/* filter tabs */}
-        <div className="flex gap-0 mt-4 border-t border-white/10">
+        <div className="max-w-[1400px] mx-auto flex gap-0 mt-4 border-t border-white/10">
           {([
             ['all',     tStr('filterAll', lang)],
             ['active',  tStr('filterActive', lang)],
@@ -496,7 +496,7 @@ export default function DashboardPage() {
       )}
 
       {/* STATS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {[
           {
             icon: '🔥', bg: 'bg-emerald-50',
@@ -540,7 +540,7 @@ export default function DashboardPage() {
       </div>
 
       {/* MAIN */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_268px] gap-4 px-4 md:px-7 pb-8">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-[1fr_268px] gap-4 px-4 md:px-7 pb-8">
 
         {/* ── طلبات Table ── */}
         <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">

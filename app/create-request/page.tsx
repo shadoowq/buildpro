@@ -500,14 +500,13 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
   };
 
   const labelStyle: React.CSSProperties = { display: 'block', marginBottom: '6px', fontWeight: 'bold', color: '#1C1917', fontSize: '15px' };
-  const thStyle: React.CSSProperties = { padding: '10px 6px', backgroundColor: 'var(--bg-soft)', borderBottom: '2px solid var(--line)', color: '#333', fontWeight: 'bold', fontSize: '12px', whiteSpace: 'nowrap', textAlign: 'center' };
-  const tdStyle: React.CSSProperties = { padding: '6px 4px', borderBottom: '1px solid var(--line-soft)', verticalAlign: 'top', minWidth: '130px' };
   const selectStyle: React.CSSProperties = { padding: '5px 4px', border: '1px solid var(--line)', borderRadius: '4px', fontSize: '12px', color: '#333', backgroundColor: '#fff', flex: 1 };
   const orBtnStyle: React.CSSProperties = { padding: '5px 8px', backgroundColor: 'var(--sec)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold', whiteSpace: 'nowrap' };
   const inputStyle: React.CSSProperties = { padding: '5px 6px', border: '1px solid var(--line)', borderRadius: '4px', fontSize: '13px', color: '#333', backgroundColor: '#fff', width: '100%', boxSizing: 'border-box' };
   const fieldStyle: React.CSSProperties = { width: '100%', padding: '10px', border: '1px solid var(--line)', borderRadius: '4px', fontSize: '16px', color: '#333', backgroundColor: '#fff', boxSizing: 'border-box' };
   const pvTh: React.CSSProperties = { padding: '8px 6px', backgroundColor: 'var(--bg-soft)', borderBottom: '2px solid var(--line)', color: '#333', fontWeight: 'bold', fontSize: '12px', whiteSpace: 'nowrap', textAlign: 'center' };
   const pvTd: React.CSSProperties = { padding: '8px 6px', borderBottom: '1px solid var(--line-soft)', color: '#333', fontSize: '13px', textAlign: 'center' };
+  const cardFieldLabelStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '5px', fontWeight: 'bold', color: '#57534E', fontSize: '11.5px' };
 
   const TokenDisplay = ({ id, field, value }: { id: number, field: keyof MaterialRow, value: string }) => {
     const tokens = value.split(' أو ').map(t => t.trim()).filter(Boolean);
@@ -541,8 +540,8 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
 
   const validMaterials = materials.filter(isRowValid);
   const now = new Date();
-  const dateStr = now.toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US');
-  const timeStr = now.toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = now.toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US');
+  const timeStr = now.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <div className="bp-page md:ps-[190px]" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>
@@ -577,125 +576,130 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
               textAr="أضف كل مادة كبند مستقل. إذا كان لأحد الحقول أكثر من خيار مقبول (مثلاً لونان)، اختر الأول ثم اضغط «+أو» لإضافة خيار آخر لنفس البند."
               textEn='Add each material as its own row. If a field has more than one acceptable option (e.g. two colors), pick one and press "+OR" to add another option to the same item.' />
           </h3>
-          <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: '8px' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>{tx.material}</th>
-                  <th style={thStyle}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {materials.map((row, idx) => (
+              <div key={row.id} style={{ border: '1px solid var(--line)', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <span style={{ fontWeight: 'bold', fontSize: '12.5px', color: 'var(--brand-strong)', backgroundColor: 'var(--tint)', padding: '3px 10px', borderRadius: '999px' }}>
+                    {language === 'ar' ? `مادة ${idx + 1}` : `Material ${idx + 1}`}
+                  </span>
+                  <button type="button" onClick={() => removeRow(row.id)}
+                    style={{ padding: '4px 10px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                    ✕ {language === 'ar' ? 'حذف' : 'Remove'}
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '14px' }}>
+                  <div>
+                    <label style={cardFieldLabelStyle}>{tx.material}</label>
+                    <OrField row={row} valueField="type" pendingField="typePending" options={OPTIONS.types} />
+                  </div>
+                  <div>
+                    <label style={cardFieldLabelStyle}>
                       {tx.usage}
                       <HelpTooltip lang={language}
                         textAr="استخدام المادة في المشروع (أرضيات، جدران، درج...)"
                         textEn="Where this material will be used in the project (flooring, walls, stairs...)" />
-                    </span>
-                  </th>
-                  <th style={thStyle}>{tx.size}</th>
-                  <th style={thStyle}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    </label>
+                    <OrField row={row} valueField="usage" pendingField="usagePending" options={OPTIONS.usages} />
+                  </div>
+                  <div>
+                    <label style={cardFieldLabelStyle}>{tx.size}</label>
+                    <OrField row={row} valueField="size" pendingField="sizePending" options={OPTIONS.sizes} />
+                  </div>
+                  <div>
+                    <label style={cardFieldLabelStyle}>
                       {tx.thickness}
                       <HelpTooltip lang={language}
                         textAr="سمك البلاطة أو المادة بالمليمتر"
                         textEn="The tile/material thickness in millimeters" />
-                    </span>
-                  </th>
-                  <th style={thStyle}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    </label>
+                    <OrField row={row} valueField="thickness" pendingField="thicknessPending" options={OPTIONS.thicknesses} />
+                  </div>
+                  <div>
+                    <label style={cardFieldLabelStyle}>
                       {tx.finish}
                       <HelpTooltip lang={language}
                         textAr="طريقة تشطيب سطح المادة (مصقول، مطفي، ساتان...)"
                         textEn="The surface finish of the material (polished, matte, satin...)" />
-                    </span>
-                  </th>
-                  <th style={thStyle}>{tx.color}</th>
-                  <th style={{ ...thStyle, minWidth: '80px' }}>{tx.qty}</th>
-                  <th style={{ ...thStyle, minWidth: '80px' }}>{tx.unit}</th>
-                  <th style={{ ...thStyle, minWidth: '150px' }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    </label>
+                    <OrField row={row} valueField="finish" pendingField="finishPending" options={OPTIONS.finishes} />
+                  </div>
+                  <div>
+                    <label style={cardFieldLabelStyle}>{tx.color}</label>
+                    <OrField row={row} valueField="color" pendingField="colorPending" options={OPTIONS.colors} />
+                  </div>
+                  <div>
+                    <label style={cardFieldLabelStyle}>{tx.qty}</label>
+                    <input type="number" value={row.quantity} onChange={e => updateRow(row.id, 'quantity', e.target.value)} placeholder="0" min="0" style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={cardFieldLabelStyle}>{tx.unit}</label>
+                    <select value={row.unit} onChange={e => updateRow(row.id, 'unit', e.target.value)} style={{ ...inputStyle, padding: '5px 4px' }}>
+                      {OPTIONS.units.map(u => <option key={u} value={u}>{display(u)}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={cardFieldLabelStyle}>
                       {tx.targetPrice}
                       <HelpTooltip lang={language}
                         textAr="السعر الذي ترغب في الوصول إليه لكل وحدة بالريال السعودي (اختياري) — يساعد الموردين على معرفة ميزانيتك. جميع العروض الواردة تكون بالريال السعودي أيضًا."
                         textEn="The price per unit you're aiming for in Saudi Riyal (optional) — helps suppliers understand your budget. All incoming quotes are also in Saudi Riyal." />
-                    </span>
-                  </th>
-                  <th style={{ ...thStyle, minWidth: '130px' }}>{tx.deliveryDate}</th>
-                  <th style={thStyle}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    </label>
+                    <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
+                      <input type="number" value={row.targetPrice} onChange={e => updateRow(row.id, 'targetPrice', e.target.value)}
+                        placeholder={tx.optional} min="0"
+                        style={{ flex: 1, padding: '5px 6px', border: 'none', fontSize: '13px', color: '#333', backgroundColor: '#fff', outline: 'none', minWidth: '60px' }} />
+                      <span style={{ padding: '5px 8px', borderLeft: '1px solid #eee', fontSize: '11px', color: '#666', backgroundColor: 'var(--bg-soft)', whiteSpace: 'nowrap' }}>
+                        {language === 'ar' ? 'ر.س' : 'SAR'}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <label style={cardFieldLabelStyle}>{tx.deliveryDate}</label>
+                    <input type="date" value={row.deliveryDate} onChange={e => updateRow(row.id, 'deliveryDate', e.target.value)} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label style={cardFieldLabelStyle}>
                       {tx.origin}
                       <HelpTooltip lang={language}
                         textAr="بلد المنشأ أو نوع الصناعة المفضلة للمادة (محلي، إيطالي، تركي...)"
                         textEn="Preferred country of manufacture for the material (local, Italian, Turkish...)" />
-                    </span>
-                  </th>
-                  <th style={{ ...thStyle, minWidth: '150px' }}>{tx.rowNote}</th>
-                  <th style={{ ...thStyle, minWidth: '110px' }}>{tx.image}</th>
-                  <th style={{ ...thStyle, minWidth: '40px' }}>✕</th>
-                </tr>
-              </thead>
-              <tbody>
-                {materials.map(row => (
-                  <tr key={row.id}>
-                    <td style={tdStyle}><OrField row={row} valueField="type" pendingField="typePending" options={OPTIONS.types} /></td>
-                    <td style={tdStyle}><OrField row={row} valueField="usage" pendingField="usagePending" options={OPTIONS.usages} /></td>
-                    <td style={tdStyle}><OrField row={row} valueField="size" pendingField="sizePending" options={OPTIONS.sizes} /></td>
-                    <td style={tdStyle}><OrField row={row} valueField="thickness" pendingField="thicknessPending" options={OPTIONS.thicknesses} /></td>
-                    <td style={tdStyle}><OrField row={row} valueField="finish" pendingField="finishPending" options={OPTIONS.finishes} /></td>
-                    <td style={tdStyle}><OrField row={row} valueField="color" pendingField="colorPending" options={OPTIONS.colors} /></td>
-                    <td style={{ ...tdStyle, minWidth: '80px' }}>
-                      <input type="number" value={row.quantity} onChange={e => updateRow(row.id, 'quantity', e.target.value)} placeholder="0" min="0" style={inputStyle} />
-                    </td>
-                    <td style={{ ...tdStyle, minWidth: '80px' }}>
-                      <select value={row.unit} onChange={e => updateRow(row.id, 'unit', e.target.value)} style={{ ...inputStyle, padding: '5px 4px' }}>
-                        {OPTIONS.units.map(u => <option key={u} value={u}>{display(u)}</option>)}
-                      </select>
-                    </td>
-                    <td style={{ ...tdStyle, minWidth: '150px' }}>
-                      <div style={{ display: 'flex', border: '1px solid var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
-                        <input type="number" value={row.targetPrice} onChange={e => updateRow(row.id, 'targetPrice', e.target.value)}
-                          placeholder={tx.optional} min="0"
-                          style={{ flex: 1, padding: '5px 6px', border: 'none', fontSize: '13px', color: '#333', backgroundColor: '#fff', outline: 'none', minWidth: '60px' }} />
-                        <span style={{ padding: '5px 8px', borderLeft: '1px solid #eee', fontSize: '11px', color: '#666', backgroundColor: 'var(--bg-soft)', whiteSpace: 'nowrap' }}>
-                          {language === 'ar' ? 'ر.س' : 'SAR'}
-                        </span>
+                    </label>
+                    <OrField row={row} valueField="origin" pendingField="originPending" options={OPTIONS.origins} />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '14px' }}>
+                  <label style={cardFieldLabelStyle}>{tx.rowNote}</label>
+                  <textarea value={row.note} onChange={e => updateRow(row.id, 'note', e.target.value)}
+                    placeholder={language === 'ar' ? 'وصف إضافي...' : 'Extra description...'}
+                    style={{ ...inputStyle, minHeight: '50px', resize: 'vertical' }} />
+                </div>
+
+                <div style={{ marginTop: '14px' }}>
+                  <label style={cardFieldLabelStyle}>{tx.image}</label>
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {row.images.map((img, i) => (
+                      <div key={i} style={{ position: 'relative', display: 'inline-block' }}>
+                        <img src={img} alt="" onClick={() => { setLightboxImg(img); setZoomLevel(1); }}
+                          style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--line)', cursor: 'zoom-in' }} />
+                        <button type="button" onClick={() => removeImage(row.id, i)}
+                          style={{ position: 'absolute', top: '-5px', right: '-5px', width: '16px', height: '16px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>×</button>
                       </div>
-                    </td>
-                    <td style={{ ...tdStyle, minWidth: '130px' }}>
-                      <input type="date" value={row.deliveryDate} onChange={e => updateRow(row.id, 'deliveryDate', e.target.value)} style={inputStyle} />
-                    </td>
-                    <td style={tdStyle}><OrField row={row} valueField="origin" pendingField="originPending" options={OPTIONS.origins} /></td>
-                    <td style={{ ...tdStyle, minWidth: '150px' }}>
-                      <textarea value={row.note} onChange={e => updateRow(row.id, 'note', e.target.value)}
-                        placeholder={language === 'ar' ? 'وصف إضافي...' : 'Extra description...'}
-                        style={{ ...inputStyle, minHeight: '60px', resize: 'vertical' }} />
-                    </td>
-                    <td style={{ ...tdStyle, minWidth: '110px' }}>
-                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                        {row.images.map((img, i) => (
-                          <div key={i} style={{ position: 'relative', display: 'inline-block' }}>
-                            <img src={img} alt="" onClick={() => { setLightboxImg(img); setZoomLevel(1); }}
-                              style={{ width: '45px', height: '45px', objectFit: 'cover', borderRadius: '4px', border: '1px solid var(--line)', cursor: 'zoom-in' }} />
-                            <button type="button" onClick={() => removeImage(row.id, i)}
-                              style={{ position: 'absolute', top: '-5px', right: '-5px', width: '16px', height: '16px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', cursor: 'pointer', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>×</button>
-                          </div>
-                        ))}
-                      </div>
-                      {row.images.length < 2 ? (
-                        <label style={{ display: 'inline-block', padding: '4px 8px', backgroundColor: 'var(--sec)', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
-                          {tx.uploadImage}
-                          <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={e => handleImageUpload(row.id, e)} />
-                        </label>
-                      ) : (
-                        <span style={{ fontSize: '10px', color: '#856404', backgroundColor: '#fff3cd', padding: '2px 6px', borderRadius: '4px' }}>{tx.maxImages}</span>
-                      )}
-                    </td>
-                    <td style={{ ...tdStyle, textAlign: 'center', minWidth: '40px' }}>
-                      <button type="button" onClick={() => removeRow(row.id)}
-                        style={{ padding: '4px 8px', backgroundColor: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}>✕</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    ))}
+                    {row.images.length < 2 ? (
+                      <label style={{ display: 'inline-block', padding: '5px 10px', backgroundColor: 'var(--sec)', color: 'white', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }}>
+                        {tx.uploadImage}
+                        <input type="file" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }} onChange={e => handleImageUpload(row.id, e)} />
+                      </label>
+                    ) : (
+                      <span style={{ fontSize: '10px', color: '#856404', backgroundColor: '#fff3cd', padding: '2px 6px', borderRadius: '4px' }}>{tx.maxImages}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
           <button type="button" onClick={addRow}
             style={{ marginTop: '12px', padding: '10px 20px', backgroundColor: 'var(--sec)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>

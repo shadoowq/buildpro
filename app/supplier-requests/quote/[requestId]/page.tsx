@@ -689,8 +689,8 @@ export default function SupplierQuoteBuilder() {
               </span>
             </div>
           </div>
-          {/* MOBILE: one card per line item — the 15-column table is unusable on small screens */}
-          <div className="md:hidden flex flex-col gap-3">
+          {/* One card per line item — a 15-column table forced horizontal scroll on every screen size */}
+          <div className="flex flex-col gap-3">
             {lineItems.map((row, idx) => (
               <div key={row.id} className="border border-[var(--line)] rounded-xl bg-[var(--bg-soft2)] p-3">
                 <div className="flex items-center justify-between mb-2">
@@ -698,7 +698,7 @@ export default function SupplierQuoteBuilder() {
                   <button type="button" onClick={() => removeRow(row.id)}
                     className="w-6 h-6 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs">✕</button>
                 </div>
-                <div className="grid grid-cols-2 gap-2 mb-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 mb-2">
                   <div>
                     <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('material', language)}</label>
                     <SelectOther value={row.type} other={row.typeOther}
@@ -769,101 +769,6 @@ export default function SupplierQuoteBuilder() {
             ))}
           </div>
 
-          {/* DESKTOP: full table */}
-          <div className="hidden md:block overflow-x-auto border border-[var(--line)] rounded-xl">
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className={th}>{tx('material', language)}</th>
-                  <th className={th}>{tx('size', language)}</th>
-                  <th className={th}>{tx('thickness', language)}</th>
-                  <th className={th}>{tx('finish', language)}</th>
-                  <th className={th}>{tx('color', language)}</th>
-                  <th className={th} style={{ minWidth: 70 }}>{tx('qty', language)}</th>
-                  <th className={th}>{tx('unit', language)}</th>
-                  <th className={th} style={{ minWidth: 110 }}>{tx('unitPrice', language)}</th>
-                  <th className={th} style={{ minWidth: 90 }}>{tx('itemDiscount', language)}</th>
-                  <th className={th} style={{ minWidth: 100 }}>{tx('beforeTax', language)}</th>
-                  <th className={th} style={{ minWidth: 90 }}>{tx('taxCol', language)}</th>
-                  <th className={th} style={{ minWidth: 100 }}>{tx('lineTotal', language)}</th>
-                  <th className={th} style={{ minWidth: 140 }}>{tx('itemNote', language)}</th>
-                  <th className={th} style={{ minWidth: 110 }}>{tx('image', language)}</th>
-                  <th className={th}>✕</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lineItems.map(row => (
-                  <tr key={row.id}>
-                    <td className={td}>
-                      <SelectOther value={row.type} other={row.typeOther}
-                        onValue={v => updateRow(row.id, 'type', v)} onOther={v => updateRow(row.id, 'typeOther', v)}
-                        options={MATERIAL_OPTIONS.types} lang={language} />
-                    </td>
-                    <td className={td}>
-                      <SelectOther value={row.size} other={row.sizeOther}
-                        onValue={v => updateRow(row.id, 'size', v)} onOther={v => updateRow(row.id, 'sizeOther', v)}
-                        options={MATERIAL_OPTIONS.sizes} lang={language} />
-                    </td>
-                    <td className={td}>
-                      <SelectOther value={row.thickness} other={row.thicknessOther}
-                        onValue={v => updateRow(row.id, 'thickness', v)} onOther={v => updateRow(row.id, 'thicknessOther', v)}
-                        options={MATERIAL_OPTIONS.thicknesses} lang={language} />
-                    </td>
-                    <td className={td}>
-                      <SelectOther value={row.finish} other={row.finishOther}
-                        onValue={v => updateRow(row.id, 'finish', v)} onOther={v => updateRow(row.id, 'finishOther', v)}
-                        options={MATERIAL_OPTIONS.finishes} lang={language} />
-                    </td>
-                    <td className={td}>
-                      <SelectOther value={row.color} other={row.colorOther}
-                        onValue={v => updateRow(row.id, 'color', v)} onOther={v => updateRow(row.id, 'colorOther', v)}
-                        options={MATERIAL_OPTIONS.colors} lang={language} />
-                    </td>
-                    <td className={td} style={{ minWidth: 70 }}>
-                      <input type="number" min="0" value={row.quantity} onChange={e => updateRow(row.id, 'quantity', e.target.value)}
-                        className="w-full text-xs border border-[var(--line)] rounded-lg px-2 py-1.5 outline-none" />
-                    </td>
-                    <td className={td}>
-                      <SelectOther value={row.unit} other={row.unitOther}
-                        onValue={v => updateRow(row.id, 'unit', v)} onOther={v => updateRow(row.id, 'unitOther', v)}
-                        options={MATERIAL_OPTIONS.units} lang={language} />
-                    </td>
-                    <td className={td} style={{ minWidth: 110 }}>
-                      <input type="number" min="0" value={row.unitPrice} onChange={e => updateRow(row.id, 'unitPrice', e.target.value)}
-                        className="w-full text-xs border border-[var(--line)] rounded-lg px-2 py-1.5 outline-none" />
-                      {row.targetPriceHint && (
-                        <p className="text-[10px] text-stone-500 mt-0.5">{tx('targetHint', language)}: {row.targetPriceHint}</p>
-                      )}
-                    </td>
-                    <td className={td} style={{ minWidth: 90 }}>
-                      <input type="number" min="0" value={row.discount} onChange={e => updateRow(row.id, 'discount', e.target.value)}
-                        className="w-full text-xs border border-[var(--line)] rounded-lg px-2 py-1.5 outline-none" />
-                    </td>
-                    <td className={td} style={{ minWidth: 100 }}>
-                      <span className="text-xs font-semibold text-stone-700">{rowSubtotal(row).toLocaleString()}</span>
-                    </td>
-                    <td className={td} style={{ minWidth: 90 }}>
-                      <span className="text-xs text-stone-500">{rowTax(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                    </td>
-                    <td className={td} style={{ minWidth: 100 }}>
-                      <span className="text-xs font-bold text-[var(--brand-strong)]">{rowTotal(row).toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
-                    </td>
-                    <td className={td} style={{ minWidth: 140 }}>
-                      <textarea value={row.description} onChange={e => updateRow(row.id, 'description', e.target.value)}
-                        rows={2} className="w-full text-xs border border-[var(--line)] rounded-lg px-2 py-1.5 outline-none resize-none" />
-                    </td>
-                    <td className={td} style={{ minWidth: 110 }}>
-                      {renderRowImages(row)}
-                    </td>
-                    <td className={td} style={{ textAlign: 'center' }}>
-                      <button type="button" onClick={() => removeRow(row.id)}
-                        className="w-6 h-6 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs">✕</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
           <div className="flex items-center justify-between mt-3 mb-4">
             <button type="button" onClick={addRow}
               className="text-xs font-semibold px-4 py-2 bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white rounded-lg transition-colors">

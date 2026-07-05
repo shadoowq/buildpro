@@ -238,7 +238,7 @@ export default function SuppliersPage() {
       </div>
 
       {/* STATS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {stats.map((s, i) => (
           <div key={i} className="bg-white border border-[var(--line)] rounded-xl p-4">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
@@ -248,7 +248,7 @@ export default function SuppliersPage() {
         ))}
       </div>
 
-      <div className="px-4 md:px-7 pb-10">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-7 pb-10">
 
         {/* FILTER BAR */}
         <div className="bg-white border border-[var(--line)] rounded-2xl px-5 py-3.5 mb-5 flex items-center gap-3 flex-wrap">
@@ -335,7 +335,7 @@ export default function SuppliersPage() {
 
                 {/* last activity */}
                 <p className="text-[10px] text-stone-300 mt-3">
-                  {lang === 'ar' ? 'آخر نشاط:' : 'Last:'} {new Date(s.lastActivity).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+                  {lang === 'ar' ? 'آخر نشاط:' : 'Last:'} {new Date(s.lastActivity).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}
                 </p>
               </div>
             ))}
@@ -409,7 +409,7 @@ export default function SuppliersPage() {
                           <td className="px-4 py-2.5 font-bold text-stone-900">{Number(q.totalPrice).toLocaleString()} {t('sar', lang)}</td>
                           <td className="px-4 py-2.5 text-stone-600">{q.deliveryDays} {t('days', lang)}</td>
                           <td className="px-4 py-2.5"><StatusBadge status={q.status} lang={lang} /></td>
-                          <td className="px-4 py-2.5 text-stone-400">{new Date(q.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</td>
+                          <td className="px-4 py-2.5 text-stone-400">{new Date(q.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</td>
                         </tr>
                       ))}
                     </tbody>

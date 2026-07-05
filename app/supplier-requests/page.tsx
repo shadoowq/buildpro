@@ -279,7 +279,7 @@ export default function SupplierRequests() {
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <p className="text-white/70 text-xs mb-1">
-              {new Date().toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
             <h1 className="text-white text-xl font-bold mb-1">{tStr('title', language)}</h1>
           </div>
@@ -403,7 +403,9 @@ export default function SupplierRequests() {
             </table>
           </div>
         ) : (
-          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}>
+          /* auto-fit (not auto-fill) so a handful of cards fill the row instead of leaving empty
+             phantom columns stretching across the rest of the width */
+          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
             {sorted.map(request => {
               const urgency = getDeadlineUrgency(request.deadline, false);
               return (

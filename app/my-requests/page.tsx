@@ -556,7 +556,7 @@ export default function MyRequests() {
       <div className="bg-[var(--chrome)] px-7 pt-6 pb-0">
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-white/50 text-xs mb-1">{new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="text-white/50 text-xs mb-1">{new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
             <h1 className="text-white text-xl font-bold mb-1">{t('myRequests', lang)}</h1>
             <p className="text-white/50 text-xs">{stats.active} {t('active', lang)} — {stats.quotes} {t('incomingQ', lang)}</p>
           </div>
@@ -577,7 +577,7 @@ export default function MyRequests() {
       </div>
 
       {/* ── STATS ── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {[
           { icon: '📋', bg: 'bg-amber-50',   val: stats.total,  label: t('totalReqs', lang),  badge: null },
           { icon: '🔥', bg: 'bg-emerald-50', val: stats.active, label: t('activeReqs', lang), badge: stats.active > 0 ? t('thisMonth', lang) : null },
@@ -602,7 +602,7 @@ export default function MyRequests() {
       )}
 
       {/* ── CONTENT AREA ── */}
-      <div className="px-4 md:px-7 pb-10">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-7 pb-10">
         {/* project breadcrumb */}
         {projectFilter !== null && (
           <div className="flex items-center gap-2 mb-3">

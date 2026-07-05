@@ -302,7 +302,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
         <div className="flex items-end justify-between">
           <div>
             <p className="text-white/70 text-xs mb-1">
-              {new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
             <h1 className="text-white text-xl font-bold mb-1 flex items-center gap-2">
               {tFn('title', lang)}
@@ -333,7 +333,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
       </div>
 
       {/* STATS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {stats.map((s, i) => (
           <div key={i} className="bg-white border border-[var(--line)] rounded-xl p-4 relative">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
@@ -344,7 +344,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
         ))}
       </div>
 
-      <div className="px-4 md:px-7 pb-10 space-y-4">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-7 pb-10 space-y-4">
 
         {/* new quotes banner */}
         {newCount > 0 && (
@@ -747,7 +747,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
       </div>
 
       {/* STATS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-2 md:grid-cols-4 gap-3 px-4 md:px-7 py-5">
         {stats.map((s, i) => (
           <div key={i} className="bg-white border border-[var(--line)] rounded-xl p-4">
             <div className={`w-9 h-9 ${s.bg} rounded-lg flex items-center justify-center text-base mb-3`}>{s.icon}</div>
@@ -757,7 +757,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
         ))}
       </div>
 
-      <div className="px-4 md:px-7 pb-10 space-y-4">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-7 pb-10 space-y-4">
         {filteredQuotes.length === 0 ? (
           <div className="bg-white border border-[var(--line)] rounded-2xl p-12 flex flex-col items-center gap-3 text-center">
             <span className="text-4xl">📭</span>

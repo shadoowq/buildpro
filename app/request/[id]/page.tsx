@@ -434,7 +434,7 @@ export default function RequestDetailPage() {
           <div className="text-right text-sm text-stone-600">
             <p className="font-bold">{getReqName(request)}</p>
             <p>{getCityName(request.location, lang)} · {request.deadline}</p>
-            <p>{new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}</p>
+            <p>{new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</p>
           </div>
         </div>
       </div>
@@ -709,7 +709,9 @@ export default function RequestDetailPage() {
                     {lang === 'ar' ? log.action : log.actionEn}
                   </span>
                   <span className="text-stone-400 whitespace-nowrap me-4">
-                    {new Date(log.timestamp).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+                    {/* 'ar-EG' not 'ar-SA' — ar-SA renders the Hijri calendar in some engines, which would silently
+                        mismatch the Gregorian dates shown everywhere else on this page (formatDate/formatDay). */}
+                    {new Date(log.timestamp).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-GB')}
                   </span>
                 </div>
               ))}

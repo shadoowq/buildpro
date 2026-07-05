@@ -119,10 +119,10 @@ export default function Drafts() {
     draft.materials.filter(m => m.type?.trim() || m.typePending?.trim()).length;
 
   const formatDate = (ts: string) =>
-    new Date(ts).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    new Date(ts).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
   const formatTime = (ts: string) =>
-    new Date(ts).toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+    new Date(ts).toLocaleTimeString(lang === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' });
 
   const filtered = drafts.filter(d => {
     if (!search) return true;
@@ -142,7 +142,7 @@ export default function Drafts() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-white/50 text-xs mb-1">
-              {new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
             <h1 className="text-white text-xl font-bold mb-1">
               {t('مسوداتي', 'My Drafts', lang)}
