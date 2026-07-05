@@ -7,6 +7,7 @@ import HelpTooltip from '../components/HelpTooltip';
 import QuoteCompareTable from '../components/QuoteCompareTable';
 import { MonthlyActivityChart, MonthlyValueChart } from '../components/MonthlyActivityChart';
 import { displayVal } from '../lib/requestHelpers';
+import { getCategory } from '../lib/materialCategories';
 import { getCurrentUser, getLanguage, setLanguage, getRequests, getQuotes, getRatings } from '../lib/store';
 
 type Lang = 'ar' | 'en';
@@ -80,7 +81,7 @@ export default function ReportsPage() {
   const getReqName = (req: Request) => {
     if (req.projectName?.trim()) return req.projectName.trim();
     if (req.materials?.length) {
-      const types = [...new Set(req.materials.map((m: any) => m.type || m.typePending).filter(Boolean))];
+      const types = [...new Set(req.materials.map((m: any) => m.type || m.typePending || m.fields?.type || getCategory(m.category)?.labelAr).filter(Boolean))];
       if (types.length) return types.slice(0, 2).join(' — ');
     }
     const parts: string[] = [];
@@ -153,7 +154,7 @@ export default function ReportsPage() {
   /* ── REPORT 5: Materials ── */
   /* canonical (untranslated) type names — always Arabic, translated only at render time via displayVal */
   const getReqTypes = (req: Request): string[] => {
-    if (req.materials?.length) return req.materials.map((m: any) => m.type || m.typePending).filter(Boolean);
+    if (req.materials?.length) return req.materials.map((m: any) => m.type || m.typePending || m.fields?.type || getCategory(m.category)?.labelAr).filter(Boolean);
     const types: string[] = [];
     if (req.ceramic > 0)   types.push('سيراميك');
     if (req.porcelain > 0) types.push('بورسلان');
@@ -174,7 +175,7 @@ export default function ReportsPage() {
     requests.forEach(req => {
       if (req.materials?.length) {
         req.materials.forEach((m: any) => {
-          const type = m.type || m.typePending;
+          const type = m.type || m.typePending || m.fields?.type || getCategory(m.category)?.labelAr;
           if (type?.trim()) add(type, parseFloat(m.quantity) || 0, m.unit || 'م²');
         });
       } else {

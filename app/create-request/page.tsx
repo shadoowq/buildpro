@@ -7,6 +7,7 @@ import ContractorNav from '../components/ContractorNav';
 import { appendActivityLog, arToEn } from '../lib/requestHelpers';
 import { isValidImageFile, isValidAttachmentFile } from '../lib/auth';
 import { MATERIAL_OPTIONS as OPTIONS, OTHER_VALUE, resolveOther, PAYMENT_TERMS_OPTIONS } from '../lib/materialOptions';
+import { MATERIAL_CATEGORIES, getCategory, isTilesCategory, MaterialCategory } from '../lib/materialCategories';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
 import HelpTooltip from '../components/HelpTooltip';
@@ -23,6 +24,7 @@ import {
 
 interface MaterialRow {
   id: number;
+  category: string;
   type: string; typePending: string; typePendingOther: string;
   usage: string; usagePending: string; usagePendingOther: string;
   size: string; sizePending: string; sizePendingOther: string;
@@ -37,6 +39,9 @@ interface MaterialRow {
   origin: string; originPending: string; originPendingOther: string;
   images: string[];
   note: string;
+  /** non-tile categories: generic per-category field bag (select+Other, no multi-token) */
+  fields: Record<string, string>;
+  fieldsOther: Record<string, string>;
 }
 
 interface AttachedFile {
@@ -47,6 +52,7 @@ interface AttachedFile {
 
 const defaultRow = (): MaterialRow => ({
   id: Date.now() + Math.random(),
+  category: 'tiles',
   type: '', typePending: '', typePendingOther: '',
   usage: '', usagePending: '', usagePendingOther: '',
   size: '', sizePending: '', sizePendingOther: '',
@@ -58,6 +64,7 @@ const defaultRow = (): MaterialRow => ({
   deliveryDate: '',
   origin: '', originPending: '', originPendingOther: '',
   images: [], note: '',
+  fields: {}, fieldsOther: {},
 });
 
 /** Reconstructs the select+Other UI state from a saved flat string — e.g. a saved
@@ -67,7 +74,9 @@ const applyOtherState = (value: string, presets: string[]): [string, string] =>
   presets.includes(value) ? [value, ''] : [OTHER_VALUE, value];
 
 const isRowValid = (m: MaterialRow) =>
-  !!(m.type?.trim() || m.typePending?.trim() || m.usage?.trim() || m.size?.trim() || m.quantity?.trim() || m.finish?.trim() || m.color?.trim());
+  isTilesCategory(m.category)
+    ? !!(m.type?.trim() || m.typePending?.trim() || m.usage?.trim() || m.size?.trim() || m.quantity?.trim() || m.finish?.trim() || m.color?.trim())
+    : !!(m.quantity?.trim() || Object.values(m.fields || {}).some(v => v?.trim()) || Object.values(m.fieldsOther || {}).some(v => v?.trim()));
 
 export default function CreateRequest() {
   const showToast = useToast();
@@ -137,6 +146,9 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
           setMaterials(req.materials.map((m: any) => ({
             ...m,
             id: Date.now() + Math.random(),
+            category: m.category || 'tiles',
+            fields: m.fields || {},
+            fieldsOther: {},
             images: m.images ? [...m.images] : [],
           })));
         }
@@ -161,7 +173,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       const parsed = getCreateRequestDraft<any>();
       if (parsed) {
         if (parsed.projectName) setProjectName(parsed.projectName);
-        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
+        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, category: m.category || 'tiles', fields: m.fields || {}, fieldsOther: m.fieldsOther || {}, images: m.images ? [...m.images] : [] })));
         if (parsed.location) { const [loc, other] = applyOtherState(parsed.location, saudiCities); setLocation(loc); setLocationOther(other); }
         if (parsed.locationCoords) setLocationCoords(parsed.locationCoords);
         if (parsed.deadline) setDeadline(parsed.deadline);
@@ -175,7 +187,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       const parsed = getCreateRequestDraft<any>();
       if (parsed) {
         if (parsed.projectName) setProjectName(parsed.projectName);
-        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
+        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, category: m.category || 'tiles', fields: m.fields || {}, fieldsOther: m.fieldsOther || {}, images: m.images ? [...m.images] : [] })));
         if (parsed.location) { const [loc, other] = applyOtherState(parsed.location, saudiCities); setLocation(loc); setLocationOther(other); }
         if (parsed.locationCoords) setLocationCoords(parsed.locationCoords);
         if (parsed.deadline) setDeadline(parsed.deadline);
@@ -238,6 +250,18 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
 
   const updateRow = (id: number, field: keyof MaterialRow, value: any) => {
     setMaterials(prev => prev.map(row => row.id === id ? { ...row, [field]: value } : row));
+  };
+
+  const changeRowCategory = (id: number, category: string) => {
+    setMaterials(prev => prev.map(row => row.id === id ? { ...row, category, fields: {}, fieldsOther: {} } : row));
+  };
+
+  const updateRowField = (id: number, key: string, value: string) => {
+    setMaterials(prev => prev.map(row => row.id === id ? { ...row, fields: { ...row.fields, [key]: value } } : row));
+  };
+
+  const updateRowFieldOther = (id: number, key: string, value: string) => {
+    setMaterials(prev => prev.map(row => row.id === id ? { ...row, fieldsOther: { ...row.fieldsOther, [key]: value } } : row));
   };
 
   const addOr = (id: number, valueField: keyof MaterialRow, pendingField: keyof MaterialRow, pendingOtherField: keyof MaterialRow) => {
@@ -325,6 +349,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       finish: row.finish || resolveOther(row.finishPending, row.finishPendingOther),
       color: row.color || resolveOther(row.colorPending, row.colorPendingOther),
       origin: row.origin || resolveOther(row.originPending, row.originPendingOther),
+      fields: Object.fromEntries(Object.entries(row.fields || {}).map(([k, v]) => [k, resolveOther(v, row.fieldsOther?.[k] || '')])),
     })));
     const valid = materials.filter(isRowValid);
     if (selectedSuppliers.length === 0) {
@@ -348,6 +373,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       id: Date.now(),
       contractorId: user?.email,
       materials: valid.map(m => ({
+        category: m.category || 'tiles',
         type: m.type || resolveOther(m.typePending, m.typePendingOther),
         usage: m.usage || resolveOther(m.usagePending, m.usagePendingOther),
         size: m.size || resolveOther(m.sizePending, m.sizePendingOther),
@@ -362,6 +388,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
         origin: m.origin || resolveOther(m.originPending, m.originPendingOther),
         images: m.images,
         note: m.note,
+        fields: Object.fromEntries(Object.entries(m.fields || {}).map(([k, v]) => [k, resolveOther(v, m.fieldsOther?.[k] || '')]).filter(([, v]) => v)),
       })),
       attachedFiles,
       ceramic: valid.filter(m => (m.type || resolveOther(m.typePending, m.typePendingOther)).includes('سيراميك')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
@@ -461,7 +488,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
   const tx = language === 'ar' ? {
     hint: 'اختر من القائمة واضغط "+ أو" لإضافة خيار آخر',
     projectNameLabel: 'اسم المشروع', projectNamePlaceholder: 'مثال: فيلا الرياض - الدور الأول',
-    materials: 'المواد المطلوبة', material: 'نوع المادة', usage: 'الاستخدام',
+    materials: 'المواد المطلوبة', categoryLabel: 'المجال', material: 'نوع المادة', usage: 'الاستخدام',
     size: 'المقاس', thickness: 'السماكة', finish: 'الفنش', color: 'اللون',
     qty: 'الكمية', unit: 'الوحدة', targetPrice: 'السعر المستهدف',
     deliveryDate: 'تاريخ التوريد', origin: 'الصناعة', image: 'صور', rowNote: 'وصف البند',
@@ -488,7 +515,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
   } : {
     hint: 'Select from the list and press "+ OR" to add another option',
     projectNameLabel: 'Project Name', projectNamePlaceholder: 'e.g. Riyadh Villa - Ground Floor',
-    materials: 'Required Materials', material: 'Material', usage: 'Usage',
+    materials: 'Required Materials', categoryLabel: 'Category', material: 'Material', usage: 'Usage',
     size: 'Size', thickness: 'Thickness', finish: 'Finish', color: 'Color',
     qty: 'Qty', unit: 'Unit', targetPrice: 'Target Price',
     deliveryDate: 'Delivery Date', origin: 'Origin', image: 'Images', rowNote: 'Item Note',
@@ -556,9 +583,36 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     </div>
   );
 
+  const GenericCategoryFields = ({ row, category }: { row: MaterialRow; category: MaterialCategory }) => (
+    <>
+      {category.fields.map(field => (
+        <div key={field.key}>
+          <label style={cardFieldLabelStyle}>{language === 'ar' ? field.labelAr : field.labelEn}</label>
+          {field.type === 'select' ? (
+            <>
+              <select value={row.fields[field.key] || ''} onChange={e => updateRowField(row.id, field.key, e.target.value)} style={{ ...inputStyle, padding: '5px 4px' }}>
+                <option value="">{tx.select}</option>
+                {(field.options || []).map(o => <option key={o} value={o}>{display(o)}</option>)}
+                <option value={OTHER_VALUE}>{tx.otherOption}</option>
+              </select>
+              {row.fields[field.key] === OTHER_VALUE && (
+                <input type="text" value={row.fieldsOther[field.key] || ''} onChange={e => updateRowFieldOther(row.id, field.key, e.target.value)}
+                  placeholder={tx.specify} style={{ ...inputStyle, marginTop: '4px' }} />
+              )}
+            </>
+          ) : (
+            <input type={field.type} value={row.fields[field.key] || ''} onChange={e => updateRowField(row.id, field.key, e.target.value)} style={inputStyle} />
+          )}
+        </div>
+      ))}
+    </>
+  );
+
   if (!user) return <div style={{ padding: '20px' }}>Loading...</div>;
 
   const validMaterials = materials.filter(isRowValid);
+  const tileMaterials = validMaterials.filter(m => isTilesCategory(m.category));
+  const otherMaterials = validMaterials.filter(m => !isTilesCategory(m.category));
   const now = new Date();
   const dateStr = now.toLocaleDateString(language === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US');
   const timeStr = now.toLocaleTimeString(language === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { hour: '2-digit', minute: '2-digit' });
@@ -609,7 +663,16 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                   </button>
                 </div>
 
+                <div style={{ marginBottom: '14px', maxWidth: '260px' }}>
+                  <label style={cardFieldLabelStyle}>{tx.categoryLabel}</label>
+                  <select value={row.category || 'tiles'} onChange={e => changeRowCategory(row.id, e.target.value)} style={{ ...inputStyle, padding: '6px 8px', fontWeight: 'bold' }}>
+                    {MATERIAL_CATEGORIES.map(c => <option key={c.id} value={c.id}>{c.icon} {language === 'ar' ? c.labelAr : c.labelEn}</option>)}
+                  </select>
+                </div>
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '14px' }}>
+                  {isTilesCategory(row.category) && (
+                    <>
                   <div>
                     <label style={cardFieldLabelStyle}>{tx.material}</label>
                     <OrField row={row} valueField="type" pendingField="typePending" pendingOtherField="typePendingOther" options={OPTIONS.types} />
@@ -649,6 +712,11 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                     <label style={cardFieldLabelStyle}>{tx.color}</label>
                     <OrField row={row} valueField="color" pendingField="colorPending" pendingOtherField="colorPendingOther" options={OPTIONS.colors} />
                   </div>
+                    </>
+                  )}
+                  {!isTilesCategory(row.category) && (
+                    <GenericCategoryFields row={row} category={getCategory(row.category)!} />
+                  )}
                   <div>
                     <label style={cardFieldLabelStyle}>{tx.qty}</label>
                     <input type="number" value={row.quantity} onChange={e => updateRow(row.id, 'quantity', e.target.value)} placeholder="0" min="0" style={inputStyle} />
@@ -684,6 +752,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                     <label style={cardFieldLabelStyle}>{tx.deliveryDate}</label>
                     <input type="date" value={row.deliveryDate} onChange={e => updateRow(row.id, 'deliveryDate', e.target.value)} style={inputStyle} />
                   </div>
+                  {isTilesCategory(row.category) && (
                   <div>
                     <label style={cardFieldLabelStyle}>
                       {tx.origin}
@@ -693,6 +762,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                     </label>
                     <OrField row={row} valueField="origin" pendingField="originPending" pendingOtherField="originPendingOther" options={OPTIONS.origins} />
                   </div>
+                  )}
                 </div>
 
                 <div style={{ marginTop: '14px' }}>
@@ -930,6 +1000,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                 )}
                 {description && <p style={{ margin: 0, color: '#333', fontSize: '14px', gridColumn: '1 / -1' }}><strong>{tx.notes}:</strong> {description}</p>}
               </div>
+              {tileMaterials.length > 0 && (
               <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: '8px', marginBottom: '20px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
@@ -951,7 +1022,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                     </tr>
                   </thead>
                   <tbody>
-                    {validMaterials.map((m, index) => (
+                    {tileMaterials.map((m, index) => (
                       <tr key={m.id}>
                         <td style={pvTd}>{index + 1}</td>
                         <td style={pvTd}>{display(m.type || m.typePending) || tx.noValue}</td>
@@ -981,6 +1052,38 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                   </tbody>
                 </table>
               </div>
+              )}
+              {otherMaterials.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+                  {otherMaterials.map((m, index) => {
+                    const cat = getCategory(m.category);
+                    return (
+                      <div key={m.id} style={{ border: '1px solid var(--line)', borderRadius: '8px', padding: '12px 14px', backgroundColor: 'var(--bg-soft)' }}>
+                        <p style={{ margin: '0 0 6px 0', fontWeight: 'bold', fontSize: '13px', color: 'var(--brand-strong)' }}>
+                          {cat?.icon} {language === 'ar' ? cat?.labelAr : cat?.labelEn} — #{tileMaterials.length + index + 1}
+                        </p>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', fontSize: '13px', color: '#333' }}>
+                          {cat?.fields.map(f => m.fields?.[f.key] && (
+                            <span key={f.key}><strong>{language === 'ar' ? f.labelAr : f.labelEn}:</strong> {display(m.fields[f.key])}</span>
+                          ))}
+                          {m.quantity && <span><strong>{tx.qty}:</strong> {m.quantity} {display(m.unit)}</span>}
+                          {m.targetPrice && <span><strong>{tx.targetPrice}:</strong> {m.targetPrice} {displayCurrency(m.currency || 'ر.س')}</span>}
+                          {m.deliveryDate && <span><strong>{tx.deliveryDate}:</strong> {m.deliveryDate}</span>}
+                          {m.note && <span><strong>{tx.rowNote}:</strong> {m.note}</span>}
+                        </div>
+                        {m.images && m.images.length > 0 && (
+                          <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
+                            {m.images.map((img, i) => (
+                              <img key={i} src={img} alt="" onClick={() => { setLightboxImg(img); setZoomLevel(1); }}
+                                style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', cursor: 'zoom-in' }} />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               {attachedFiles.length > 0 && (
                 <div style={{ marginBottom: '16px', backgroundColor: 'var(--bg-soft)', padding: '12px', borderRadius: '6px' }}>
                   <p style={{ color: '#333', fontWeight: 'bold', fontSize: '14px', margin: '0 0 8px 0' }}>{tx.attachedFilesLabel}:</p>

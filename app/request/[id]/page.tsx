@@ -6,12 +6,14 @@ import Link from 'next/link';
 import ContractorNav from '../../components/ContractorNav';
 import StatusBadge from '../../components/StatusBadge';
 import RatingModal from '../../components/RatingModal';
+import RejectReasonModal from '../../components/RejectReasonModal';
 import HelpTooltip from '../../components/HelpTooltip';
 import QuoteCompareTable from '../../components/QuoteCompareTable';
 import { useEscapeKey } from '../../components/useEscapeKey';
 import { formatDate, displayVal, arToEn, appendActivityLog, setQuoteStatus, softDeleteRequest, getDeadlineUrgency, getEffectiveQuoteStatus, isQuoteExpired, canUndoQuoteDecisionFreely } from '../../lib/requestHelpers';
 import { answerRequestQuestion, RequestQuestion } from '../../lib/marketplace';
 import { getCityName } from '../../lib/translations';
+import { getCategory, isTilesCategory } from '../../lib/materialCategories';
 import { useConfirm } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import {
@@ -51,6 +53,7 @@ interface Quote {
   description: string;
   status: QuoteStatus;
   revisionNote?: string;
+  rejectionReason?: string;
   createdAt: string;
   validUntil?: string;
   statusChangedAt?: string;
@@ -154,6 +157,7 @@ export default function RequestDetailPage() {
   const [revisionQuoteId, setRevisionQuoteId] = useState<number | null>(null);
   const [revisionNote, setRevisionNote] = useState('');
   const [revisionError, setRevisionError] = useState(false);
+  const [rejectQuoteId, setRejectQuoteId] = useState<number | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -215,22 +219,30 @@ export default function RequestDetailPage() {
       showToast(lang === 'ar' ? 'لا يمكن قبول عرض منتهي الصلاحية' : "Can't accept an expired quote", 'error');
       return;
     }
-    if (action === 'accepted' || action === 'rejected') {
-      const msg = action === 'accepted'
-        ? (lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?')
-        : (lang === 'ar' ? 'هل أنت متأكد من رفض هذا العرض؟' : 'Reject this quote?');
-      const confirmText = action === 'accepted' ? (lang === 'ar' ? 'قبول' : 'Accept') : (lang === 'ar' ? 'رفض' : 'Reject');
-      if (!(await confirmDialog(msg, { confirmText, danger: action === 'rejected' }))) return;
+    if (action === 'rejected') { setRejectQuoteId(quoteId); return; }
+    if (action === 'accepted') {
+      const msg = lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?';
+      const confirmText = lang === 'ar' ? 'قبول' : 'Accept';
+      if (!(await confirmDialog(msg, { confirmText }))) return;
     }
     const { quotes: updated, quote: q } = setQuoteStatus(quoteId, action);
     setQuotes(updated.filter((x: Quote) => x.requestId === id));
     if (q) {
       if (action === 'accepted') addLog(`تم قبول عرض ${q.supplierCompany} بسعر ${q.totalPrice} ر.س`, `Accepted ${q.supplierCompany} at ${q.totalPrice} SAR`);
-      else if (action === 'rejected') addLog(`تم رفض عرض ${q.supplierCompany}`, `Rejected ${q.supplierCompany}`);
       else if (action === 'pending') addLog(
         undoReason ? `تم إلغاء القرار على عرض ${q.supplierCompany} — السبب: "${undoReason}"` : `تم إلغاء القرار على عرض ${q.supplierCompany}`,
         undoReason ? `Undid decision on ${q.supplierCompany} — reason: "${undoReason}"` : `Undid decision on ${q.supplierCompany}`);
     }
+  };
+
+  const handleRejectConfirm = (reason: string) => {
+    if (rejectQuoteId === null) return;
+    const { quotes: updated, quote: q } = setQuoteStatus(rejectQuoteId, 'rejected', reason || undefined);
+    setQuotes(updated.filter((x: Quote) => x.requestId === id));
+    if (q) addLog(
+      reason ? `تم رفض عرض ${q.supplierCompany} — السبب: "${reason}"` : `تم رفض عرض ${q.supplierCompany}`,
+      reason ? `Rejected ${q.supplierCompany} — reason: "${reason}"` : `Rejected ${q.supplierCompany}`);
+    setRejectQuoteId(null);
   };
 
   const handleUndoClick = (q: Quote) => {
@@ -444,7 +456,7 @@ export default function RequestDetailPage() {
       </div>
 
       {/* CONTENT */}
-      <div className="px-4 md:px-7 py-6 space-y-5 max-w-5xl print:max-w-full print:px-8 print:py-4">
+      <div className="px-4 md:px-7 py-6 space-y-5 max-w-5xl mx-auto print:max-w-full print:px-8 print:py-4">
 
         {/* MATERIALS */}
         <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden print:border print:border-stone-200 print:rounded-lg">
@@ -452,49 +464,78 @@ export default function RequestDetailPage() {
             <span className="text-base">📦</span>
             <h2 className="text-sm font-bold text-stone-900">{t('materials', lang)}</h2>
           </div>
-          <div className="p-5">
+          <div className="p-5 space-y-4">
             {request.materials && request.materials.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
-                  <thead>
-                    <tr>
-                      {['#', t('matType', lang), t('usage', lang), t('size', lang), t('thickness', lang), t('finish', lang), t('color', lang), t('qty', lang), t('targetPrice', lang), t('origin', lang), t('deliveryDate', lang), t('note', lang), t('images', lang)].map(h => (
-                        <th key={h} className="border border-stone-200 bg-[var(--chrome)] px-3 py-2 text-right text-white font-semibold whitespace-nowrap print:py-1.5">
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {request.materials.map((m: any, i: number) => (
-                      <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[var(--bg-soft)]'}>
-                        <td className="border border-stone-200 px-3 py-2 font-bold text-stone-900 text-center">{i + 1}</td>
-                        <td className="border border-stone-200 px-3 py-2 font-bold text-stone-900">{displayVal(m.type, lang)}</td>
-                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{displayVal(m.usage, lang)}</td>
-                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.size || '—'}</td>
-                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.thickness || '—'}</td>
-                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{displayVal(m.finish, lang)}</td>
-                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{displayVal(m.color, lang)}</td>
-                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.quantity ? `${m.quantity} ${lang === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : '—'}</td>
-                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.targetPrice ? `${m.targetPrice} ${lang === 'en' ? (m.currency === 'ر.س' ? 'SAR' : m.currency || 'SAR') : (m.currency || 'ر.س')}` : '—'}</td>
-                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{displayVal(m.origin, lang)}</td>
-                        <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.deliveryDate || '—'}</td>
-                        <td className="border border-stone-200 px-3 py-2 text-stone-700 max-w-[120px]">{m.note || '—'}</td>
-                        <td className="border border-stone-200 px-3 py-2 print:hidden">
-                          {m.images?.length > 0 ? (
-                            <div className="flex gap-1">
-                              {m.images.map((img: string, j: number) => (
-                                <img key={j} src={img} alt="" onClick={() => setLightbox(img)}
-                                  className="w-10 h-10 object-cover rounded border border-stone-200 cursor-zoom-in" />
-                              ))}
-                            </div>
-                          ) : '—'}
-                        </td>
+              <>
+                {request.materials.filter((m: any) => isTilesCategory(m.category)).length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr>
+                        {['#', t('matType', lang), t('usage', lang), t('size', lang), t('thickness', lang), t('finish', lang), t('color', lang), t('qty', lang), t('targetPrice', lang), t('origin', lang), t('deliveryDate', lang), t('note', lang), t('images', lang)].map(h => (
+                          <th key={h} className="border border-stone-200 bg-[var(--chrome)] px-3 py-2 text-right text-white font-semibold whitespace-nowrap print:py-1.5">
+                            {h}
+                          </th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {request.materials.filter((m: any) => isTilesCategory(m.category)).map((m: any, i: number) => (
+                        <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[var(--bg-soft)]'}>
+                          <td className="border border-stone-200 px-3 py-2 font-bold text-stone-900 text-center">{i + 1}</td>
+                          <td className="border border-stone-200 px-3 py-2 font-bold text-stone-900">{displayVal(m.type, lang)}</td>
+                          <td className="border border-stone-200 px-3 py-2 text-stone-700">{displayVal(m.usage, lang)}</td>
+                          <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.size || '—'}</td>
+                          <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.thickness || '—'}</td>
+                          <td className="border border-stone-200 px-3 py-2 text-stone-700">{displayVal(m.finish, lang)}</td>
+                          <td className="border border-stone-200 px-3 py-2 text-stone-700">{displayVal(m.color, lang)}</td>
+                          <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.quantity ? `${m.quantity} ${lang === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : '—'}</td>
+                          <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.targetPrice ? `${m.targetPrice} ${lang === 'en' ? (m.currency === 'ر.س' ? 'SAR' : m.currency || 'SAR') : (m.currency || 'ر.س')}` : '—'}</td>
+                          <td className="border border-stone-200 px-3 py-2 text-stone-700">{displayVal(m.origin, lang)}</td>
+                          <td className="border border-stone-200 px-3 py-2 text-stone-700">{m.deliveryDate || '—'}</td>
+                          <td className="border border-stone-200 px-3 py-2 text-stone-700 max-w-[120px]">{m.note || '—'}</td>
+                          <td className="border border-stone-200 px-3 py-2 print:hidden">
+                            {m.images?.length > 0 ? (
+                              <div className="flex gap-1">
+                                {m.images.map((img: string, j: number) => (
+                                  <img key={j} src={img} alt="" onClick={() => setLightbox(img)}
+                                    className="w-10 h-10 object-cover rounded border border-stone-200 cursor-zoom-in" />
+                                ))}
+                              </div>
+                            ) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                )}
+                {request.materials.filter((m: any) => !isTilesCategory(m.category)).map((m: any, i: number) => {
+                  const cat = getCategory(m.category);
+                  return (
+                    <div key={i} className="bg-stone-50 rounded-xl p-4 text-sm text-stone-700">
+                      <p className="font-bold text-[var(--brand-strong)] mb-1.5">{cat?.icon} {lang === 'ar' ? cat?.labelAr : cat?.labelEn}</p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        {cat?.fields.map(f => m.fields?.[f.key] && (
+                          <span key={f.key}><strong>{lang === 'ar' ? f.labelAr : f.labelEn}:</strong> {displayVal(m.fields[f.key], lang)}</span>
+                        ))}
+                        {m.quantity && <span><strong>{t('qty', lang)}:</strong> {m.quantity} {displayVal(m.unit, lang)}</span>}
+                        {m.targetPrice && <span><strong>{t('targetPrice', lang)}:</strong> {m.targetPrice} {m.currency || 'ر.س'}</span>}
+                        {m.deliveryDate && <span><strong>{t('deliveryDate', lang)}:</strong> {m.deliveryDate}</span>}
+                        {m.note && <span><strong>{t('note', lang)}:</strong> {m.note}</span>}
+                      </div>
+                      {m.images?.length > 0 && (
+                        <div className="flex gap-1 mt-2">
+                          {m.images.map((img: string, j: number) => (
+                            <img key={j} src={img} alt="" onClick={() => setLightbox(img)}
+                              className="w-10 h-10 object-cover rounded border border-stone-200 cursor-zoom-in" />
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </>
             ) : (
               <div className="bg-stone-50 rounded-xl p-4 text-sm text-stone-700 space-y-1">
                 {request.ceramic > 0   && <p>• {lang === 'ar' ? 'سيراميك'  : 'Ceramic'}:   {request.ceramic} m²</p>}
@@ -633,6 +674,9 @@ export default function RequestDetailPage() {
                       {q.status === 'revision' && q.revisionNote && (
                         <p className="text-xs text-amber-700 mt-1 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1">✏ {q.revisionNote}</p>
                       )}
+                      {q.status === 'rejected' && q.rejectionReason && (
+                        <p className="text-xs text-red-700 mt-1 bg-red-50 border border-red-200 rounded-lg px-2 py-1">✕ {q.rejectionReason}</p>
+                      )}
                       <p className="text-[10px] text-stone-300 mt-1">{formatDate(q.createdAt, lang)}</p>
                     </div>
                     {/* actions */}
@@ -748,6 +792,13 @@ export default function RequestDetailPage() {
         <RatingModal lang={lang} supplierCompany={ratingQuote.supplierCompany}
           onSubmit={handleSubmitRating}
           onSkip={() => { setShowRatingModal(false); setRatingQuote(null); }} />
+      )}
+
+      {/* REJECT REASON MODAL */}
+      {rejectQuoteId !== null && (
+        <RejectReasonModal lang={lang}
+          onConfirm={handleRejectConfirm}
+          onCancel={() => setRejectQuoteId(null)} />
       )}
 
       {/* LIGHTBOX */}

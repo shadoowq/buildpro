@@ -8,6 +8,7 @@ import { displayVal, getDeadlineUrgency, formatDay, readQuoteDraft } from '../li
 import { getSupplierVisibleRequests, isRequestMatchedToSupplier } from '../lib/marketplace';
 import { MATERIAL_OPTIONS } from '../lib/materialOptions';
 import { getCityName } from '../lib/translations';
+import { getCategory, isTilesCategory, MATERIAL_CATEGORIES } from '../lib/materialCategories';
 import { useToast } from '../components/Toast';
 import { getCurrentUser, getLanguage, setLanguage as persistLanguage, getRequests, getQuotes } from '../lib/store';
 
@@ -153,7 +154,7 @@ export default function SupplierRequests() {
   const getReqName = (r: Request) => {
     if (r.projectName?.trim()) return r.projectName.trim();
     if (r.materials?.length) {
-      const types = [...new Set(r.materials.map((m: any) => m.type || m.typePending).filter(Boolean))] as string[];
+      const types = [...new Set(r.materials.map((m: any) => m.type || m.typePending || m.fields?.type || getCategory(m.category)?.labelAr).filter(Boolean))] as string[];
       if (types.length) return types.map(tp => displayVal(tp, language)).join(' — ');
     }
     return `#${String(r.id).slice(-4)}`;
@@ -162,8 +163,19 @@ export default function SupplierRequests() {
   const getReqMaterialLines = (r: Request): string[] => {
     if (r.materials?.length) {
       return r.materials
-        .filter((m: any) => m.type || m.typePending)
-        .map((m: any) => `${displayVal(m.type || m.typePending, language)}: ${m.quantity ?? 0} ${displayVal(m.unit, language) !== '—' ? displayVal(m.unit, language) : 'm²'}`);
+        .filter((m: any) => m.type || m.typePending || Object.values(m.fields || {}).some((v: any) => v?.trim?.()))
+        .map((m: any) => {
+          if (isTilesCategory(m.category)) {
+            return `${displayVal(m.type || m.typePending, language)}: ${m.quantity ?? 0} ${displayVal(m.unit, language) !== '—' ? displayVal(m.unit, language) : 'm²'}`;
+          }
+          const cat = getCategory(m.category);
+          const fieldSummary = (cat?.fields || [])
+            .map(f => m.fields?.[f.key] && displayVal(m.fields[f.key], language))
+            .filter(Boolean)
+            .join(', ');
+          const label = `${cat?.icon || ''} ${language === 'ar' ? cat?.labelAr : cat?.labelEn}`.trim();
+          return `${label}${fieldSummary ? ` — ${fieldSummary}` : ''}: ${m.quantity ?? 0} ${displayVal(m.unit, language) !== '—' ? displayVal(m.unit, language) : ''}`.trim();
+        });
     }
     const lines: string[] = [];
     if (r.ceramic > 0) lines.push(`${language === 'ar' ? 'سيراميك' : 'Ceramic'}: ${r.ceramic} m²`);
@@ -186,9 +198,10 @@ export default function SupplierRequests() {
     return u === 'soon' || u === 'overdue';
   }).map(r => r.id));
 
-  /* material types present on a request — covers both the materials[] shape and legacy flat fields */
+  /* material types (or, for the 9 new categories, the category id) present on a
+     request — covers both the materials[] shape and legacy flat fields. */
   const requestMaterialTypes = (r: Request): string[] => {
-    if (r.materials?.length) return r.materials.map((m: any) => m.type || m.typePending).filter(Boolean);
+    if (r.materials?.length) return r.materials.map((m: any) => isTilesCategory(m.category) ? (m.type || m.typePending) : m.category).filter(Boolean);
     const legacy: [number, string][] = [[r.ceramic, 'سيراميك'], [r.porcelain, 'بورسلان'], [r.marble, 'رخام'], [r.granite, 'جرانيت'], [r.terrazzo, 'تيرازو']];
     return legacy.filter(([qty]) => qty > 0).map(([, type]) => type);
   };
@@ -342,6 +355,9 @@ export default function SupplierRequests() {
             className={`text-xs border rounded-lg px-2.5 py-1.5 bg-white outline-none font-cairo ${materialFilter ? 'border-[var(--brand-strong)] text-[var(--brand-strong)] font-semibold' : 'border-[var(--line)] text-stone-600'}`}>
             <option value="">🧱 {tStr('allMaterials', language)}</option>
             {MATERIAL_OPTIONS.types.map(m => <option key={m} value={m}>{displayVal(m, language)}</option>)}
+            {MATERIAL_CATEGORIES.filter(c => c.id !== 'tiles').map(c => (
+              <option key={c.id} value={c.id}>{c.icon} {language === 'ar' ? c.labelAr : c.labelEn}</option>
+            ))}
           </select>
         </div>
         <div className="flex items-center gap-1 bg-white border border-[var(--line)] rounded-xl p-1">

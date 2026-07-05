@@ -17,6 +17,7 @@ import {
   Quote, QuoteLineItem, QuoteAttachment,
 } from '../../../lib/requestHelpers';
 import { isValidImageFile, isValidAttachmentFile } from '../../../lib/auth';
+import { getCategory, isTilesCategory } from '../../../lib/materialCategories';
 import { isRequestMatchedToSupplier, askRequestQuestion, answerRequestQuestion, RequestQuestion } from '../../../lib/marketplace';
 import {
   getCurrentUser, getLanguage, setLanguage as persistLanguage,
@@ -30,6 +31,8 @@ const OTHER = OTHER_VALUE;
 
 interface FormLineItem {
   id: number;
+  category: string;
+  fields: Record<string, string>;
   type: string; typeOther: string;
   size: string; sizeOther: string;
   thickness: string; thicknessOther: string;
@@ -46,6 +49,7 @@ interface FormLineItem {
 
 const emptyLineItem = (): FormLineItem => ({
   id: Date.now() + Math.random(),
+  category: 'tiles', fields: {},
   type: '', typeOther: '',
   size: '', sizeOther: '',
   thickness: '', thicknessOther: '',
@@ -54,6 +58,19 @@ const emptyLineItem = (): FormLineItem => ({
   quantity: '', unit: MATERIAL_OPTIONS.units[0], unitOther: '',
   unitPrice: '', discount: '', description: '', images: [],
 });
+
+/** Builds the compact "Category — field: value, field: value" reference string
+    shown read-only to suppliers for non-tile materials (they still just quote
+    price/qty/delivery; they don't re-enter the buyer's structured spec). */
+function buildReferenceLabel(row: { category: string; fields: Record<string, string> }, lang: Lang): string {
+  const cat = getCategory(row.category);
+  if (!cat) return '';
+  const parts = cat.fields
+    .map(f => row.fields?.[f.key] && `${lang === 'ar' ? f.labelAr : f.labelEn}: ${row.fields[f.key]}`)
+    .filter(Boolean);
+  const label = `${cat.icon} ${lang === 'ar' ? cat.labelAr : cat.labelEn}`;
+  return parts.length ? `${label} — ${parts.join(', ')}` : label;
+}
 
 function legacyMaterialRows(request: any): any[] {
   const rows: any[] = [];
@@ -74,6 +91,18 @@ function prefillFromRequest(request: any): FormLineItem[] {
   const materials = request.materials?.length ? request.materials : legacyMaterialRows(request);
   if (!materials.length) return [emptyLineItem()];
   return materials.map((m: any) => {
+    if (m.category && m.category !== 'tiles') {
+      return {
+        id: Date.now() + Math.random(),
+        category: m.category, fields: m.fields || {},
+        type: '', typeOther: '', size: '', sizeOther: '', thickness: '', thicknessOther: '',
+        finish: '', finishOther: '', color: '', colorOther: '',
+        quantity: m.quantity != null ? String(m.quantity) : '',
+        unit: m.unit || MATERIAL_OPTIONS.units[0], unitOther: '',
+        unitPrice: '', discount: '', description: '', images: [],
+        targetPriceHint: m.targetPrice ? `${m.targetPrice} ${m.currency || 'ر.س'}` : '',
+      };
+    }
     const type = pickField(m.type || m.typePending || '', MATERIAL_OPTIONS.types);
     const size = pickField(m.size || m.sizePending || '', MATERIAL_OPTIONS.sizes);
     const thickness = pickField(m.thickness || m.thicknessPending || '', MATERIAL_OPTIONS.thicknesses);
@@ -82,6 +111,7 @@ function prefillFromRequest(request: any): FormLineItem[] {
     const unit = pickField(m.unit || '', MATERIAL_OPTIONS.units);
     return {
       id: Date.now() + Math.random(),
+      category: 'tiles', fields: {},
       type: type.value, typeOther: type.other,
       size: size.value, sizeOther: size.other,
       thickness: thickness.value, thicknessOther: thickness.other,
@@ -303,9 +333,11 @@ export default function SupplierQuoteBuilder() {
         setPaymentTerms(OTHER); setPaymentTermsOther(existing.paymentTerms);
       }
       if (existing.lineItems?.length) {
-        setLineItems(existing.lineItems.map(li => ({
+        setLineItems(existing.lineItems.map((li, i) => ({
           ...li, quantity: String(li.quantity), unitPrice: String(li.unitPrice), discount: li.discount ? String(li.discount) : '',
           thickness: li.thickness || '', thicknessOther: li.thicknessOther || '', images: li.images || [],
+          category: li.category || 'tiles',
+          fields: req.materials?.[i]?.fields || {},
         })));
       } else {
         setLineItems(prefillFromRequest(req));
@@ -330,7 +362,9 @@ export default function SupplierQuoteBuilder() {
       setCurrency(draft?.currency ?? 'ر.س');
       setOverallDiscount(draft?.overallDiscount ?? '');
       setDescription(draft?.description ?? '');
-      setLineItems(draft?.lineItems?.length ? draft.lineItems : prefillFromRequest(req));
+      setLineItems(draft?.lineItems?.length
+        ? draft.lineItems.map((li: FormLineItem) => ({ ...li, category: li.category || 'tiles', fields: li.fields || {} }))
+        : prefillFromRequest(req));
     }
 
     setReady(true);
@@ -406,7 +440,8 @@ export default function SupplierQuoteBuilder() {
   const totals = computeQuoteTotals(lineItems, overallDiscount);
 
   const isValidLineItem = (li: FormLineItem) =>
-    resolveOther(li.type, li.typeOther).trim() && Number(li.unitPrice) > 0 && Number(li.quantity) > 0;
+    (isTilesCategory(li.category) ? resolveOther(li.type, li.typeOther).trim() : true)
+    && Number(li.unitPrice) > 0 && Number(li.quantity) > 0;
 
   const validate = (): boolean => {
     const valid = lineItems.filter(isValidLineItem);
@@ -424,7 +459,8 @@ export default function SupplierQuoteBuilder() {
     const resolvedItems: QuoteLineItem[] = lineItems
       .filter(isValidLineItem)
       .map(li => ({
-        id: li.id, type: li.type, typeOther: li.typeOther,
+        id: li.id, category: li.category,
+        type: li.type, typeOther: li.typeOther,
         size: li.size, sizeOther: li.sizeOther,
         thickness: li.thickness, thicknessOther: li.thicknessOther,
         finish: li.finish, finishOther: li.finishOther,
@@ -535,7 +571,9 @@ export default function SupplierQuoteBuilder() {
 
   const reqName = request.projectName?.trim() || `#${String(request.id).slice(-6)}`;
   const reqMaterialLines: string[] = (request.materials?.length ? request.materials : legacyMaterialRows(request))
-    .map((m: any) => `${displayVal(m.type || m.typePending, language)} — ${m.quantity ?? 0} ${displayVal(m.unit, language) !== '—' ? displayVal(m.unit, language) : 'm²'}`);
+    .map((m: any) => isTilesCategory(m.category)
+      ? `${displayVal(m.type || m.typePending, language)} — ${m.quantity ?? 0} ${displayVal(m.unit, language) !== '—' ? displayVal(m.unit, language) : 'm²'}`
+      : `${buildReferenceLabel(m, language)} — ${m.quantity ?? 0} ${m.unit || ''}`);
 
   /* shared between the desktop table cell and the mobile card */
   const renderRowImages = (row: FormLineItem) => (
@@ -710,6 +748,7 @@ export default function SupplierQuoteBuilder() {
                   <button type="button" onClick={() => removeRow(row.id)}
                     className="w-6 h-6 rounded-md bg-red-50 text-red-500 hover:bg-red-100 text-xs">✕</button>
                 </div>
+                {isTilesCategory(row.category) ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 mb-2">
                   <div>
                     <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('material', language)}</label>
@@ -748,6 +787,12 @@ export default function SupplierQuoteBuilder() {
                       options={MATERIAL_OPTIONS.units} lang={language} />
                   </div>
                 </div>
+                ) : (
+                  <div className="mb-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-xs text-stone-600 italic">
+                    {buildReferenceLabel(row, language)}
+                    {row.quantity && <span> — {tx('qty', language)}: {row.quantity} {row.unit}</span>}
+                  </div>
+                )}
                 <div className="grid grid-cols-3 gap-2 mb-2">
                   <div>
                     <label className="block text-xs font-semibold text-stone-500 mb-1">{tx('qty', language)}</label>

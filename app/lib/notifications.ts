@@ -183,10 +183,10 @@ export function buildSupplierNotifications(
         type,
         requestId: q.requestId,
         textAr: type === 'accepted' ? `تم قبول عرضك على «${nameAr(q.requestId)}» بسعر ${Number(q.totalPrice).toLocaleString()} ر.س`
-              : type === 'rejected' ? `تم رفض عرضك على «${nameAr(q.requestId)}»`
+              : type === 'rejected' ? (q.rejectionReason ? `تم رفض عرضك على «${nameAr(q.requestId)}» — السبب: "${q.rejectionReason}"` : `تم رفض عرضك على «${nameAr(q.requestId)}»`)
               :                       `طلب تعديل على عرضك بخصوص «${nameAr(q.requestId)}»`,
         textEn: type === 'accepted' ? `Your quote on "${nameEn(q.requestId)}" was accepted at ${Number(q.totalPrice).toLocaleString()} SAR`
-              : type === 'rejected' ? `Your quote on "${nameEn(q.requestId)}" was rejected`
+              : type === 'rejected' ? (q.rejectionReason ? `Your quote on "${nameEn(q.requestId)}" was rejected — reason: "${q.rejectionReason}"` : `Your quote on "${nameEn(q.requestId)}" was rejected`)
               :                       `Revision requested on your quote for "${nameEn(q.requestId)}"`,
         timestamp: q.statusChangedAt || q.createdAt,
         unread: true,

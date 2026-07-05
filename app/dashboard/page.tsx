@@ -6,7 +6,9 @@ import { useEffect, useState } from 'react'
 import ContractorNav from '../components/ContractorNav'
 import RequestDetailModal from '../components/RequestDetailModal'
 import RatingModal from '../components/RatingModal'
+import RejectReasonModal from '../components/RejectReasonModal'
 import { appendActivityLog, setQuoteStatus, softDeleteRequest, displayVal, getUnfinishedAutosave, getDeadlineUrgency, approveQuoteEdit, declineQuoteEdit, isQuoteExpired } from '../lib/requestHelpers'
+import { getCategory } from '../lib/materialCategories'
 import HelpTooltip from '../components/HelpTooltip'
 import { useToast } from '../components/Toast'
 import { useConfirm } from '../components/ConfirmDialog'
@@ -170,6 +172,7 @@ export default function DashboardPage() {
   useEscapeKey(() => { if (lightbox) setLightbox(null) })
   const [revisionQuoteId, setRevisionQuoteId] = useState<number | null>(null)
   const [revisionNote, setRevisionNote]       = useState('')
+  const [rejectQuoteId, setRejectQuoteId]     = useState<number | null>(null)
 
   const dir = lang === 'ar' ? 'rtl' : 'ltr'
 
@@ -205,7 +208,7 @@ export default function DashboardPage() {
   const unfinishedDraftName = (() => {
     if (!unfinishedDraft) return ''
     if (unfinishedDraft.projectName?.trim()) return unfinishedDraft.projectName.trim()
-    const types = [...new Set((unfinishedDraft.materials || []).map((m: any) => m.type || m.typePending).filter(Boolean))] as string[]
+    const types = [...new Set((unfinishedDraft.materials || []).map((m: any) => m.type || m.typePending || m.fields?.type || getCategory(m.category)?.labelAr).filter(Boolean))] as string[]
     return types.map(tp => displayVal(tp, lang)).join(lang === 'ar' ? '، ' : ', ')
   })()
 
@@ -222,7 +225,7 @@ export default function DashboardPage() {
   const getReqName = (r: any) => {
     if (r.projectName?.trim()) return r.projectName.trim()
     if (r.materials?.length > 0) {
-      const types = [...new Set(r.materials.map((m: any) => m.type || m.typePending).filter(Boolean))] as string[]
+      const types = [...new Set(r.materials.map((m: any) => m.type || m.typePending || m.fields?.type || getCategory(m.category)?.labelAr).filter(Boolean))] as string[]
       if (types.length > 0) return types.map(tp => displayVal(tp, lang)).join(' — ')
     }
     const parts: string[] = []
@@ -391,20 +394,28 @@ export default function DashboardPage() {
       showToast(lang === 'ar' ? 'لا يمكن قبول عرض منتهي الصلاحية' : "Can't accept an expired quote", 'error')
       return
     }
-    if (action === 'accepted' || action === 'rejected') {
-      const msg = action === 'accepted'
-        ? (lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?')
-        : (lang === 'ar' ? 'هل أنت متأكد من رفض هذا العرض؟' : 'Reject this quote?')
-      const confirmText = action === 'accepted' ? (lang === 'ar' ? 'قبول' : 'Accept') : (lang === 'ar' ? 'رفض' : 'Reject')
-      if (!(await confirmDialog(msg, { confirmText, danger: action === 'rejected' }))) return
+    if (action === 'rejected') { setRejectQuoteId(quoteId); return }
+    if (action === 'accepted') {
+      const msg = lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?'
+      const confirmText = lang === 'ar' ? 'قبول' : 'Accept'
+      if (!(await confirmDialog(msg, { confirmText }))) return
     }
     const { quotes: updated, quote } = setQuoteStatus(quoteId, action)
     setAllQuotes(updated)
     if (quote) {
       if (action === 'accepted') setActivityLogs(appendActivityLog(quote.requestId, `تم قبول عرض ${quote.supplierCompany} بسعر ${quote.totalPrice} ر.س`, `Accepted quote from ${quote.supplierCompany} at ${quote.totalPrice} SAR`))
-      else if (action === 'rejected') setActivityLogs(appendActivityLog(quote.requestId, `تم رفض عرض ${quote.supplierCompany}`, `Rejected quote from ${quote.supplierCompany}`))
       else setActivityLogs(appendActivityLog(quote.requestId, `تم إلغاء القرار على عرض ${quote.supplierCompany}`, `Undid decision on ${quote.supplierCompany} quote`))
     }
+  }
+
+  const handleRejectConfirm = (reason: string) => {
+    if (rejectQuoteId === null) return
+    const { quotes: updated, quote } = setQuoteStatus(rejectQuoteId, 'rejected', reason || undefined)
+    setAllQuotes(updated)
+    if (quote) setActivityLogs(appendActivityLog(quote.requestId,
+      reason ? `تم رفض عرض ${quote.supplierCompany} — السبب: "${reason}"` : `تم رفض عرض ${quote.supplierCompany}`,
+      reason ? `Rejected quote from ${quote.supplierCompany} — reason: "${reason}"` : `Rejected quote from ${quote.supplierCompany}`))
+    setRejectQuoteId(null)
   }
 
   const handleRevisionSubmit = (quoteId: number) => {
@@ -730,6 +741,13 @@ export default function DashboardPage() {
         <RatingModal lang={lang} supplierCompany={ratingQuote.supplierCompany}
           onSubmit={handleSubmitRating}
           onSkip={() => { setShowRatingModal(false); setRatingQuote(null) }} />
+      )}
+
+      {/* REJECT REASON MODAL */}
+      {rejectQuoteId !== null && (
+        <RejectReasonModal lang={lang}
+          onConfirm={handleRejectConfirm}
+          onCancel={() => setRejectQuoteId(null)} />
       )}
 
       {/* LIGHTBOX */}

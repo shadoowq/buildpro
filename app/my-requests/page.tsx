@@ -6,9 +6,11 @@ import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
 import RequestDetailModal from '../components/RequestDetailModal';
 import RatingModal from '../components/RatingModal';
+import RejectReasonModal from '../components/RejectReasonModal';
 import HelpTooltip from '../components/HelpTooltip';
 import QuoteCompareTable from '../components/QuoteCompareTable';
 import { displayVal, appendActivityLog, setQuoteStatus, softDeleteRequest, softDeleteRequests, getDeadlineUrgency, approveQuoteEdit, declineQuoteEdit, isQuoteExpired } from '../lib/requestHelpers';
+import { getCategory } from '../lib/materialCategories';
 import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -42,7 +44,7 @@ interface Quote {
   supplierName: string; supplierCompany: string;
   totalPrice: number; deliveryDays: number; description: string;
   status: 'pending' | 'accepted' | 'rejected' | 'revision';
-  revisionNote?: string; createdAt: string;
+  revisionNote?: string; rejectionReason?: string; createdAt: string;
 }
 type KanbanCol = 'active' | 'awaiting' | 'closed';
 interface Request {
@@ -238,6 +240,7 @@ export default function MyRequests() {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [revisionQuoteId, setRevisionQuoteId] = useState<number | null>(null);
   const [revisionNote, setRevisionNote] = useState('');
+  const [rejectQuoteId, setRejectQuoteId] = useState<number | null>(null);
   const [filter, setFilter] = useState<FilterMode>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [compareRequest, setCompareRequest] = useState<Request | null>(null);
@@ -314,7 +317,7 @@ export default function MyRequests() {
   const getRequestName = (req: Request) => {
     if (req.projectName?.trim()) return req.projectName.trim();
     if (req.materials && req.materials.length > 0) {
-      const types = [...new Set(req.materials.map((m: any) => m.type || m.typePending).filter(Boolean))];
+      const types = [...new Set(req.materials.map((m: any) => m.type || m.typePending || m.fields?.type || getCategory(m.category)?.labelAr).filter(Boolean))];
       if (types.length > 0) return types.map(tp => displayVal(tp as string, lang)).join(' — ');
     }
     const parts: string[] = [];
@@ -327,7 +330,7 @@ export default function MyRequests() {
   };
   const getRequestTags = (req: Request): string[] => {
     if (req.materials && req.materials.length > 0)
-      return [...new Set(req.materials.map((m: any) => m.type || m.typePending).filter(Boolean))].map(tp => displayVal(tp as string, lang));
+      return [...new Set(req.materials.map((m: any) => m.type || m.typePending || m.fields?.type || getCategory(m.category)?.labelAr).filter(Boolean))].map(tp => displayVal(tp as string, lang));
     return [
       req.ceramic > 0 ? (lang === 'ar' ? 'سيراميك' : 'Ceramic') : null,
       req.porcelain > 0 ? (lang === 'ar' ? 'بورسلان' : 'Porcelain') : null,
@@ -385,20 +388,28 @@ export default function MyRequests() {
       showToast(lang === 'ar' ? 'لا يمكن قبول عرض منتهي الصلاحية' : "Can't accept an expired quote", 'error');
       return;
     }
-    if (action === 'accepted' || action === 'rejected') {
-      const msg = action === 'accepted'
-        ? (lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?')
-        : (lang === 'ar' ? 'هل أنت متأكد من رفض هذا العرض؟' : 'Reject this quote?');
-      const confirmText = action === 'accepted' ? (lang === 'ar' ? 'قبول' : 'Accept') : (lang === 'ar' ? 'رفض' : 'Reject');
-      if (!(await confirmDialog(msg, { confirmText, danger: action === 'rejected' }))) return;
+    if (action === 'rejected') { setRejectQuoteId(quoteId); return; }
+    if (action === 'accepted') {
+      const msg = lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?';
+      const confirmText = lang === 'ar' ? 'قبول' : 'Accept';
+      if (!(await confirmDialog(msg, { confirmText }))) return;
     }
     const { quotes: updated, quote } = setQuoteStatus(quoteId, action);
     setQuotes(updated);
     if (quote) {
       if (action === 'accepted') addActivityLog(quote.requestId, `تم قبول عرض ${quote.supplierCompany} بسعر ${quote.totalPrice} ر.س`, `Accepted quote from ${quote.supplierCompany} at ${quote.totalPrice} SAR`);
-      else if (action === 'rejected') addActivityLog(quote.requestId, `تم رفض عرض ${quote.supplierCompany}`, `Rejected quote from ${quote.supplierCompany}`);
       else addActivityLog(quote.requestId, `تم إلغاء القرار على عرض ${quote.supplierCompany}`, `Undid decision on ${quote.supplierCompany} quote`);
     }
+  };
+
+  const handleRejectConfirm = (reason: string) => {
+    if (rejectQuoteId === null) return;
+    const { quotes: updated, quote } = setQuoteStatus(rejectQuoteId, 'rejected', reason || undefined);
+    setQuotes(updated);
+    if (quote) addActivityLog(quote.requestId,
+      reason ? `تم رفض عرض ${quote.supplierCompany} — السبب: "${reason}"` : `تم رفض عرض ${quote.supplierCompany}`,
+      reason ? `Rejected quote from ${quote.supplierCompany} — reason: "${reason}"` : `Rejected quote from ${quote.supplierCompany}`);
+    setRejectQuoteId(null);
   };
   const handleRevisionSubmit = (quoteId: number) => {
     if (!revisionNote.trim()) { showToast(lang === 'ar' ? 'من فضلك اكتب ملاحظة التعديل' : 'Please write a revision note', 'error'); return; }
@@ -1104,6 +1115,13 @@ export default function MyRequests() {
         <RatingModal lang={lang} supplierCompany={ratingQuote.supplierCompany}
           onSubmit={handleSubmitRating}
           onSkip={() => { setShowRatingModal(false); setRatingRequest(null); setRatingQuote(null); }} />
+      )}
+
+      {/* Reject Reason Modal */}
+      {rejectQuoteId !== null && (
+        <RejectReasonModal lang={lang}
+          onConfirm={handleRejectConfirm}
+          onCancel={() => setRejectQuoteId(null)} />
       )}
 
       {/* Lightbox */}

@@ -28,6 +28,14 @@ export function resolveOther(value: string, other: string): string {
   return value === OTHER_VALUE ? other : value;
 }
 
+export const REJECTION_REASON_OPTIONS = [
+  'السعر أعلى من الميزانية المتاحة',
+  'مدة التوريد طويلة جداً',
+  'المواصفات لا تطابق المطلوب',
+  'تم اختيار مورد آخر',
+  'تم إلغاء المشروع',
+];
+
 export const PAYMENT_TERMS_OPTIONS = [
   'دفعة مقدمة 50% والباقي عند التسليم',
   'الدفع الكامل عند التسليم',

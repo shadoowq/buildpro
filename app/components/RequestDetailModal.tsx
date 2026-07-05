@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { displayVal, formatDate, getSupplierData, arToEn, Lang, Quote, ActivityLog, RequestLike, isQuoteExpired } from '../lib/requestHelpers';
 import { getCityName } from '../lib/translations';
+import { getCategory, isTilesCategory } from '../lib/materialCategories';
 import { useEscapeKey } from './useEscapeKey';
 import QuoteCompareTable from './QuoteCompareTable';
 
@@ -73,44 +74,65 @@ export default function RequestDetailModal({
           <div>
             <h3 className="text-sm font-bold text-stone-900 mb-3">{tr('المواد المطلوبة', 'Required Materials')}</h3>
             {req.materials && req.materials.length > 0 ? (
-              <div className="overflow-x-auto border border-stone-200 rounded-xl">
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr>
-                      {['#', tr('نوع المادة','Material'), tr('الاستخدام','Usage'), tr('المقاس','Size'), tr('السماكة','Thickness'), tr('الفنش','Finish'), tr('اللون','Color'), tr('الكمية','Qty'), tr('السعر المستهدف','Target Price'), tr('الصناعة','Origin'), tr('تاريخ التوريد','Delivery Date'), tr('وصف البند','Note'), tr('الصور','Images')].map(h => (
-                        <th key={h} style={thStyle}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {req.materials.map((m: any, i: number) => (
-                      <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#fff' : 'var(--bg-soft)' }}>
-                        <td style={tdStyle}>{i + 1}</td>
-                        <td style={{ ...tdStyle, fontWeight: 700 }}>{displayVal(m.type, lang)}</td>
-                        <td style={tdStyle}>{displayVal(m.usage, lang)}</td>
-                        <td style={tdStyle}>{m.size || '—'}</td>
-                        <td style={tdStyle}>{m.thickness || '—'}</td>
-                        <td style={tdStyle}>{displayVal(m.finish, lang)}</td>
-                        <td style={tdStyle}>{displayVal(m.color, lang)}</td>
-                        <td style={tdStyle}>{m.quantity ? `${m.quantity} ${lang === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : '—'}</td>
-                        <td style={tdStyle}>{m.targetPrice ? `${m.targetPrice} ${lang === 'en' ? (m.currency === 'ر.س' ? 'SAR' : m.currency || 'SAR') : (m.currency || 'ر.س')}` : '—'}</td>
-                        <td style={tdStyle}>{displayVal(m.origin, lang)}</td>
-                        <td style={tdStyle}>{m.deliveryDate || '—'}</td>
-                        <td style={{ ...tdStyle, maxWidth: 120, fontSize: 11 }}>{m.note || '—'}</td>
-                        <td style={tdStyle}>
-                          {m.images && m.images.length > 0 ? (
-                            <div className="flex gap-1 justify-center">
-                              {m.images.map((img: string, j: number) => (
-                                <img key={j} src={img} alt="" onClick={e => { e.stopPropagation(); setLightboxImg(img); }}
-                                  className="w-10 h-10 object-cover rounded border border-stone-200 cursor-zoom-in" />
-                              ))}
-                            </div>
-                          ) : '—'}
-                        </td>
+              <div className="space-y-3">
+                {req.materials.filter((m: any) => isTilesCategory(m.category)).length > 0 && (
+                <div className="overflow-x-auto border border-stone-200 rounded-xl">
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr>
+                        {['#', tr('نوع المادة','Material'), tr('الاستخدام','Usage'), tr('المقاس','Size'), tr('السماكة','Thickness'), tr('الفنش','Finish'), tr('اللون','Color'), tr('الكمية','Qty'), tr('السعر المستهدف','Target Price'), tr('الصناعة','Origin'), tr('تاريخ التوريد','Delivery Date'), tr('وصف البند','Note'), tr('الصور','Images')].map(h => (
+                          <th key={h} style={thStyle}>{h}</th>
+                        ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {req.materials.filter((m: any) => isTilesCategory(m.category)).map((m: any, i: number) => (
+                        <tr key={i} style={{ backgroundColor: i % 2 === 0 ? '#fff' : 'var(--bg-soft)' }}>
+                          <td style={tdStyle}>{i + 1}</td>
+                          <td style={{ ...tdStyle, fontWeight: 700 }}>{displayVal(m.type, lang)}</td>
+                          <td style={tdStyle}>{displayVal(m.usage, lang)}</td>
+                          <td style={tdStyle}>{m.size || '—'}</td>
+                          <td style={tdStyle}>{m.thickness || '—'}</td>
+                          <td style={tdStyle}>{displayVal(m.finish, lang)}</td>
+                          <td style={tdStyle}>{displayVal(m.color, lang)}</td>
+                          <td style={tdStyle}>{m.quantity ? `${m.quantity} ${lang === 'en' ? (arToEn[m.unit] || m.unit || 'm²') : (m.unit || 'م²')}` : '—'}</td>
+                          <td style={tdStyle}>{m.targetPrice ? `${m.targetPrice} ${lang === 'en' ? (m.currency === 'ر.س' ? 'SAR' : m.currency || 'SAR') : (m.currency || 'ر.س')}` : '—'}</td>
+                          <td style={tdStyle}>{displayVal(m.origin, lang)}</td>
+                          <td style={tdStyle}>{m.deliveryDate || '—'}</td>
+                          <td style={{ ...tdStyle, maxWidth: 120, fontSize: 11 }}>{m.note || '—'}</td>
+                          <td style={tdStyle}>
+                            {m.images && m.images.length > 0 ? (
+                              <div className="flex gap-1 justify-center">
+                                {m.images.map((img: string, j: number) => (
+                                  <img key={j} src={img} alt="" onClick={e => { e.stopPropagation(); setLightboxImg(img); }}
+                                    className="w-10 h-10 object-cover rounded border border-stone-200 cursor-zoom-in" />
+                                ))}
+                              </div>
+                            ) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                )}
+                {req.materials.filter((m: any) => !isTilesCategory(m.category)).map((m: any, i: number) => {
+                  const cat = getCategory(m.category);
+                  return (
+                    <div key={i} className="bg-stone-50 rounded-xl p-4 text-sm text-stone-600">
+                      <p className="font-bold text-stone-800 mb-1.5">{cat?.icon} {tr(cat?.labelAr || '', cat?.labelEn || '')}</p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        {cat?.fields.map(f => m.fields?.[f.key] && (
+                          <span key={f.key}><strong>{tr(f.labelAr, f.labelEn)}:</strong> {displayVal(m.fields[f.key], lang)}</span>
+                        ))}
+                        {m.quantity && <span><strong>{tr('الكمية','Qty')}:</strong> {m.quantity} {displayVal(m.unit, lang)}</span>}
+                        {m.targetPrice && <span><strong>{tr('السعر المستهدف','Target Price')}:</strong> {m.targetPrice} {m.currency || 'ر.س'}</span>}
+                        {m.deliveryDate && <span><strong>{tr('تاريخ التوريد','Delivery Date')}:</strong> {m.deliveryDate}</span>}
+                        {m.note && <span><strong>{tr('وصف البند','Note')}:</strong> {m.note}</span>}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="bg-stone-50 rounded-xl p-4 text-sm text-stone-600 space-y-1">
@@ -206,6 +228,11 @@ export default function RequestDetailModal({
                       {quote.status === 'revision' && quote.revisionNote && (
                         <div className="mt-3 bg-amber-100 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
                           <strong>{tr('ملاحظة التعديل:','Revision Note:')}</strong> {quote.revisionNote}
+                        </div>
+                      )}
+                      {quote.status === 'rejected' && quote.rejectionReason && (
+                        <div className="mt-3 bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-800">
+                          <strong>{tr('سبب الرفض:','Rejection Reason:')}</strong> {quote.rejectionReason}
                         </div>
                       )}
                       {quote.editRequestStatus === 'pending' && (

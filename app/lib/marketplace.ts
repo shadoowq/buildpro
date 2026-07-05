@@ -5,6 +5,7 @@
  */
 
 import { RequestLike, Quote } from './requestHelpers';
+import { MATERIAL_OPTIONS } from './materialOptions';
 
 /* ── auto-matching (opens the marketplace beyond hand-picked suppliers) ── */
 
@@ -15,6 +16,15 @@ export interface SupplierMatchProfile {
   coverageCities?: string[];
 }
 
+/** A supplier's specialty covers a material category if they picked that category
+    directly, or — for suppliers who set up their profile before categories existed —
+    they picked one of the old tile-type strings, which implicitly covers 'tiles'. */
+function specialtiesCoverCategory(specialties: string[], category: string): boolean {
+  if (specialties.includes(category)) return true;
+  if (category === 'tiles') return specialties.some(s => MATERIAL_OPTIONS.types.includes(s));
+  return false;
+}
+
 /** True when an open request's materials+city line up with a supplier's own opted-in profile. */
 export function isRequestMatchedToSupplier(request: RequestLike, supplier: SupplierMatchProfile): boolean {
   if (!supplier.autoMatch || request.status !== 'open') return false;
@@ -23,10 +33,10 @@ export function isRequestMatchedToSupplier(request: RequestLike, supplier: Suppl
   if (specialties.length === 0 || cities.length === 0) return false; // profile must be configured first
   if (!request.location || !cities.includes(request.location)) return false;
 
-  const materials: string[] = request.materials?.length
-    ? request.materials.map((m: any) => m.type || m.typePending).filter(Boolean)
+  const categories: string[] = request.materials?.length
+    ? request.materials.map((m: any) => m.category || 'tiles').filter(Boolean)
     : [];
-  return materials.some(m => specialties.includes(m));
+  return categories.some(c => specialtiesCoverCategory(specialties, c));
 }
 
 /** A supplier sees a request if they were hand-picked OR they auto-match it. */

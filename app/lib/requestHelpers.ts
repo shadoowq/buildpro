@@ -14,10 +14,44 @@ export const arToEn: Record<string, string> = {
   'إيطالي': 'Italian', 'إسباني': 'Spanish', 'تركي': 'Turkish',
   'عماني': 'Omani', 'إماراتي': 'Emirati', 'مصري': 'Egyptian', 'هندي': 'Indian',
   'م²': 'm²', 'م طولي': 'Linear m', 'قطعة': 'Piece', 'حبة': 'Unit',
+
+  /* paint */
+  'معجون': 'Putty', 'برايمر': 'Primer', 'بلاستيك مطفي': 'Matte Plastic Paint',
+  'نصف لامع': 'Semi-Gloss', 'لامع': 'Glossy', 'زيتي': 'Oil-based',
+  'إيبوكسي': 'Epoxy', 'عازل مائي': 'Waterproof Coating', 'رمادي': 'Gray', 'مطاطي': 'Rubberized',
+  /* concrete */
+  'إسمنت بورتلاندي': 'Portland Cement', 'خرسانة جاهزة': 'Ready-Mix Concrete',
+  'مقاوم للكبريتات': 'Sulfate-Resistant', 'سريع التصلب': 'Rapid-Hardening',
+  'أساسات': 'Foundations', 'أعمدة': 'Columns', 'أسقف': 'Ceilings/Roofs',
+  'بدون': 'None', 'مانع تسرب': 'Waterproofing Additive', 'مسرع تصلب': 'Accelerator', 'مؤخر شك': 'Retarder',
+  /* rebar */
+  'عادي': 'Standard', 'مبروم': 'Deformed', 'مقاوم للصدأ': 'Stainless',
+  'مستقيم': 'Straight', 'ملفوف': 'Coiled', 'مشكل حسب المخطط': 'Bent to Drawing',
+  /* blocks */
+  'بلوك أسمنتي': 'Cement Block', 'طوب أحمر': 'Red Brick', 'بلوك خفيف AAC': 'AAC Lightweight Block',
+  'بلوك عازل': 'Insulated Block', 'هوردي': 'Hourdi', 'جدران حاملة': 'Load-Bearing Walls',
+  'جدران فاصلة': 'Partition Walls', 'عزل حراري': 'Thermal Insulation',
+  /* electrical */
+  'كابل نحاس': 'Copper Cable', 'كابل ألمنيوم': 'Aluminum Cable', 'قاطع': 'Circuit Breaker',
+  'لوحة توزيع': 'Distribution Panel', 'مفتاح وبرايز': 'Switches & Sockets',
+  /* ac */
+  'سبليت': 'Split AC', 'شباك': 'Window AC', 'دكت': 'Ducted AC', 'باكدج': 'Package Unit',
+  'مركزي VRF': 'Central VRF', 'طن': 'Ton', 'انفرتر توفير عالي': 'High-Efficiency Inverter',
+  /* plumbing */
+  'أنابيب PPR': 'PPR Pipes', 'أنابيب PVC': 'PVC Pipes', 'أنابيب نحاس': 'Copper Pipes', 'نحاس': 'Copper',
+  'خلاطات': 'Mixers/Faucets', 'سخانات': 'Water Heaters',
+  'مياه باردة': 'Cold Water', 'مياه ساخنة': 'Hot Water', 'صرف صحي': 'Drainage',
+  /* aluminum & glass */
+  'ألومنيوم عادي': 'Standard Aluminum', 'ألومنيوم حراري': 'Thermal Break Aluminum',
+  'زجاج سيكوريت': 'Tempered Glass', 'زجاج مزدوج': 'Double Glazing', 'زجاج ملون': 'Tinted Glass',
+  'أبواب': 'Doors', 'فواصل': 'Partitions', 'برونزي': 'Bronze', 'طبيعي': 'Natural',
+  /* insulation */
+  'رغوة بولي يوريثان': 'Polyurethane Foam', 'ألواح فوم': 'Foam Boards', 'صوف صخري': 'Rock Wool',
 };
 
 export interface QuoteLineItem {
   id: number;
+  category?: string;
   type: string; typeOther: string;
   size: string; sizeOther: string;
   thickness: string; thicknessOther: string;
@@ -38,7 +72,7 @@ export interface Quote {
   supplierName: string; supplierCompany: string;
   totalPrice: number; deliveryDays: number; description: string;
   status: 'pending' | 'accepted' | 'rejected' | 'revision';
-  revisionNote?: string; createdAt: string;
+  revisionNote?: string; rejectionReason?: string; createdAt: string;
   quoteNumber?: string; clientName?: string; location?: string;
   paymentTerms?: string; validUntil?: string; currency?: string;
   lineItems?: QuoteLineItem[]; attachments?: QuoteAttachment[];
@@ -155,13 +189,18 @@ export function canUndoQuoteDecisionFreely(q: Pick<Quote, 'statusChangedAt'>): b
   return Date.now() - new Date(q.statusChangedAt).getTime() < UNDO_GRACE_MS;
 }
 
-export function setQuoteStatus(quoteId: number, status: Quote['status'], revisionNote?: string): { quotes: Quote[]; quote: Quote | undefined } {
+/** `note` is written into the field matching `status` — a revision note for 'revision',
+    a rejection reason for 'rejected' — since a quote is never both at once. */
+export function setQuoteStatus(quoteId: number, status: Quote['status'], note?: string): { quotes: Quote[]; quote: Quote | undefined } {
   const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
   const quote = allQuotes.find((q: Quote) => q.id === quoteId);
   const statusChangedAt = new Date().toISOString();
-  const updated = allQuotes.map((q: Quote) => q.id === quoteId
-    ? (status === 'revision' ? { ...q, status, revisionNote, statusChangedAt } : { ...q, status, statusChangedAt })
-    : q);
+  const updated = allQuotes.map((q: Quote) => {
+    if (q.id !== quoteId) return q;
+    if (status === 'revision') return { ...q, status, revisionNote: note, statusChangedAt };
+    if (status === 'rejected') return { ...q, status, rejectionReason: note || undefined, statusChangedAt };
+    return { ...q, status, statusChangedAt };
+  });
   localStorage.setItem('quotes', JSON.stringify(updated));
   return { quotes: updated, quote };
 }

@@ -9,6 +9,7 @@ import { saudiCities, getCityName } from '../lib/translations';
 import { persistUserUpdate, displayVal } from '../lib/requestHelpers';
 import { getCurrentUser, getLanguage, setLanguage, getUsers, logout } from '../lib/store';
 import { MATERIAL_OPTIONS } from '../lib/materialOptions';
+import { MATERIAL_CATEGORIES } from '../lib/materialCategories';
 import { verifyPassword, setUserPassword, ALLOWED_IMAGE_TYPES } from '../lib/auth';
 import { downloadBackup, parseBackup, restoreBackup } from '../lib/backup';
 import { compressImageToDataUrl } from '../lib/images';
@@ -486,12 +487,18 @@ export default function ProfilePage() {
               {/* specialties */}
               <Field label={t('specialties', lang)}>
                 <div className="flex flex-wrap gap-2">
-                  {MATERIAL_OPTIONS.types.map(m => (
-                    <button key={m} type="button" onClick={() => toggleSpecialty(m)}
-                      className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${specialties.includes(m) ? 'bg-[var(--brand)] border-[var(--brand)]' : 'bg-white text-stone-600 border-[var(--line)] hover:bg-[var(--bg-soft)]'}`}>
-                      {displayVal(m, lang)}
-                    </button>
-                  ))}
+                  {MATERIAL_CATEGORIES.map(c => {
+                    // legacy profiles picked tile-type strings (before categories existed) —
+                    // that still counts as having picked the 'tiles' category.
+                    const selected = specialties.includes(c.id)
+                      || (c.id === 'tiles' && specialties.some(s => MATERIAL_OPTIONS.types.includes(s)));
+                    return (
+                      <button key={c.id} type="button" onClick={() => toggleSpecialty(c.id)}
+                        className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${selected ? 'bg-[var(--brand)] border-[var(--brand)]' : 'bg-white text-stone-600 border-[var(--line)] hover:bg-[var(--bg-soft)]'}`}>
+                        {c.icon} {lang === 'ar' ? c.labelAr : c.labelEn}
+                      </button>
+                    );
+                  })}
                 </div>
               </Field>
 

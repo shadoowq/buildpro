@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getCurrentUser, getLanguage, getRequests } from '../../../lib/store';
+import { getCategory, isTilesCategory } from '../../../lib/materialCategories';
+import { displayVal } from '../../../lib/requestHelpers';
 
 type Lang = 'ar' | 'en';
 
@@ -70,9 +72,12 @@ export default function PrintRequest() {
     return rows;
   };
 
-  const materials = req.materials?.filter((m: any) => m.type?.trim() || m.typePending?.trim()).length
-    ? req.materials.filter((m: any) => m.type?.trim() || m.typePending?.trim())
+  const isMaterialFilled = (m: any) => m.type?.trim() || m.typePending?.trim() || Object.values(m.fields || {}).some((v: any) => v?.trim?.());
+  const allMaterials = req.materials?.filter(isMaterialFilled).length
+    ? req.materials.filter(isMaterialFilled)
     : getLegacyMaterials();
+  const materials = allMaterials.filter((m: any) => isTilesCategory(m.category));
+  const otherMaterials = allMaterials.filter((m: any) => !isTilesCategory(m.category));
 
   const reqName   = req.projectName?.trim() || `${lang === 'ar' ? 'طلب تسعير' : 'RFQ'} #${req.id}`;
   const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -83,10 +88,11 @@ export default function PrintRequest() {
   const fields = ['type', 'usage', 'size', 'thickness', 'finish', 'color', 'quantity', 'targetPrice', 'origin', 'deliveryDate', 'note'];
 
   const cellVal = (m: any, f: string) => {
-    if (f === 'quantity')    return m.quantity    ? `${m.quantity} ${m.unit || 'م²'}` : '—';
+    if (f === 'quantity')    return m.quantity    ? `${m.quantity} ${displayVal(m.unit, lang) !== '—' ? displayVal(m.unit, lang) : 'م²'}` : '—';
     if (f === 'targetPrice') return m.targetPrice ? `${m.targetPrice} ${m.currency || 'ر.س'}` : '—';
-    if (f === 'type')        return m.type || m.typePending || '—';
-    return m[f] || '—';
+    if (f === 'type')        return displayVal(m.type || m.typePending, lang);
+    if (f === 'size' || f === 'thickness' || f === 'deliveryDate' || f === 'note') return m[f] || '—';
+    return displayVal(m[f], lang);
   };
 
   const S = {
@@ -163,12 +169,13 @@ export default function PrintRequest() {
 
         {/* MATERIALS TABLE */}
         <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--chrome)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.5 }}>{lang === 'ar' ? 'المواد المطلوبة' : 'REQUIRED MATERIALS'}</div>
+        {materials.length > 0 && (
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16 }}>
           <thead>
             <tr>{cols.map((c, i) => <th key={i} style={S.th}>{c}</th>)}</tr>
           </thead>
           <tbody>
-            {materials.length > 0 ? materials.map((m: any, i: number) => {
+            {materials.map((m: any, i: number) => {
               const td = i % 2 === 0 ? S.tdE : S.tdO;
               return (
                 <tr key={i}>
@@ -186,11 +193,34 @@ export default function PrintRequest() {
                   </td>
                 </tr>
               );
-            }) : (
-              <tr><td colSpan={cols.length} style={{ ...S.tdE, textAlign: 'center', color: '#A8A29E', padding: 16 }}>{lang === 'ar' ? 'لا توجد مواد مفصلة' : 'No detailed materials'}</td></tr>
-            )}
+            })}
           </tbody>
         </table>
+        )}
+        {otherMaterials.length > 0 && (
+          <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {otherMaterials.map((m: any, i: number) => {
+              const cat = getCategory(m.category);
+              return (
+                <div key={i} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '8px 12px', background: 'var(--bg-soft)', fontSize: 11 }}>
+                  <div style={{ fontWeight: 700, color: 'var(--chrome)', marginBottom: 4 }}>{cat?.icon} {lang === 'ar' ? cat?.labelAr : cat?.labelEn} — #{materials.length + i + 1}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 14px', color: '#44403C' }}>
+                    {cat?.fields.map(f => m.fields?.[f.key] && (
+                      <span key={f.key}><strong>{lang === 'ar' ? f.labelAr : f.labelEn}:</strong> {displayVal(m.fields[f.key], lang)}</span>
+                    ))}
+                    {m.quantity && <span><strong>{lang === 'ar' ? 'الكمية' : 'Qty'}:</strong> {m.quantity} {displayVal(m.unit, lang) !== '—' ? displayVal(m.unit, lang) : 'م²'}</span>}
+                    {m.targetPrice && <span><strong>{lang === 'ar' ? 'السعر المستهدف' : 'Target Price'}:</strong> {m.targetPrice} {m.currency || 'ر.س'}</span>}
+                    {m.deliveryDate && <span><strong>{lang === 'ar' ? 'تاريخ التوريد' : 'Delivery Date'}:</strong> {m.deliveryDate}</span>}
+                    {m.note && <span><strong>{lang === 'ar' ? 'ملاحظات' : 'Notes'}:</strong> {m.note}</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {materials.length === 0 && otherMaterials.length === 0 && (
+          <div style={{ ...S.tdE, textAlign: 'center', color: '#A8A29E', padding: 16, marginBottom: 16 }}>{lang === 'ar' ? 'لا توجد مواد مفصلة' : 'No detailed materials'}</div>
+        )}
 
         {/* DESCRIPTION */}
         {req.description && (

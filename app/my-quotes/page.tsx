@@ -16,6 +16,7 @@ import { useToast } from '../components/Toast';
 import { downloadCsv } from '../lib/exportCsv';
 import HelpTooltip from '../components/HelpTooltip';
 import RatingModal from '../components/RatingModal';
+import RejectReasonModal from '../components/RejectReasonModal';
 import {
   getCurrentUser, getLanguage, setLanguage,
   getRequests, getQuotes, getRatings,
@@ -37,6 +38,7 @@ interface Quote {
   description: string;
   status: QuoteStatus;
   revisionNote?: string;
+  rejectionReason?: string;
   createdAt: string;
   quoteNumber?: string;
   validUntil?: string;
@@ -81,6 +83,7 @@ const T = {
   revisionBtn:  { ar: 'طلب تعديل',           en: 'Request Revision'      },
   undo:         { ar: 'إلغاء القرار',         en: 'Undo'                  },
   revNote:      { ar: 'ملاحظة التعديل:',      en: 'Revision Note:'        },
+  rejReason:    { ar: 'سبب الرفض:',           en: 'Rejection Reason:'     },
   writeRev:     { ar: 'اكتب ملاحظة للمورد...', en: 'Write a note to the supplier...' },
   sendRev:      { ar: 'إرسال',               en: 'Send'                  },
   cancel:       { ar: 'إلغاء',               en: 'Cancel'                },
@@ -162,6 +165,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
   const [seenQuotes, setSeenQuotes] = useState<number[]>([]);
   const [revisionQuoteId, setRevisionQuoteId] = useState<number | null>(null);
   const [revisionNote, setRevisionNote] = useState('');
+  const [rejectQuoteId, setRejectQuoteId] = useState<number | null>(null);
   const [compareReqId, setCompareReqId] = useState<number | null>(null);
   const [pendingReqId, setPendingReqId] = useState<number | null>(null);
   const [undoReasonQuoteId, setUndoReasonQuoteId] = useState<number | null>(null);
@@ -214,25 +218,32 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
       showToast(tFn('cantAcceptExpired', lang), 'error');
       return;
     }
-    if (action === 'accepted' || action === 'rejected') {
-      const msg = action === 'accepted'
-        ? (lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?')
-        : (lang === 'ar' ? 'هل أنت متأكد من رفض هذا العرض؟' : 'Reject this quote?');
-      const confirmText = action === 'accepted' ? (lang === 'ar' ? 'قبول' : 'Accept') : (lang === 'ar' ? 'رفض' : 'Reject');
-      if (!(await confirmDialog(msg, { confirmText, danger: action === 'rejected' }))) return;
+    if (action === 'rejected') { setRejectQuoteId(quoteId); return; }
+    if (action === 'accepted') {
+      const msg = lang === 'ar' ? 'هل أنت متأكد من قبول هذا العرض؟' : 'Accept this quote?';
+      const confirmText = lang === 'ar' ? 'قبول' : 'Accept';
+      if (!(await confirmDialog(msg, { confirmText }))) return;
     }
     const { quotes: updated, quote: q } = setQuoteStatus(quoteId, action);
     setAllQuotes(updated.filter((x: Quote) => myRequests.some(r => r.id === x.requestId)));
     if (q) {
       const actionText = action === 'accepted'
         ? { ar: `تم قبول عرض ${q.supplierCompany} بسعر ${q.totalPrice} ر.س`, en: `Accepted quote from ${q.supplierCompany} at ${q.totalPrice} SAR` }
-        : action === 'rejected'
-        ? { ar: `تم رفض عرض ${q.supplierCompany}`, en: `Rejected quote from ${q.supplierCompany}` }
         : undoReason
         ? { ar: `تم إلغاء القرار على عرض ${q.supplierCompany} — السبب: "${undoReason}"`, en: `Undid decision on ${q.supplierCompany} — reason: "${undoReason}"` }
         : { ar: `تم إلغاء القرار على عرض ${q.supplierCompany}`, en: `Undid decision on ${q.supplierCompany}` };
       appendActivityLog(q.requestId, actionText.ar, actionText.en);
     }
+  };
+
+  const handleRejectConfirm = (reason: string) => {
+    if (rejectQuoteId === null) return;
+    const { quotes: updated, quote: q } = setQuoteStatus(rejectQuoteId, 'rejected', reason || undefined);
+    setAllQuotes(updated.filter((x: Quote) => myRequests.some(r => r.id === x.requestId)));
+    if (q) appendActivityLog(q.requestId,
+      reason ? `تم رفض عرض ${q.supplierCompany} — السبب: "${reason}"` : `تم رفض عرض ${q.supplierCompany}`,
+      reason ? `Rejected quote from ${q.supplierCompany} — reason: "${reason}"` : `Rejected quote from ${q.supplierCompany}`);
+    setRejectQuoteId(null);
   };
 
   /* undo is free within the grace window (setQuoteStatus stamps statusChangedAt); past
@@ -448,6 +459,9 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                             {q.status === 'revision' && q.revisionNote && (
                               <p className="text-xs text-amber-700 mt-1">✏ {q.revisionNote}</p>
                             )}
+                            {q.status === 'rejected' && q.rejectionReason && (
+                              <p className="text-xs text-red-700 mt-1">✕ {q.rejectionReason}</p>
+                            )}
                             {q.editRequestStatus === 'pending' && (
                               <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg p-2.5" onClick={e => e.stopPropagation()}>
                                 <p className="text-xs text-amber-800"><strong>{tFn('editReqNotice', lang)}</strong> {q.editRequestNote}</p>
@@ -566,6 +580,12 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
           })
         )}
       </div>
+
+      {rejectQuoteId !== null && (
+        <RejectReasonModal lang={lang}
+          onConfirm={handleRejectConfirm}
+          onCancel={() => setRejectQuoteId(null)} />
+      )}
     </div>
   );
 }
@@ -798,6 +818,12 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                   <div className="mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                     <p className="text-xs font-bold text-amber-800">{tFn('revNote', lang)}</p>
                     <p className="text-xs text-amber-700 mt-0.5">{q.revisionNote}</p>
+                  </div>
+                )}
+                {q.status === 'rejected' && q.rejectionReason && (
+                  <div className="mt-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    <p className="text-xs font-bold text-red-800">{tFn('rejReason', lang)}</p>
+                    <p className="text-xs text-red-700 mt-0.5">{q.rejectionReason}</p>
                   </div>
                 )}
                 {q.status === 'accepted' && req && (() => {
