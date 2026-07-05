@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { NotifItem, NotifType, notifIconMap } from '../lib/notifications';
 import { playNotificationSound } from '../lib/notificationSound';
+import { getJSONArray, setJSONArray } from '../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -48,11 +49,10 @@ export default function NotificationAlertBar({ notifs, lang, storageKey }: { not
 
   useEffect(() => {
     if (notifs.length === 0) return;
-    let alerted: string[] = [];
-    try { alerted = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch {}
+    const alerted: string[] = getJSONArray<string>(storageKey);
 
     if (alerted.length === 0) {
-      localStorage.setItem(storageKey, JSON.stringify(notifs.map(n => n.id)));
+      setJSONArray(storageKey, notifs.map(n => n.id));
       return;
     }
 
@@ -60,7 +60,7 @@ export default function NotificationAlertBar({ notifs, lang, storageKey }: { not
     const newOnes = notifs.filter(n => !alertedSet.has(n.id));
     if (newOnes.length === 0) return;
 
-    localStorage.setItem(storageKey, JSON.stringify([...alerted, ...newOnes.map(n => n.id)]));
+    setJSONArray(storageKey, [...alerted, ...newOnes.map(n => n.id)]);
     queueRef.current.push(...newOnes);
     if (!timerRef.current) showNext();
     // eslint-disable-next-line react-hooks/exhaustive-deps

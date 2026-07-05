@@ -6,6 +6,7 @@ import ContractorNav from '../components/ContractorNav';
 import HelpTooltip from '../components/HelpTooltip';
 import QuoteCompareTable from '../components/QuoteCompareTable';
 import { displayVal } from '../lib/requestHelpers';
+import { getCurrentUser, getLanguage, setLanguage, getRequests, getQuotes, getRatings } from '../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -52,31 +53,24 @@ export default function ReportsPage() {
   const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
-    const cu = localStorage.getItem('currentUser');
-    if (!cu) { router.push('/login'); return; }
-    const user = JSON.parse(cu);
+    setLang(getLanguage());
+    const user = getCurrentUser<any>();
+    if (!user) { router.push('/login'); return; }
     if (user.userType !== 'contractor') { router.push('/dashboard'); return; }
     setUserName(user.name || '');
     setUserEmail(user.email || '');
-    let allReqs: Request[] = [];
-    try { allReqs = JSON.parse(localStorage.getItem('requests') || '[]'); } catch {}
+    const allReqs: Request[] = getRequests<Request>();
     const myReqs = allReqs.filter(r => r.contractorId === user.email);
     setRequests(myReqs);
     const reqIds = myReqs.map(r => r.id);
-    try {
-      const allQ: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
-      setQuotes(allQ.filter(q => reqIds.includes(q.requestId)));
-    } catch {}
-    try {
-      const allR: Rating[] = JSON.parse(localStorage.getItem('ratings') || '[]');
-      setRatings(allR.filter(r => reqIds.includes(r.requestId)));
-    } catch {}
+    const allQ: Quote[] = getQuotes<Quote>();
+    setQuotes(allQ.filter(q => reqIds.includes(q.requestId)));
+    const allR: Rating[] = getRatings<Rating>();
+    setRatings(allR.filter(r => reqIds.includes(r.requestId)));
     if (myReqs.length > 0) setCompareReqId(myReqs[0].id);
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
 
   const getReqName = (req: Request) => {
     if (req.projectName?.trim()) return req.projectName.trim();

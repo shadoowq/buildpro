@@ -8,6 +8,7 @@ import { useEscapeKey } from '../../components/useEscapeKey';
 import { displayVal } from '../../lib/requestHelpers';
 import { getCityName } from '../../lib/translations';
 import { ratingsOfSupplier, Rating } from '../../lib/marketplace';
+import { getCurrentUser, getLanguage, setLanguage, getUsers, getRatings } from '../../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -48,25 +49,22 @@ export default function SupplierPublicProfilePage() {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const savedLang = (localStorage.getItem('language') as Lang) || 'ar';
-    setLang(savedLang);
+    setLang(getLanguage());
 
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) { router.push('/login'); return; }
-    setViewer(JSON.parse(userData));
+    const viewerUser = getCurrentUser<any>();
+    if (!viewerUser) { router.push('/login'); return; }
+    setViewer(viewerUser);
 
-    try {
-      const users = JSON.parse(localStorage.getItem('users') || '[]');
-      const found = users.find((u: any) => u.email === email && u.userType === 'supplier');
-      setSupplier(found || null);
-    } catch { setSupplier(null); }
+    const users = getUsers();
+    const found = users.find((u: any) => u.email === email && u.userType === 'supplier');
+    setSupplier(found || null);
 
-    try { setRatings(JSON.parse(localStorage.getItem('ratings') || '[]')); } catch {}
+    setRatings(getRatings());
 
     setReady(true);
   }, [email, router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
 
   if (!ready || !viewer) return (
     <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center font-cairo">

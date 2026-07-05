@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Quote, QuoteLineItem, displayVal, getEffectiveQuoteStatus } from '../../../lib/requestHelpers';
 import { currencyLabel, resolveOther, lineSubtotal, VAT_RATE } from '../../../lib/materialOptions';
+import { getCurrentUser, getLanguage, getQuotePreview, getQuotes, getRequests, getUserShadow } from '../../../lib/store';
 
 type Lang = 'ar' | 'en';
 type PrintMode = 'single' | 'multi';
@@ -26,23 +27,20 @@ export default function PrintQuote() {
 
   useEffect(() => {
     try {
-      const savedLang = localStorage.getItem('language') as Lang || 'ar';
-      setLang(savedLang);
+      setLang(getLanguage());
       setAutoPrint(new URLSearchParams(window.location.search).get('autoprint') === '1');
 
-      const cu = localStorage.getItem('currentUser');
-      const currentUser = cu ? JSON.parse(cu) : null;
+      const currentUser = getCurrentUser<any>();
 
       let found: Quote | null = null;
       if (isPreview) {
-        const previewRaw = localStorage.getItem('quotePreview');
-        found = previewRaw ? JSON.parse(previewRaw) : null;
+        found = getQuotePreview<Quote>();
       } else {
-        const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+        const allQuotes: Quote[] = getQuotes<Quote>();
         found = allQuotes.find(q => q.id === Number(params.id)) || null;
       }
 
-      const allReqs: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
+      const allReqs: Request[] = getRequests<Request>();
       const foundReq = found ? allReqs.find(r => r.id === found.requestId) : undefined;
 
       const isContractor = !!(found && foundReq && currentUser && foundReq.contractorId === currentUser.email);
@@ -54,11 +52,10 @@ export default function PrintQuote() {
       if (owned && found) {
         setReq(foundReq || null);
         if (foundReq) {
-          const contractorStored = localStorage.getItem(`user_${foundReq.contractorId}`);
-          setContractor(contractorStored ? JSON.parse(contractorStored) : null);
+          setContractor(getUserShadow<any>(foundReq.contractorId));
         }
-        const supStored = localStorage.getItem(`user_${found.supplierId}`);
-        setSupplier(supStored ? JSON.parse(supStored) : { name: found.supplierName, company: found.supplierCompany, email: found.supplierId });
+        const supStored = getUserShadow<any>(found.supplierId);
+        setSupplier(supStored || { name: found.supplierName, company: found.supplierCompany, email: found.supplierId });
       }
     } catch {
       setQuote(null);

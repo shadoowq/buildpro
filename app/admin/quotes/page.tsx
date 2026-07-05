@@ -6,6 +6,7 @@ import AdminSidebar from '@/app/components/AdminSidebar';
 import { useConfirm } from '@/app/components/ConfirmDialog';
 import { useToast } from '@/app/components/Toast';
 import { getRequestDisplayName, formatDate, withdrawQuote, getEffectiveQuoteStatus } from '@/app/lib/requestHelpers';
+import { getCurrentUser, getLanguage, setLanguage, getQuotes, getRequests } from '@/app/lib/store';
 
 type Lang = 'ar' | 'en';
 type StatusFilter = 'all' | 'pending' | 'accepted' | 'rejected' | 'revision';
@@ -55,14 +56,14 @@ export default function AdminQuotesPage() {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const currentUser = getCurrentUser<any>() || {};
     if (currentUser.userType !== 'admin') { router.push('/login'); return; }
-    setLang((localStorage.getItem('language') as Lang) || 'ar');
-    try { setQuotes(JSON.parse(localStorage.getItem('quotes') || '[]')); } catch {}
-    try { setRequests(JSON.parse(localStorage.getItem('requests') || '[]')); } catch {}
+    setLang(getLanguage());
+    setQuotes(getQuotes());
+    setRequests(getRequests());
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
 
   const projectOf = (id: number) => getRequestDisplayName(requests.find(r => r.id === id), lang, id);
 

@@ -10,6 +10,15 @@ import { MATERIAL_OPTIONS as OPTIONS } from '../lib/materialOptions';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
 import HelpTooltip from '../components/HelpTooltip';
+import {
+  getCurrentUser, getAllUserShadows, getUsers,
+  getRatings, getQuotes,
+  getLanguage, setLanguage as persistLanguage,
+  getRequests, setRequests as persistRequests,
+  getRequestDrafts, setRequestDrafts as persistRequestDrafts,
+  getCreateRequestDraft, setCreateRequestDraft, clearCreateRequestDraft,
+  clearLoadingFromDraft,
+} from '../lib/store';
 
 interface MaterialRow {
   id: number;
@@ -50,8 +59,6 @@ const defaultRow = (): MaterialRow => ({
   images: [], note: '',
 });
 
-const STORAGE_KEY = 'createRequestDraft';
-
 const isRowValid = (m: MaterialRow) =>
   !!(m.type?.trim() || m.typePending?.trim() || m.usage?.trim() || m.size?.trim() || m.quantity?.trim() || m.finish?.trim() || m.color?.trim());
 
@@ -84,26 +91,22 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
   const confirmDialog = useConfirm();
 
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) { router.push('/login'); return; }
-    const parsedUser = JSON.parse(userData);
+    const parsedUser = getCurrentUser<any>();
+    if (!parsedUser) { router.push('/login'); return; }
     if (parsedUser.userType === 'supplier') { router.push('/supplier-requests'); return; }
     setUser(parsedUser);
 
     try {
-      const allSuppliers = Object.keys(localStorage)
-        .filter(key => key.startsWith('user_'))
-        .map(key => { try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch { return {}; } })
-        .filter(u => u.userType === 'supplier');
-      const usersArr = (JSON.parse(localStorage.getItem('users') || '[]') as any[]).filter((u: any) => u.userType === 'supplier');
+      const allSuppliers = getAllUserShadows<any>().filter(u => u.userType === 'supplier');
+      const usersArr = getUsers().filter((u: any) => u.userType === 'supplier');
       const combined = [...allSuppliers, ...usersArr].filter((v, i, a) => a.findIndex(t => t.email === v.email) === i);
       setSuppliers(combined);
     } catch {}
 
-    try { setSupplierRatings(JSON.parse(localStorage.getItem('ratings') || '[]')); } catch {}
-    try { setSupplierQuotes(JSON.parse(localStorage.getItem('quotes') || '[]')); } catch {}
+    setSupplierRatings(getRatings());
+    setSupplierQuotes(getQuotes());
 
-    const savedLang = localStorage.getItem('language') as 'ar' | 'en' || 'ar';
+    const savedLang = getLanguage();
     setLanguage(savedLang);
 
     const params = new URLSearchParams(window.location.search);
@@ -112,8 +115,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
 
     if (editId) {
       skipSaveRef.current = true;
-      let allRequests: any[] = [];
-      try { allRequests = JSON.parse(localStorage.getItem('requests') || '[]'); } catch {}
+      const allRequests: any[] = getRequests();
       const req = allRequests.find((r: any) => r.id === parseInt(editId));
       if (req) {
         setEditMode(true);
@@ -133,10 +135,8 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
         if (req.selectedSuppliers) { setSelectedSuppliers(req.selectedSuppliers); setOriginalSuppliers(req.selectedSuppliers); }
         if (req.attachedFiles) setAttachedFiles(req.attachedFiles);
 
-        try {
-          const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-          setExistingQuotesCount(allQuotes.filter((q: any) => q.requestId === req.id).length);
-        } catch {}
+        const allQuotes = getQuotes();
+        setExistingQuotesCount(allQuotes.filter((q: any) => q.requestId === req.id).length);
       }
     } else if (draftId) {
       skipSaveRef.current = true;
@@ -144,38 +144,32 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       setIsDraftEdit(true);
       setDraftIdToRemove(parseInt(draftId));
       setPageTitle(savedLang === 'en' ? 'Edit Draft' : 'تعديل المسودة');
-      const draft = localStorage.getItem(STORAGE_KEY);
-      if (draft) {
-        try {
-          const parsed = JSON.parse(draft);
-          if (parsed.projectName) setProjectName(parsed.projectName);
-          if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
-          if (parsed.location) setLocation(parsed.location);
-          if (parsed.deadline) setDeadline(parsed.deadline);
-          if (parsed.description) setDescription(parsed.description);
-          if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
-          if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
-        } catch {}
+      const parsed = getCreateRequestDraft<any>();
+      if (parsed) {
+        if (parsed.projectName) setProjectName(parsed.projectName);
+        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
+        if (parsed.location) setLocation(parsed.location);
+        if (parsed.deadline) setDeadline(parsed.deadline);
+        if (parsed.description) setDescription(parsed.description);
+        if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
+        if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
       }
-      localStorage.removeItem('loadingFromDraft');
+      clearLoadingFromDraft();
     } else {
-      const draft = localStorage.getItem(STORAGE_KEY);
-      if (draft) {
-        try {
-          const parsed = JSON.parse(draft);
-          if (parsed.projectName) setProjectName(parsed.projectName);
-          if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
-          if (parsed.location) setLocation(parsed.location);
-          if (parsed.deadline) setDeadline(parsed.deadline);
-          if (parsed.description) setDescription(parsed.description);
-          if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
-          if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
-          if (parsed.hadAttachments) {
-            showToast(savedLang === 'en'
-              ? 'Restored your unfinished request — note: attached photos/files were not auto-saved and need to be re-added'
-              : 'تم استرجاع طلبك غير المكتمل — ملاحظة: الصور والملفات المرفقة لم تُحفظ تلقائيًا ويجب إعادة إضافتها');
-          }
-        } catch {}
+      const parsed = getCreateRequestDraft<any>();
+      if (parsed) {
+        if (parsed.projectName) setProjectName(parsed.projectName);
+        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
+        if (parsed.location) setLocation(parsed.location);
+        if (parsed.deadline) setDeadline(parsed.deadline);
+        if (parsed.description) setDescription(parsed.description);
+        if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
+        if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
+        if (parsed.hadAttachments) {
+          showToast(savedLang === 'en'
+            ? 'Restored your unfinished request — note: attached photos/files were not auto-saved and need to be re-added'
+            : 'تم استرجاع طلبك غير المكتمل — ملاحظة: الصور والملفات المرفقة لم تُحفظ تلقائيًا ويجب إعادة إضافتها');
+        }
       }
     }
 
@@ -184,17 +178,17 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     return () => window.removeEventListener('storage', onStorage);
   }, [router]);
 
-  const handleLangChange = (l: 'ar' | 'en') => { setLanguage(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: 'ar' | 'en') => { setLanguage(l); persistLanguage(l); };
 
   useEffect(() => {
     if (skipSaveRef.current) return;
     try {
       const lightMaterials = materials.map(m => ({ ...m, images: [] }));
       const hadAttachments = materials.some(m => m.images && m.images.length > 0) || attachedFiles.length > 0;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      setCreateRequestDraft({
         projectName, materials: lightMaterials, location, deadline, description, selectedSuppliers, attachedFiles: [],
         savedAt: new Date().toISOString(), hadAttachments,
-      }));
+      });
     } catch (e) { /* ignore */ }
   }, [projectName, materials, location, deadline, description, selectedSuppliers, attachedFiles]);
 
@@ -360,14 +354,14 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
 
   const saveRequest = (req: any): boolean => {
     try {
-      const requests = JSON.parse(localStorage.getItem('requests') || '[]');
+      const requests = getRequests();
       requests.push(req);
-      localStorage.setItem('requests', JSON.stringify(requests));
-      localStorage.removeItem(STORAGE_KEY);
+      persistRequests(requests);
+      clearCreateRequestDraft();
       if (draftIdToRemove !== null) {
-        const allDrafts = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
+        const allDrafts = getRequestDrafts();
         const updated = allDrafts.filter((d: any) => d.id !== draftIdToRemove);
-        localStorage.setItem('requestDrafts', JSON.stringify(updated));
+        persistRequestDrafts(updated);
       }
       return true;
     } catch {
@@ -378,9 +372,9 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
 
   const submitRequest = () => {
     if (editMode && editRequestId) {
-      const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+      const allRequests = getRequests();
       const updated = allRequests.map((r: any) => r.id === editRequestId ? { ...buildRequest(), id: editRequestId, createdAt: r.createdAt } : r);
-      localStorage.setItem('requests', JSON.stringify(updated));
+      persistRequests(updated);
       appendActivityLog(editRequestId, 'تم تعديل الطلب', 'Request edited');
       showToast(language === 'ar' ? 'تم حفظ التعديلات بنجاح!' : 'Changes saved successfully!');
       router.push('/my-requests');
@@ -443,13 +437,13 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       savedAt: new Date().toISOString(),
     };
     try {
-      const allDrafts = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
+      const allDrafts = getRequestDrafts();
       const exists = allDrafts.find((d: any) => d.id === draftData.id);
       const updated = exists
         ? allDrafts.map((d: any) => d.id === draftData.id ? draftData : d)
         : [...allDrafts, draftData];
-      localStorage.setItem('requestDrafts', JSON.stringify(updated));
-      localStorage.removeItem(STORAGE_KEY);
+      persistRequestDrafts(updated);
+      clearCreateRequestDraft();
       showToast(language === 'ar' ? 'تم حفظ التعديلات بنجاح!' : 'Changes saved successfully!');
       router.push('/drafts');
     } catch {

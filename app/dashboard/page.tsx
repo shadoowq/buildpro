@@ -11,6 +11,14 @@ import HelpTooltip from '../components/HelpTooltip'
 import { useToast } from '../components/Toast'
 import { useConfirm } from '../components/ConfirmDialog'
 import { useEscapeKey } from '../components/useEscapeKey'
+import {
+  getLanguage, setLanguage, getCurrentUser,
+  getRequests, setRequests as persistRequests,
+  getQuotes, getActivityLogs,
+  getRatings, setRatings as persistRatings,
+  getRequestDrafts, getUsers, getUserShadow,
+  getDismissedAutosaveDraftAt, setDismissedAutosaveDraftAt,
+} from '../lib/store'
 
 type Lang = 'ar' | 'en'
 
@@ -167,34 +175,30 @@ export default function DashboardPage() {
 
   /* ── load all data ── */
   useEffect(() => {
-    const savedLang = localStorage.getItem('language') as Lang
-    if (savedLang) setLang(savedLang)
+    setLang(getLanguage())
 
-    const userData = localStorage.getItem('currentUser')
-    if (userData) {
-      try {
-        const u = JSON.parse(userData)
-        if (u.name)  setUserName(u.name)
-        if (u.email) setUserEmail(u.email)
-      } catch {}
+    const u = getCurrentUser<any>()
+    if (u) {
+      if (u.name)  setUserName(u.name)
+      if (u.email) setUserEmail(u.email)
     }
 
-    try { setRawRequests(JSON.parse(localStorage.getItem('requests')  || '[]')) } catch {}
-    try { setAllQuotes(  JSON.parse(localStorage.getItem('quotes')    || '[]')) } catch {}
-    try { setActivityLogs(JSON.parse(localStorage.getItem('activityLogs') || '[]')) } catch {}
-    try { setRatings(    JSON.parse(localStorage.getItem('ratings')   || '[]')) } catch {}
-    try { setDrafts(     JSON.parse(localStorage.getItem('requestDrafts') || '[]')) } catch {}
-    try { setAllUsers(   JSON.parse(localStorage.getItem('users')     || '[]')) } catch {}
+    setRawRequests(getRequests())
+    setAllQuotes(getQuotes())
+    setActivityLogs(getActivityLogs())
+    setRatings(getRatings())
+    setDrafts(getRequestDrafts())
+    setAllUsers(getUsers())
 
     const autosave = getUnfinishedAutosave()
-    const dismissedAt = localStorage.getItem('dismissedAutosaveDraftAt')
+    const dismissedAt = getDismissedAutosaveDraftAt()
     if (autosave && autosave.savedAt !== dismissedAt) setUnfinishedDraft(autosave)
   }, [])
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l) }
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l) }
 
   const dismissUnfinishedDraft = () => {
-    if (unfinishedDraft?.savedAt) localStorage.setItem('dismissedAutosaveDraftAt', unfinishedDraft.savedAt)
+    if (unfinishedDraft?.savedAt) setDismissedAutosaveDraftAt(unfinishedDraft.savedAt)
     setUnfinishedDraft(null)
   }
 
@@ -294,15 +298,12 @@ export default function DashboardPage() {
   const supplierUsers: Supplier[] = (() => {
     const all = [...allUsers.filter((u: any) => u.userType === 'supplier')]
 
-    // also try user_ keys from localStorage for any supplier we have quotes from
+    // also try the user_<email> shadow record for any supplier we have quotes from
     const seenEmails = new Set(all.map((u: any) => u.email))
     myQuotes.forEach((q: any) => {
       if (!seenEmails.has(q.supplierId)) {
-        const key = `user_${q.supplierId}`
-        try {
-          const u = JSON.parse(localStorage.getItem(key) || 'null')
-          if (u && u.userType === 'supplier') { all.push(u); seenEmails.add(q.supplierId) }
-        } catch {}
+        const u = getUserShadow<any>(q.supplierId)
+        if (u && u.userType === 'supplier') { all.push(u); seenEmails.add(q.supplierId) }
       }
     })
 
@@ -348,7 +349,7 @@ export default function DashboardPage() {
       projectName: req.projectName ? `${req.projectName} (${lang === 'ar' ? 'نسخة' : 'copy'})` : undefined,
     }
     const updated = [...rawRequests, newReq]
-    localStorage.setItem('requests', JSON.stringify(updated))
+    persistRequests(updated)
     setRawRequests(updated)
     setActivityLogs(appendActivityLog(newReq.id, `تم إنشاء طلب بنسخ طلب #${req.id}`, `Duplicated from request #${req.id}`))
     setSelected(null)
@@ -357,7 +358,7 @@ export default function DashboardPage() {
   const handleToggleStatus = (id: number, currentStatus: string) => {
     const newStatus = currentStatus === 'open' ? 'closed' : 'open'
     const updated   = rawRequests.map(r => r.id === id ? { ...r, status: newStatus, kanbanColumn: newStatus === 'closed' ? 'closed' : undefined } : r)
-    localStorage.setItem('requests', JSON.stringify(updated))
+    persistRequests(updated)
     setRawRequests(updated)
     setSelected((prev: any) => prev ? { ...prev, status: newStatus } : prev)
     if (newStatus === 'closed') {
@@ -377,7 +378,7 @@ export default function DashboardPage() {
     if (!ratingQuote) return
     const newRating = { id: Date.now(), requestId: ratingQuote.requestId, supplierId: ratingQuote.supplierId, supplierCompany: ratingQuote.supplierCompany, rating: stars, comment, createdAt: new Date().toISOString() }
     const updatedRatings = [...ratings, newRating]
-    localStorage.setItem('ratings', JSON.stringify(updatedRatings))
+    persistRatings(updatedRatings)
     setRatings(updatedRatings)
     setActivityLogs(appendActivityLog(ratingQuote.requestId, `تم تقييم ${ratingQuote.supplierCompany} بـ ${stars} نجوم`, `Rated ${ratingQuote.supplierCompany} ${stars} stars`))
     setShowRatingModal(false)

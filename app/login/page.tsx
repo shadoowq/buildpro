@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { verifyPassword, verifyAdmin, setSessionUser, ADMIN_EMAIL } from '../lib/auth';
+import { getCurrentUser, getLanguage, setLanguage, getUsers } from '../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -16,19 +17,15 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
 
   useEffect(() => {
-    const saved = (localStorage.getItem('language') as Lang) || 'ar';
-    setLang(saved);
+    setLang(getLanguage());
     /* redirect if already logged in */
-    const user = localStorage.getItem('currentUser');
-    if (user) {
-      try {
-        const u = JSON.parse(user);
-        router.push(u.userType === 'admin' ? '/admin' : u.userType === 'supplier' ? '/supplier-requests' : '/dashboard');
-      } catch {}
+    const u = getCurrentUser<any>();
+    if (u) {
+      router.push(u.userType === 'admin' ? '/admin' : u.userType === 'supplier' ? '/supplier-requests' : '/dashboard');
     }
   }, [router]);
 
-  const switchLang = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const switchLang = (l: Lang) => { setLang(l); setLanguage(l); };
 
   const handleLogin = async () => {
     setError('');
@@ -43,7 +40,7 @@ export default function LoginPage() {
       return;
     }
     /* normal users */
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    const users = getUsers();
     const user  = users.find((u: any) => u.email === email);
     if (!user || !(await verifyPassword(user, password))) {
       setError(lang === 'ar' ? 'البريد الإلكتروني أو كلمة المرور غلط' : 'Incorrect email or password');

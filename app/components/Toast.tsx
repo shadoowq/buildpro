@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState } from 'react';
+import { getLanguage } from '../lib/store';
 
 type ToastType = 'success' | 'error';
 type Dir = 'rtl' | 'ltr';
@@ -13,7 +14,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
   const showToast = (message: string, type: ToastType = 'success') => {
-    const lang = (typeof window !== 'undefined' ? localStorage.getItem('language') : 'ar') as 'ar' | 'en' | null;
+    const lang = typeof window !== 'undefined' ? getLanguage() : 'ar';
     const dir: Dir = lang === 'en' ? 'ltr' : 'rtl';
     const id = Date.now() + Math.random();
     setToasts(prev => [...prev, { id, message, type, dir }]);

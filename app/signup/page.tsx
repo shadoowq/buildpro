@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { hashPassword, makeSalt } from '../lib/auth';
+import { getCurrentUser, getLanguage, setLanguage, getUsers, setUsers, getUserShadow, setUserShadow } from '../lib/store';
 
 type Lang = 'ar' | 'en';
 type UserType = 'contractor' | 'supplier';
@@ -23,8 +24,7 @@ export default function SignupPage() {
   });
 
   useEffect(() => {
-    const saved = (localStorage.getItem('language') as Lang) || 'ar';
-    setLang(saved);
+    setLang(getLanguage());
 
     /* read ?type= query param to pre-select account type */
     const params = new URLSearchParams(window.location.search);
@@ -34,16 +34,13 @@ export default function SignupPage() {
     }
 
     /* redirect if already logged in */
-    const user = localStorage.getItem('currentUser');
-    if (user) {
-      try {
-        const u = JSON.parse(user);
-        router.push(u.userType === 'supplier' ? '/supplier-requests' : '/dashboard');
-      } catch {}
+    const u = getCurrentUser<any>();
+    if (u) {
+      router.push(u.userType === 'supplier' ? '/supplier-requests' : '/dashboard');
     }
   }, [router]);
 
-  const switchLang = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const switchLang = (l: Lang) => { setLang(l); setLanguage(l); };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -64,7 +61,7 @@ export default function SignupPage() {
       return;
     }
 
-    const existingUser = localStorage.getItem(`user_${formData.email}`);
+    const existingUser = getUserShadow(formData.email);
     if (existingUser) {
       setError(t('البريد الإلكتروني مستخدم بالفعل', 'Email already in use'));
       return;
@@ -85,11 +82,11 @@ export default function SignupPage() {
       joinDate:  new Date().toISOString(),
     };
 
-    localStorage.setItem(`user_${formData.email}`, JSON.stringify(userData));
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
+    setUserShadow(formData.email, userData);
+    const users = getUsers();
     if (!users.find((u: any) => u.email === formData.email)) {
       users.push(userData);
-      localStorage.setItem('users', JSON.stringify(users));
+      setUsers(users);
     }
 
     router.push('/login');

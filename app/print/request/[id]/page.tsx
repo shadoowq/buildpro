@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { getCurrentUser, getLanguage, getRequests } from '../../../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -27,12 +28,10 @@ export default function PrintRequest() {
 
   useEffect(() => {
     try {
-      const savedLang = localStorage.getItem('language') as Lang || 'ar';
-      setLang(savedLang);
-      const userData = localStorage.getItem('currentUser');
-      const currentUser = userData ? JSON.parse(userData) : null;
+      setLang(getLanguage());
+      const currentUser = getCurrentUser<any>();
       if (currentUser) setUser(currentUser);
-      const allReqs: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
+      const allReqs: Request[] = getRequests<Request>();
       const found = allReqs.find(r => r.id === id);
       const owned = found && currentUser && found.contractorId === currentUser.email;
       setReq(owned ? found! : null);

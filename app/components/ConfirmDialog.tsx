@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState } from 'react';
 import { useEscapeKey } from './useEscapeKey';
+import { getLanguage } from '../lib/store';
 
 type Dir = 'rtl' | 'ltr';
 
@@ -27,7 +28,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
   const state = queue[0] || null;
 
   const confirmDialog: ConfirmFn = (message, options) => {
-    const lang = (typeof window !== 'undefined' ? localStorage.getItem('language') : 'ar') as 'ar' | 'en' | null;
+    const lang = typeof window !== 'undefined' ? getLanguage() : 'ar';
     const dir: Dir = lang === 'en' ? 'ltr' : 'rtl';
     return new Promise<boolean>(resolve => {
       setQueue(prev => [...prev, { message, options, dir, resolve }]);

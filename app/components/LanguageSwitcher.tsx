@@ -1,20 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getLanguage, setLanguage as persistLanguage } from '../lib/store';
 
 export default function LanguageSwitcher() {
   const [language, setLanguage] = useState<'ar' | 'en'>('ar');
 
   useEffect(() => {
-    // جلب اللغة المحفوظة من localStorage
-    const savedLang = localStorage.getItem('language') as 'ar' | 'en' || 'ar';
-    setLanguage(savedLang);
+    setLanguage(getLanguage());
   }, []);
 
   const toggleLanguage = () => {
     const newLang = language === 'ar' ? 'en' : 'ar';
     setLanguage(newLang);
-    localStorage.setItem('language', newLang);
+    persistLanguage(newLang);
     // تحديث اتجاه الصفحة
     document.documentElement.dir = newLang === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = newLang;

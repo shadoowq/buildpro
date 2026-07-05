@@ -13,6 +13,14 @@ import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useEscapeKey } from '../components/useEscapeKey';
+import {
+  getCurrentUser, getLanguage, setLanguage,
+  getRequests, setRequests as persistRequests,
+  getQuotes,
+  getActivityLogs,
+  getRatings, setRatings as persistRatings,
+  getSeenQuoteIds, setSeenQuoteIds,
+} from '../lib/store';
 
 function ReqIdParamReader({ onFound }: { onFound: (id: number) => void }) {
   const searchParams = useSearchParams();
@@ -258,27 +266,25 @@ export default function MyRequests() {
   const router = useRouter();
 
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) { router.push('/login'); return; }
-    const parsedUser = JSON.parse(userData);
+    const parsedUser = getCurrentUser<any>();
+    if (!parsedUser) { router.push('/login'); return; }
     if (parsedUser.userType === 'supplier') { router.push('/supplier-requests'); return; }
     setUser(parsedUser);
     if (parsedUser.name) setUserName(parsedUser.name);
 
-    try { const allRequests = JSON.parse(localStorage.getItem('requests') || '[]'); setRequests(allRequests.filter((req: Request) => req.contractorId === parsedUser.email)); } catch {}
-    try { setQuotes(JSON.parse(localStorage.getItem('quotes') || '[]')); } catch {}
-    try { setSeenQuotes(JSON.parse(localStorage.getItem(`seenQuotes_${parsedUser.email}`) || '[]')); } catch {}
-    try { setActivityLogs(JSON.parse(localStorage.getItem('activityLogs') || '[]')); } catch {}
-    try { setRatings(JSON.parse(localStorage.getItem('ratings') || '[]')); } catch {}
+    setRequests(getRequests<Request>().filter((req: Request) => req.contractorId === parsedUser.email));
+    setQuotes(getQuotes());
+    setSeenQuotes(getSeenQuoteIds(parsedUser.email));
+    setActivityLogs(getActivityLogs());
+    setRatings(getRatings());
 
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
+    setLang(getLanguage());
     const onStorage = (e: StorageEvent) => { if (e.key === 'language' && e.newValue) setLang(e.newValue as Lang); };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   /* ── helpers ── */
@@ -298,7 +304,7 @@ export default function MyRequests() {
     const ids = quotes.filter(q => q.requestId === id).map(q => q.id);
     const newSeen = [...new Set([...seenQuotes, ...ids])];
     setSeenQuotes(newSeen);
-    if (user) localStorage.setItem(`seenQuotes_${user.email}`, JSON.stringify(newSeen));
+    if (user) setSeenQuoteIds(user.email, newSeen);
   };
   const getRequestQuotes = (id: number) => quotes.filter(q => q.requestId === id);
   const getLowestPrice = (qs: Quote[]) => qs.length === 0 ? null : Math.min(...qs.map(q => q.totalPrice));
@@ -331,11 +337,11 @@ export default function MyRequests() {
 
   /* ── actions ── */
   const toggleRequestStatus = (requestId: number) => {
-    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const allRequests: any = getRequests();
     const req = allRequests.find((r: Request) => r.id === requestId);
     const newStatus = req?.status === 'open' ? 'closed' : 'open';
     const updated = allRequests.map((r: Request) => r.id === requestId ? { ...r, status: newStatus, kanbanColumn: newStatus === 'closed' ? 'closed' : undefined } : r);
-    localStorage.setItem('requests', JSON.stringify(updated));
+    persistRequests(updated);
     setRequests(updated.filter((r: Request) => r.contractorId === user.email));
     if (newStatus === 'closed') {
       addActivityLog(requestId, 'تم إغلاق الطلب', 'Request closed');
@@ -349,7 +355,7 @@ export default function MyRequests() {
     } else addActivityLog(requestId, 'تم فتح الطلب', 'Request reopened');
   };
   const handleDuplicateRequest = (req: Request) => {
-    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const allRequests: any = getRequests();
     const newReq = {
       ...req,
       id: Date.now(),
@@ -359,7 +365,7 @@ export default function MyRequests() {
       projectName: req.projectName ? `${req.projectName} (${lang === 'ar' ? 'نسخة' : 'copy'})` : undefined,
     };
     allRequests.push(newReq);
-    localStorage.setItem('requests', JSON.stringify(allRequests));
+    persistRequests(allRequests);
     setRequests(allRequests.filter((r: Request) => r.contractorId === user.email));
     addActivityLog(newReq.id, `تم إنشاء طلب بنسخ طلب #${req.id}`, `Duplicated from request #${req.id}`);
   };
@@ -412,10 +418,10 @@ export default function MyRequests() {
   };
   const handleSubmitRating = (stars: number, comment: string) => {
     if (!ratingRequest || !ratingQuote) return;
-    const allRatings = JSON.parse(localStorage.getItem('ratings') || '[]');
+    const allRatings = getRatings();
     const newRating: Rating = { id: Date.now(), requestId: ratingRequest.id, supplierId: ratingQuote.supplierId, supplierCompany: ratingQuote.supplierCompany, rating: stars, comment, createdAt: new Date().toISOString() };
     allRatings.push(newRating);
-    localStorage.setItem('ratings', JSON.stringify(allRatings));
+    persistRatings(allRatings);
     setRatings(allRatings);
     addActivityLog(ratingRequest.id, `تم تقييم ${ratingQuote.supplierCompany} بـ ${stars} نجوم`, `Rated ${ratingQuote.supplierCompany} ${stars} stars`);
     setShowRatingModal(false); setRatingRequest(null); setRatingQuote(null);
@@ -450,9 +456,9 @@ export default function MyRequests() {
     showToast(lang === 'ar' ? 'تم نقل الطلبات لسلة المهملات' : 'Moved to trash');
   };
   const handleBulkSetStatus = (status: 'open' | 'closed') => {
-    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const allRequests: any = getRequests();
     const updated = allRequests.map((r: Request) => selectedIds.has(r.id) ? { ...r, status, kanbanColumn: status === 'closed' ? 'closed' : undefined } : r);
-    localStorage.setItem('requests', JSON.stringify(updated));
+    persistRequests(updated);
     setRequests(updated.filter((r: Request) => r.contractorId === user.email));
     selectedIds.forEach(id => addActivityLog(id, status === 'closed' ? 'تم إغلاق الطلب' : 'تم فتح الطلب', status === 'closed' ? 'Request closed' : 'Request reopened'));
     setSelectedIds(new Set());
@@ -473,11 +479,11 @@ export default function MyRequests() {
   const handleKanbanDrop = (col: KanbanCol) => {
     if (!draggingId) return;
     const newStatus = col === 'closed' ? 'closed' : 'open';
-    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const allRequests: any = getRequests();
     const updated = allRequests.map((r: Request) =>
       r.id === draggingId ? { ...r, status: newStatus, kanbanColumn: col } : r
     );
-    localStorage.setItem('requests', JSON.stringify(updated));
+    persistRequests(updated);
     setRequests(updated.filter((r: Request) => r.contractorId === user.email));
     addActivityLog(draggingId, `تم نقل الطلب إلى ${T[col === 'active' ? 'kanbanActive' : col === 'awaiting' ? 'kanbanPend' : 'kanbanClosed'].ar}`, `Moved request to ${T[col === 'active' ? 'kanbanActive' : col === 'awaiting' ? 'kanbanPend' : 'kanbanClosed'].en}`);
     setDraggingId(null);
@@ -487,11 +493,11 @@ export default function MyRequests() {
   /* ── move single request to kanban column ── */
   const handleMoveRequest = (reqId: number, col: KanbanCol) => {
     const newStatus = col === 'closed' ? 'closed' : 'open';
-    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const allRequests: any = getRequests();
     const updated = allRequests.map((r: Request) =>
       r.id === reqId ? { ...r, status: newStatus, kanbanColumn: col } : r
     );
-    localStorage.setItem('requests', JSON.stringify(updated));
+    persistRequests(updated);
     setRequests(updated.filter((r: Request) => r.contractorId === user.email));
     addActivityLog(reqId, `تم نقل الطلب إلى ${T[col === 'active' ? 'kanbanActive' : col === 'awaiting' ? 'kanbanPend' : 'kanbanClosed'].ar}`, `Moved request to ${T[col === 'active' ? 'kanbanActive' : col === 'awaiting' ? 'kanbanPend' : 'kanbanClosed'].en}`);
     setMoveMenuId(null);

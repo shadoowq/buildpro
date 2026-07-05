@@ -314,6 +314,10 @@ export function quoteDraftKey(supplierEmail: string, requestId: number): string 
   return `quoteDraft_${supplierEmail}_${requestId}`;
 }
 
+export function saveQuoteDraft(supplierEmail: string, requestId: number, draft: any): void {
+  localStorage.setItem(quoteDraftKey(supplierEmail, requestId), JSON.stringify(draft));
+}
+
 /** Reads a draft, transparently migrating any legacy unscoped `quoteDraft_<id>` entry. */
 export function readQuoteDraft(supplierEmail: string, requestId: number): any | null {
   const scopedKey = quoteDraftKey(supplierEmail, requestId);

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { getCurrentUser, getLanguage, setLanguage } from './lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -54,20 +55,16 @@ export default function LandingPage() {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const savedLang = (localStorage.getItem('language') as Lang) || 'ar';
-    setLang(savedLang);
-    const user = localStorage.getItem('currentUser');
-    if (user) {
-      try {
-        const u = JSON.parse(user);
-        router.push(u.userType === 'supplier' ? '/supplier-requests' : '/dashboard');
-      } catch {}
+    setLang(getLanguage());
+    const u = getCurrentUser<any>();
+    if (u) {
+      router.push(u.userType === 'supplier' ? '/supplier-requests' : '/dashboard');
     }
   }, [router]);
 
   const switchLang = (l: Lang) => {
     setLang(l);
-    localStorage.setItem('language', l);
+    setLanguage(l);
   };
 
   const t = (ar: string, en: string) => lang === 'ar' ? ar : en;

@@ -7,6 +7,7 @@ import { useConfirm } from '@/app/components/ConfirmDialog';
 import { useToast } from '@/app/components/Toast';
 import { getRequestDisplayName, formatDay, softDeleteRequest, appendActivityLog } from '@/app/lib/requestHelpers';
 import { getCityName } from '@/app/lib/translations';
+import { getCurrentUser, getLanguage, setLanguage, getRequests, setRequests as persistRequests, getQuotes, getUsers } from '@/app/lib/store';
 
 type Lang = 'ar' | 'en';
 type StatusFilter = 'all' | 'open' | 'closed';
@@ -48,15 +49,15 @@ export default function AdminRequestsPage() {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const currentUser = getCurrentUser<any>() || {};
     if (currentUser.userType !== 'admin') { router.push('/login'); return; }
-    setLang((localStorage.getItem('language') as Lang) || 'ar');
-    try { setRequests(JSON.parse(localStorage.getItem('requests') || '[]')); } catch {}
-    try { setQuotes(JSON.parse(localStorage.getItem('quotes') || '[]')); } catch {}
-    try { setUsers(JSON.parse(localStorage.getItem('users') || '[]')); } catch {}
+    setLang(getLanguage());
+    setRequests(getRequests());
+    setQuotes(getQuotes());
+    setUsers(getUsers());
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
 
   const contractorOf = (email: string) => users.find(u => u.email === email)?.company || email;
   const quotesCount = (id: number) => quotes.filter(q => q.requestId === id).length;
@@ -65,7 +66,7 @@ export default function AdminRequestsPage() {
     const newStatus = r.status === 'open' ? 'closed' : 'open';
     const updated = requests.map(x => x.id === r.id ? { ...x, status: newStatus } : x);
     setRequests(updated);
-    localStorage.setItem('requests', JSON.stringify(updated));
+    persistRequests(updated);
     appendActivityLog(r.id,
       newStatus === 'closed' ? 'قامت إدارة المنصة بإغلاق الطلب' : 'قامت إدارة المنصة بإعادة فتح الطلب',
       newStatus === 'closed' ? 'Platform admin closed the request' : 'Platform admin reopened the request');

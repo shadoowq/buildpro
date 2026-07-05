@@ -7,6 +7,7 @@ import { useConfirm } from '@/app/components/ConfirmDialog';
 import { useToast } from '@/app/components/Toast';
 import { downloadBackup, parseBackup, restoreBackup } from '@/app/lib/backup';
 import { seedDemoData, DEMO_ACCOUNTS } from '@/app/lib/demoData';
+import { getCurrentUser, getLanguage, setLanguage } from '@/app/lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -49,12 +50,12 @@ export default function AdminDataPage() {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const currentUser = getCurrentUser<any>() || {};
     if (currentUser.userType !== 'admin') { router.push('/login'); return; }
-    setLang((localStorage.getItem('language') as Lang) || 'ar');
+    setLang(getLanguage());
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
 
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

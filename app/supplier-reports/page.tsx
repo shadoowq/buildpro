@@ -6,6 +6,7 @@ import SupplierNav from '../components/SupplierNav';
 import { displayVal, getSupplierData, Quote, QuoteLineItem } from '../lib/requestHelpers';
 import { resolveOther } from '../lib/materialOptions';
 import { getCityName } from '../lib/translations';
+import { getCurrentUser, getLanguage, setLanguage, getQuotes, getRequests } from '../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -40,25 +41,21 @@ export default function SupplierReportsPage() {
   const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
-    const cu = localStorage.getItem('currentUser');
-    if (!cu) { router.push('/login'); return; }
-    const user = JSON.parse(cu);
+    setLang(getLanguage());
+    const user = getCurrentUser<any>();
+    if (!user) { router.push('/login'); return; }
     if (user.userType !== 'supplier') { router.push('/dashboard'); return; }
     setUserName(user.name || '');
     setUserEmail(user.email || '');
 
-    let allQuotes: Quote[] = [];
-    try { allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]'); } catch {}
+    const allQuotes: Quote[] = getQuotes<Quote>();
     setQuotes(allQuotes.filter(q => q.supplierId === user.email));
 
-    let allReqs: Request[] = [];
-    try { allReqs = JSON.parse(localStorage.getItem('requests') || '[]'); } catch {}
+    const allReqs: Request[] = getRequests<Request>();
     setRequests(allReqs);
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
 
   const getReq = (id: number) => requests.find(r => r.id === id);
   const getReqName = (req?: Request) => {

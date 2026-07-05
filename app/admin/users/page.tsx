@@ -7,6 +7,15 @@ import { useConfirm } from '@/app/components/ConfirmDialog';
 import { useToast } from '@/app/components/Toast';
 import { setUserPassword } from '@/app/lib/auth';
 import { formatDate } from '@/app/lib/requestHelpers';
+import {
+  getCurrentUser, getLanguage, setLanguage,
+  getUsers, setUsers as persistUsers, getUserShadow, setUserShadow, removeUserShadow,
+  getRequests, setRequests as persistRequests,
+  getQuotes, setQuotes as persistQuotes,
+  getActivityLogs, setActivityLogs,
+  getRatings, setRatings,
+  getDeletedQuotes, setDeletedQuotes,
+} from '@/app/lib/store';
 
 type Lang = 'ar' | 'en';
 type TypeFilter = 'all' | 'contractor' | 'supplier';
@@ -67,25 +76,23 @@ export default function AdminUsersPage() {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const currentUser = getCurrentUser<any>() || {};
     if (currentUser.userType !== 'admin') { router.push('/login'); return; }
-    setLang((localStorage.getItem('language') as Lang) || 'ar');
-    try { setUsers(JSON.parse(localStorage.getItem('users') || '[]')); } catch {}
-    try { setRequests(JSON.parse(localStorage.getItem('requests') || '[]')); } catch {}
-    try { setQuotes(JSON.parse(localStorage.getItem('quotes') || '[]')); } catch {}
+    setLang(getLanguage());
+    setUsers(getUsers());
+    setRequests(getRequests());
+    setQuotes(getQuotes());
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
 
   /* writes users[] and the user_<email> mirror in lockstep */
   const updateUser = (email: string, updates: Record<string, any>) => {
     const updated = users.map(u => u.email === email ? { ...u, ...updates } : u);
     setUsers(updated);
-    localStorage.setItem('users', JSON.stringify(updated));
-    const keyRaw = localStorage.getItem(`user_${email}`);
-    if (keyRaw) {
-      try { localStorage.setItem(`user_${email}`, JSON.stringify({ ...JSON.parse(keyRaw), ...updates })); } catch {}
-    }
+    persistUsers(updated);
+    const shadow = getUserShadow<any>(email);
+    if (shadow) setUserShadow(email, { ...shadow, ...updates });
   };
 
   const toggleVerify = (u: any) => {
@@ -112,32 +119,32 @@ export default function AdminUsersPage() {
     if (!(await confirmDialog(tx('confirmDelete', lang), { confirmText: tx('deleteBtn', lang), danger: true }))) return;
 
     const remainingUsers = users.filter(x => x.email !== u.email);
-    localStorage.setItem('users', JSON.stringify(remainingUsers));
-    localStorage.removeItem(`user_${u.email}`);
+    persistUsers(remainingUsers);
+    removeUserShadow(u.email);
     setUsers(remainingUsers);
 
     if (u.userType === 'contractor') {
       const myReqIds = new Set(requests.filter(r => r.contractorId === u.email).map(r => r.id));
       const keptReqs = requests.filter(r => !myReqIds.has(r.id));
-      localStorage.setItem('requests', JSON.stringify(keptReqs));
+      persistRequests(keptReqs);
       setRequests(keptReqs);
       const keptQuotes = quotes.filter(q => !myReqIds.has(q.requestId));
-      localStorage.setItem('quotes', JSON.stringify(keptQuotes));
+      persistQuotes(keptQuotes);
       setQuotes(keptQuotes);
-      const logs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-      localStorage.setItem('activityLogs', JSON.stringify(logs.filter((l: any) => !myReqIds.has(l.requestId))));
-      const ratings = JSON.parse(localStorage.getItem('ratings') || '[]');
-      localStorage.setItem('ratings', JSON.stringify(ratings.filter((r: any) => r.contractorId !== u.email)));
+      const logs = getActivityLogs();
+      setActivityLogs(logs.filter((l: any) => !myReqIds.has(l.requestId)));
+      const ratings = getRatings();
+      setRatings(ratings.filter((r: any) => r.contractorId !== u.email));
     } else {
       const keptQuotes = quotes.filter(q => q.supplierId !== u.email);
-      localStorage.setItem('quotes', JSON.stringify(keptQuotes));
+      persistQuotes(keptQuotes);
       setQuotes(keptQuotes);
-      const deletedQuotes = JSON.parse(localStorage.getItem('deletedQuotes') || '[]');
-      localStorage.setItem('deletedQuotes', JSON.stringify(deletedQuotes.filter((q: any) => q.supplierId !== u.email)));
-      const ratings = JSON.parse(localStorage.getItem('ratings') || '[]');
-      localStorage.setItem('ratings', JSON.stringify(ratings.filter((r: any) => r.supplierId !== u.email)));
+      const deletedQuotes = getDeletedQuotes();
+      setDeletedQuotes(deletedQuotes.filter((q: any) => q.supplierId !== u.email));
+      const ratings = getRatings();
+      setRatings(ratings.filter((r: any) => r.supplierId !== u.email));
       const keptReqs = requests.map(r => ({ ...r, selectedSuppliers: (r.selectedSuppliers || []).filter((s: string) => s !== u.email) }));
-      localStorage.setItem('requests', JSON.stringify(keptReqs));
+      persistRequests(keptReqs);
       setRequests(keptReqs);
     }
     showToast(tx('deleted', lang));

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { getCurrentUser, getLanguage, getRequestDrafts } from '../../../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -18,12 +19,10 @@ export default function PrintDraft() {
 
   useEffect(() => {
     try {
-      const savedLang = localStorage.getItem('language') as Lang || 'ar';
-      setLang(savedLang);
-      const userData = localStorage.getItem('currentUser');
-      const currentUser = userData ? JSON.parse(userData) : null;
+      setLang(getLanguage());
+      const currentUser = getCurrentUser<any>();
       if (currentUser) setUser(currentUser);
-      const allDrafts: Draft[] = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
+      const allDrafts: Draft[] = getRequestDrafts<Draft>();
       const found = allDrafts.find(d => d.id === id);
       const owned = found && currentUser && found.contractorId === currentUser.email;
       setDraft(owned ? found! : null);

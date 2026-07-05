@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { logout } from '@/app/lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -19,7 +20,7 @@ export default function AdminSidebar({ lang, setLang, active }: { lang: Lang; se
   const [menuOpen, setMenuOpen] = useState(false);
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
-  const handleLogout = () => { localStorage.removeItem('currentUser'); router.push('/login'); };
+  const handleLogout = () => { logout(); router.push('/login'); };
 
   const linkCls = (href: string) =>
     `text-[13px] px-3 py-2 rounded-lg font-medium transition-colors flex items-center gap-2.5 ${active === href ? 'bg-[var(--chrome-active-bg)] text-[var(--chrome-active-ink)] font-bold' : 'text-[var(--chrome-ink2)] hover:text-white hover:bg-white/5'}`;

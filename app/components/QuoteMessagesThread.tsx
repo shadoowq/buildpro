@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { sendQuoteMessage, QuoteMessage } from '../lib/marketplace';
+import { getQuoteMessages } from '../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -24,10 +25,8 @@ export default function QuoteMessagesThread({ quoteId, requestId, lang, role, se
 
   useEffect(() => {
     if (!open) return;
-    try {
-      const all: QuoteMessage[] = JSON.parse(localStorage.getItem('quoteMessages') || '[]');
-      setMessages(all.filter(m => m.quoteId === quoteId));
-    } catch {}
+    const all: QuoteMessage[] = getQuoteMessages();
+    setMessages(all.filter(m => m.quoteId === quoteId));
   }, [open, quoteId]);
 
   const unreadCount = messages.length; // simple count badge — no per-user read tracking yet

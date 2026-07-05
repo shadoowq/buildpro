@@ -13,11 +13,16 @@ import {
 } from '../../../lib/materialOptions';
 import {
   appendActivityLog, getSupplierData, generateQuoteNumber, resubmitQuote, updateQuoteFields, displayVal,
-  formatDay, getDeadlineUrgency, quoteDraftKey, readQuoteDraft, removeQuoteDraft,
+  formatDay, getDeadlineUrgency, readQuoteDraft, saveQuoteDraft, removeQuoteDraft,
   Quote, QuoteLineItem, QuoteAttachment,
 } from '../../../lib/requestHelpers';
 import { isValidImageFile, isValidAttachmentFile } from '../../../lib/auth';
 import { isRequestMatchedToSupplier, askRequestQuestion, answerRequestQuestion, RequestQuestion } from '../../../lib/marketplace';
+import {
+  getCurrentUser, getLanguage, setLanguage as persistLanguage,
+  getRequests, getQuotes, setQuotes as persistQuotes,
+  getRequestQuestions, setQuotePreview,
+} from '../../../lib/store';
 import { compressImageToDataUrl, readFileAsDataUrl } from '../../../lib/images';
 
 type Lang = 'ar' | 'en';
@@ -247,16 +252,15 @@ export default function SupplierQuoteBuilder() {
   });
 
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) { router.push('/login'); return; }
-    const parsedUser = JSON.parse(userData);
+    const parsedUser = getCurrentUser<any>();
+    if (!parsedUser) { router.push('/login'); return; }
     if (parsedUser.userType !== 'supplier') { router.push('/dashboard'); return; }
     setUser(parsedUser);
 
-    const savedLang = (localStorage.getItem('language') as Lang) || 'ar';
+    const savedLang = getLanguage();
     setLanguage(savedLang);
 
-    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const allRequests = getRequests();
     const req = allRequests.find((r: any) => r.id === requestId);
     const visible = req && (req.selectedSuppliers?.includes(parsedUser.email) || isRequestMatchedToSupplier(req, parsedUser));
     if (!visible) {
@@ -266,15 +270,13 @@ export default function SupplierQuoteBuilder() {
     }
     setRequest(req);
 
-    try {
-      const allQuestions: RequestQuestion[] = JSON.parse(localStorage.getItem('requestQuestions') || '[]');
-      setQuestions(allQuestions.filter(q => q.requestId === requestId));
-    } catch {}
+    const allQuestions: RequestQuestion[] = getRequestQuestions<RequestQuestion>();
+    setQuestions(allQuestions.filter(q => q.requestId === requestId));
 
     const contractor = getSupplierData(req.contractorId);
     const searchParams = new URLSearchParams(window.location.search);
     const editIdParam = searchParams.get('editQuoteId');
-    const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+    const allQuotes: Quote[] = getQuotes<Quote>();
 
     if (editIdParam) {
       const existing = allQuotes.find(q => q.id === Number(editIdParam) && q.supplierId === parsedUser.email && q.status === 'revision');
@@ -336,14 +338,14 @@ export default function SupplierQuoteBuilder() {
     if (skipSaveRef.current || !ready || !user?.email) return;
     try {
       const lightLineItems = lineItems.map(li => ({ ...li, images: [] }));
-      localStorage.setItem(quoteDraftKey(user.email, requestId), JSON.stringify({
+      saveQuoteDraft(user.email, requestId, {
         clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount,
         lineItems: lightLineItems, description, savedAt: new Date().toISOString(),
-      }));
+      });
     } catch { /* draft autosave is best-effort; ignore quota errors silently */ }
   }, [ready, user, requestId, clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount, lineItems, description]);
 
-  const handleLangChange = (l: Lang) => { setLanguage(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLanguage(l); persistLanguage(l); };
 
   const updateRow = (id: number, field: keyof FormLineItem, value: string) => {
     setLineItems(prev => prev.map(r => (r.id === id ? { ...r, [field]: value } : r)));
@@ -450,7 +452,7 @@ export default function SupplierQuoteBuilder() {
       status: 'pending', createdAt: new Date().toISOString(),
       ...buildQuotePayload(),
     };
-    localStorage.setItem('quotePreview', JSON.stringify(previewQuote));
+    setQuotePreview(previewQuote);
     window.open('/print/quote/preview', '_blank');
   };
 
@@ -478,8 +480,8 @@ export default function SupplierQuoteBuilder() {
       ...commonFields,
     };
     try {
-      const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-      localStorage.setItem('quotes', JSON.stringify([...allQuotes, newQuote]));
+      const allQuotes = getQuotes();
+      persistQuotes([...allQuotes, newQuote]);
     } catch {
       showToast(tx('tooLarge', language), 'error');
       return;
@@ -511,10 +513,10 @@ export default function SupplierQuoteBuilder() {
   const handleSaveDraft = () => {
     try {
       const lightLineItems = lineItems.map(li => ({ ...li, images: [] }));
-      localStorage.setItem(quoteDraftKey(user.email, requestId), JSON.stringify({
+      saveQuoteDraft(user.email, requestId, {
         clientName, location, deliveryDays, paymentTerms, paymentTermsOther, validUntil, currency, overallDiscount,
         lineItems: lightLineItems, description, savedAt: new Date().toISOString(),
-      }));
+      });
     } catch {
       showToast(tx('tooLarge', language), 'error');
       return;

@@ -8,6 +8,7 @@ import { displayVal, restoreQuote, permanentlyDeleteQuote, purgeExpiredTrash, Qu
 import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
+import { getCurrentUser, getLanguage, setLanguage, getDeletedQuotes, getRequests } from '../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -32,25 +33,23 @@ export default function SupplierTrash() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) { router.push('/login'); return; }
-    const parsedUser = JSON.parse(userData);
+    const parsedUser = getCurrentUser<any>();
+    if (!parsedUser) { router.push('/login'); return; }
     if (parsedUser.userType !== 'supplier') { router.push('/dashboard'); return; }
     setUser(parsedUser);
     if (parsedUser.name) setUserName(parsedUser.name);
 
     purgeExpiredTrash(RETENTION_DAYS);
-    const allDeleted: Quote[] = JSON.parse(localStorage.getItem('deletedQuotes') || '[]');
+    const allDeleted: Quote[] = getDeletedQuotes<Quote>();
     const mine = allDeleted.filter(q => q.supplierId === parsedUser.email);
     setItems(mine.sort((a, b) => new Date(b.deletedAt || 0).getTime() - new Date(a.deletedAt || 0).getTime()));
 
-    setRequests(JSON.parse(localStorage.getItem('requests') || '[]'));
+    setRequests(getRequests<Request>());
 
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
+    setLang(getLanguage());
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   const getRequest = (id: number) => requests.find(r => r.id === id) || null;

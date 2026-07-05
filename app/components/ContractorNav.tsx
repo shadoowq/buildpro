@@ -6,6 +6,12 @@ import { useRouter } from 'next/navigation';
 import { buildNotifications, notifIconMap, timeAgo, notifHref, NotifItem } from '../lib/notifications';
 import { purgeExpiredTrash } from '../lib/requestHelpers';
 import NotificationAlertBar from './NotificationAlertBar';
+import {
+  getCurrentUser, logout,
+  getRequests, getQuotes, getActivityLogs,
+  getDeletedRequests, getDeletedDrafts,
+  getNotifSeenIds, setNotifSeenIds,
+} from '../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -39,26 +45,21 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
 
   useEffect(() => {
     const fetchNotifs = () => {
-      const userData = localStorage.getItem('currentUser');
-      if (!userData) return;
-      const user = JSON.parse(userData);
+      const user = getCurrentUser<any>();
+      if (!user) return;
       setUserEmail(user.email);
 
-      const seen: string[] = JSON.parse(localStorage.getItem(`notifSeen_${user.email}`) || '[]');
-      setSeenIds(new Set(seen));
+      setSeenIds(new Set(getNotifSeenIds(user.email)));
 
-      const allReqs = (JSON.parse(localStorage.getItem('requests') || '[]') as any[])
-        .filter(r => r.contractorId === user.email);
+      const allReqs = getRequests().filter(r => r.contractorId === user.email);
 
-      const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-      const allLogs   = JSON.parse(localStorage.getItem('activityLogs') || '[]');
+      const allQuotes = getQuotes();
+      const allLogs   = getActivityLogs();
       setNotifs(buildNotifications(allQuotes, allLogs, allReqs, { limit: 10 }));
 
       purgeExpiredTrash();
-      const deletedRequests = (JSON.parse(localStorage.getItem('deletedRequests') || '[]') as any[])
-        .filter(r => r.contractorId === user.email);
-      const deletedDrafts = (JSON.parse(localStorage.getItem('deletedDrafts') || '[]') as any[])
-        .filter(d => d.contractorId === user.email);
+      const deletedRequests = getDeletedRequests().filter(r => r.contractorId === user.email);
+      const deletedDrafts = getDeletedDrafts().filter((d: any) => d.contractorId === user.email);
       setTrashCount(deletedRequests.length + deletedDrafts.length);
     };
 
@@ -85,15 +86,14 @@ export default function ContractorNav({ lang, setLang, userName, active }: Contr
 
   const markSeen = (id: string) => {
     if (seenIds.has(id)) return;
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) return;
-    const user = JSON.parse(userData);
+    const user = getCurrentUser<any>();
+    if (!user) return;
     const updated = new Set([...seenIds, id]);
     setSeenIds(updated);
-    localStorage.setItem(`notifSeen_${user.email}`, JSON.stringify([...updated]));
+    setNotifSeenIds(user.email, [...updated]);
   };
 
-  const handleLogout = () => { localStorage.removeItem('currentUser'); router.push('/login'); };
+  const handleLogout = () => { logout(); router.push('/login'); };
 
   /* shared bell dropdown panel — rendered from the sidebar (desktop) or the top bar (mobile) */
   const bellPanel = (positionCls: string) => bellOpen && (

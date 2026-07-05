@@ -5,6 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { buildSupplierNotifications, notifIconMap, timeAgo, notifHref, NotifItem } from '../lib/notifications';
 import NotificationAlertBar from './NotificationAlertBar';
+import {
+  getCurrentUser, logout,
+  getQuotes, getRequests, getRatings, getActivityLogs, getRequestQuestions,
+  getNotifSeenIds, setNotifSeenIds,
+} from '../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -36,19 +41,17 @@ export default function SupplierNav({ lang, setLang, userName, active }: Supplie
 
   useEffect(() => {
     const fetchNotifs = () => {
-      const userData = localStorage.getItem('currentUser');
-      if (!userData) return;
-      const user = JSON.parse(userData);
+      const user = getCurrentUser<any>();
+      if (!user) return;
       setUserEmail(user.email);
 
-      const seen: string[] = JSON.parse(localStorage.getItem(`notifSeen_${user.email}`) || '[]');
-      setSeenIds(new Set(seen));
+      setSeenIds(new Set(getNotifSeenIds(user.email)));
 
-      const allQuotes = JSON.parse(localStorage.getItem('quotes') || '[]');
-      const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
-      const allRatings = JSON.parse(localStorage.getItem('ratings') || '[]');
-      const allLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-      const allQuestions = JSON.parse(localStorage.getItem('requestQuestions') || '[]');
+      const allQuotes = getQuotes();
+      const allRequests = getRequests();
+      const allRatings = getRatings();
+      const allLogs = getActivityLogs();
+      const allQuestions = getRequestQuestions();
       setNotifs(buildSupplierNotifications(allQuotes, allLogs, allRequests, allRatings, user, { limit: 10, allQuestions }));
     };
 
@@ -75,15 +78,14 @@ export default function SupplierNav({ lang, setLang, userName, active }: Supplie
 
   const markSeen = (id: string) => {
     if (seenIds.has(id)) return;
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) return;
-    const user = JSON.parse(userData);
+    const user = getCurrentUser<any>();
+    if (!user) return;
     const updated = new Set([...seenIds, id]);
     setSeenIds(updated);
-    localStorage.setItem(`notifSeen_${user.email}`, JSON.stringify([...updated]));
+    setNotifSeenIds(user.email, [...updated]);
   };
 
-  const handleLogout = () => { localStorage.removeItem('currentUser'); router.push('/login'); };
+  const handleLogout = () => { logout(); router.push('/login'); };
 
   /* shared bell dropdown panel — rendered from the sidebar (desktop) or the top bar (mobile) */
   const bellPanel = (positionCls: string) => bellOpen && (

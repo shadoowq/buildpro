@@ -14,6 +14,13 @@ import { answerRequestQuestion, RequestQuestion } from '../../lib/marketplace';
 import { getCityName } from '../../lib/translations';
 import { useConfirm } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
+import {
+  getCurrentUser, getLanguage, setLanguage,
+  getRequests, setRequests as persistRequests,
+  getQuotes, getActivityLogs,
+  getRatings, setRatings as persistRatings,
+  getRequestQuestions,
+} from '../../lib/store';
 
 type Lang = 'ar' | 'en';
 type QuoteStatus = 'pending' | 'accepted' | 'rejected' | 'revision';
@@ -159,40 +166,31 @@ export default function RequestDetailPage() {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) { router.push('/login'); return; }
-    const user = JSON.parse(userData);
+    setLang(getLanguage());
+    const user = getCurrentUser<any>();
+    if (!user) { router.push('/login'); return; }
     if (user.name) setUserName(user.name);
 
-    let allReqs: Request[] = [];
-    try { allReqs = JSON.parse(localStorage.getItem('requests') || '[]'); } catch {}
+    const allReqs: Request[] = getRequests<Request>();
     const found = allReqs.find(r => r.id === id);
     if (found && found.contractorId !== user.email) { router.push('/my-requests'); return; }
     setRequest(found || null);
 
-    try {
-      const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
-      setQuotes(allQuotes.filter(q => q.requestId === id));
-    } catch {}
+    const allQuotes: Quote[] = getQuotes<Quote>();
+    setQuotes(allQuotes.filter(q => q.requestId === id));
 
-    try {
-      const allLogs: ActivityLog[] = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-      setLogs(allLogs.filter(l => l.requestId === id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-    } catch {}
+    const allLogs: ActivityLog[] = getActivityLogs<ActivityLog>();
+    setLogs(allLogs.filter(l => l.requestId === id).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
 
-    try { setRatings(JSON.parse(localStorage.getItem('ratings') || '[]')); } catch {}
+    setRatings(getRatings());
 
-    try {
-      const allQuestions: RequestQuestion[] = JSON.parse(localStorage.getItem('requestQuestions') || '[]');
-      setQuestions(allQuestions.filter(q => q.requestId === id));
-    } catch {}
+    const allQuestions: RequestQuestion[] = getRequestQuestions<RequestQuestion>();
+    setQuestions(allQuestions.filter(q => q.requestId === id));
 
     setLoading(false);
   }, [id, router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
 
   const addLog = (ar: string, en: string) => {
     const allLogs = appendActivityLog(id, ar, en);
@@ -256,9 +254,9 @@ export default function RequestDetailPage() {
   const handleToggleStatus = () => {
     if (!request) return;
     const newStatus = request.status === 'open' ? 'closed' : 'open';
-    const all: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
+    const all: Request[] = getRequests<Request>();
     const updated = all.map(r => r.id === id ? { ...r, status: newStatus as 'open' | 'closed', kanbanColumn: newStatus === 'closed' ? 'closed' : undefined } : r);
-    localStorage.setItem('requests', JSON.stringify(updated));
+    persistRequests(updated);
     setRequest(prev => prev ? { ...prev, status: newStatus as 'open' | 'closed' } : prev);
     addLog(
       newStatus === 'closed' ? 'تم إغلاق الطلب' : 'تم فتح الطلب',
@@ -276,10 +274,10 @@ export default function RequestDetailPage() {
 
   const handleSubmitRating = (stars: number, comment: string) => {
     if (!ratingQuote) return;
-    const allRatings = JSON.parse(localStorage.getItem('ratings') || '[]');
+    const allRatings = getRatings<Rating>();
     const newRating: Rating = { id: Date.now(), requestId: id, supplierId: ratingQuote.supplierId, supplierCompany: ratingQuote.supplierCompany, rating: stars, comment, createdAt: new Date().toISOString() };
     allRatings.push(newRating);
-    localStorage.setItem('ratings', JSON.stringify(allRatings));
+    persistRatings(allRatings);
     setRatings(allRatings);
     addLog(`تم تقييم ${ratingQuote.supplierCompany} بـ ${stars} نجوم`, `Rated ${ratingQuote.supplierCompany} ${stars} stars`);
     setShowRatingModal(false);
@@ -288,11 +286,11 @@ export default function RequestDetailPage() {
 
   const handleDuplicate = () => {
     if (!request) return;
-    const all: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
+    const all: Request[] = getRequests<Request>();
     const newId = Date.now();
     const copy = { ...request, id: newId, status: 'open' as const, kanbanColumn: undefined, createdAt: new Date().toISOString(), projectName: request.projectName ? `${request.projectName} (${lang === 'ar' ? 'نسخة' : 'copy'})` : undefined };
     all.push(copy);
-    localStorage.setItem('requests', JSON.stringify(all));
+    persistRequests(all);
     appendActivityLog(newId, `تم إنشاء طلب بنسخ طلب #${request.id}`, `Duplicated from request #${request.id}`);
     router.push('/my-requests');
   };

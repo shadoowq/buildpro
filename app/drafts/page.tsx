@@ -9,6 +9,7 @@ import { getCityName } from '../lib/translations';
 import { useEscapeKey } from '../components/useEscapeKey';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
+import { getCurrentUser, getLanguage, setLanguage, getRequestDrafts, setCreateRequestDraft, setLoadingFromDraft } from '../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -50,30 +51,28 @@ export default function Drafts() {
   const router = useRouter();
 
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) { router.push('/login'); return; }
-    const parsedUser = JSON.parse(userData);
+    const parsedUser = getCurrentUser<any>();
+    if (!parsedUser) { router.push('/login'); return; }
     if (parsedUser.userType !== 'contractor') { router.push('/dashboard'); return; }
     setUser(parsedUser);
     if (parsedUser.name) setUserName(parsedUser.name);
 
     purgeExpiredTrash(30);
-    const allDrafts = JSON.parse(localStorage.getItem('requestDrafts') || '[]');
+    const allDrafts = getRequestDrafts();
     const myDrafts = allDrafts.filter((d: Draft) => d.contractorId === parsedUser.email);
     setDrafts(myDrafts.sort((a: Draft, b: Draft) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()));
 
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
+    setLang(getLanguage());
     const onStorage = (e: StorageEvent) => { if (e.key === 'language' && e.newValue) setLang(e.newValue as Lang); };
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   const handleContinue = (draft: Draft) => {
-    localStorage.setItem('createRequestDraft', JSON.stringify({
+    setCreateRequestDraft({
       projectName: draft.projectName || '',
       materials: draft.materials,
       location: draft.location,
@@ -81,8 +80,8 @@ export default function Drafts() {
       description: draft.description,
       selectedSuppliers: draft.selectedSuppliers,
       attachedFiles: draft.attachedFiles || [],
-    }));
-    localStorage.setItem('loadingFromDraft', 'true');
+    });
+    setLoadingFromDraft();
     router.push(`/create-request?draft=${draft.id}`);
   };
 

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
+import { getCurrentUser, getLanguage, setLanguage, getRequests, getQuotes, getUsers, getRatings, getUserShadow } from '../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -134,12 +135,10 @@ export default function SuppliersPage() {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
+    setLang(getLanguage());
 
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) { router.push('/login'); return; }
-    const user = JSON.parse(userData);
+    const user = getCurrentUser<any>();
+    if (!user) { router.push('/login'); return; }
     if (user.userType !== 'contractor') { router.push('/dashboard'); return; }
     if (user.name) setUserName(user.name);
 
@@ -147,23 +146,21 @@ export default function SuppliersPage() {
   }, [router]);
 
   const buildSupplierList = (contractorEmail: string) => {
-    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const allRequests = getRequests();
     const myRequests = allRequests.filter((r: any) => r.contractorId === contractorEmail);
     const myReqIds = new Set(myRequests.map((r: any) => r.id));
 
-    const allQuotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+    const allQuotes: Quote[] = getQuotes<Quote>();
     const myQuotes = allQuotes.filter(q => myReqIds.has(q.requestId));
 
-    const allUsers: any[] = JSON.parse(localStorage.getItem('users') || '[]');
-    const allRatings: Rating[] = JSON.parse(localStorage.getItem('ratings') || '[]');
+    const allUsers: any[] = getUsers();
+    const allRatings: Rating[] = getRatings<Rating>();
 
     const supplierMap: Record<string, SupplierCard> = {};
 
     myQuotes.forEach(q => {
       if (!supplierMap[q.supplierId]) {
-        const userData = (() => {
-          try { return JSON.parse(localStorage.getItem(`user_${q.supplierId}`) || 'null'); } catch { return null; }
-        })() || allUsers.find((u: any) => u.email === q.supplierId);
+        const userData = getUserShadow<any>(q.supplierId) || allUsers.find((u: any) => u.email === q.supplierId);
 
         const displayName = userData?.company || userData?.name || q.supplierCompany;
         supplierMap[q.supplierId] = {
@@ -200,7 +197,7 @@ export default function SuppliersPage() {
     setSuppliers(Object.values(supplierMap));
   };
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
 
   const filtered = suppliers
     .filter(s => {

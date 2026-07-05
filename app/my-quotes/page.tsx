@@ -16,6 +16,11 @@ import { useToast } from '../components/Toast';
 import { downloadCsv } from '../lib/exportCsv';
 import HelpTooltip from '../components/HelpTooltip';
 import RatingModal from '../components/RatingModal';
+import {
+  getCurrentUser, getLanguage, setLanguage,
+  getRequests, getQuotes, getRatings,
+  getSeenQuoteIds, setSeenQuoteIds,
+} from '../lib/store';
 
 type Lang = 'ar' | 'en';
 type QuoteStatus = 'pending' | 'accepted' | 'rejected' | 'revision';
@@ -176,27 +181,22 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
   }, [pendingReqId, allQuotes]);
 
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) return;
-    const user = JSON.parse(userData);
-    const reqs: Request[] = JSON.parse(localStorage.getItem('requests') || '[]')
-      .filter((r: Request) => r.contractorId === user.email);
+    const user = getCurrentUser<any>();
+    if (!user) return;
+    const reqs: Request[] = getRequests<Request>().filter((r: Request) => r.contractorId === user.email);
     setMyRequests(reqs);
     const reqIds = reqs.map(r => r.id);
-    const quotes: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]')
-      .filter((q: Quote) => reqIds.includes(q.requestId));
+    const quotes: Quote[] = getQuotes<Quote>().filter((q: Quote) => reqIds.includes(q.requestId));
     setAllQuotes(quotes);
-    const seen: number[] = JSON.parse(localStorage.getItem(`seenQuotes_${user.email}`) || '[]');
-    setSeenQuotes(seen);
+    setSeenQuotes(getSeenQuoteIds(user.email));
   }, []);
 
   const markSeen = (quoteIds: number[]) => {
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) return;
-    const user = JSON.parse(userData);
+    const user = getCurrentUser<any>();
+    if (!user) return;
     const updated = [...new Set([...seenQuotes, ...quoteIds])];
     setSeenQuotes(updated);
-    localStorage.setItem(`seenQuotes_${user.email}`, JSON.stringify(updated));
+    setSeenQuoteIds(user.email, updated);
   };
 
   const getReqName = (req: Request) => {
@@ -584,12 +584,11 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) return;
-    const user = JSON.parse(userData);
-    const all: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
+    const user = getCurrentUser<any>();
+    if (!user) return;
+    const all: Quote[] = getQuotes<Quote>();
     setQuotes(all.filter(q => q.supplierId === user.email));
-    try { setRatings(JSON.parse(localStorage.getItem('ratings') || '[]')); } catch {}
+    setRatings(getRatings());
   }, []);
 
   useEffect(() => {
@@ -604,7 +603,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
   }, [pendingReqId, quotes]);
 
   const getRequest = (id: number): Request | null => {
-    const all: Request[] = JSON.parse(localStorage.getItem('requests') || '[]');
+    const all: Request[] = getRequests<Request>();
     return all.find(r => r.id === id) || null;
   };
 
@@ -623,8 +622,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
   const handleWithdraw = async (quoteId: number, requestId: number) => {
     if (!(await confirmDialog(tFn('confirmWithdraw', lang), { confirmText: tFn('withdrawBtn', lang), danger: true }))) return;
     const { quotes: updated, quote } = withdrawQuote(quoteId);
-    const userData = localStorage.getItem('currentUser');
-    const user = userData ? JSON.parse(userData) : null;
+    const user = getCurrentUser<any>();
     setQuotes(user ? updated.filter((q: Quote) => q.supplierId === user.email) : updated);
     appendActivityLog(requestId,
       `تم سحب عرض ${quote?.supplierCompany || 'المورد'}`,
@@ -633,8 +631,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
   };
 
   const refreshQuotes = (updated: Quote[]) => {
-    const userData = localStorage.getItem('currentUser');
-    const user = userData ? JSON.parse(userData) : null;
+    const user = getCurrentUser<any>();
     setQuotes(user ? updated.filter((q: Quote) => q.supplierId === user.email) : updated);
   };
 
@@ -673,8 +670,7 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
 
   const handleSubmitContractorRating = (stars: number, comment: string) => {
     if (!ratingTarget) return;
-    const userData = localStorage.getItem('currentUser');
-    const user = userData ? JSON.parse(userData) : null;
+    const user = getCurrentUser<any>();
     const updated = submitRating({
       requestId: ratingTarget.requestId, supplierId: user?.email || '', supplierCompany: user?.company || '',
       contractorId: ratingTarget.contractorId, contractorName: ratingTarget.contractorName,
@@ -936,16 +932,14 @@ export default function MyQuotesPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) { router.push('/login'); return; }
-    const user = JSON.parse(userData);
+    setLang(getLanguage());
+    const user = getCurrentUser<any>();
+    if (!user) { router.push('/login'); return; }
     setUserType(user.userType);
     if (user.name) setUserName(user.name);
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
 
   if (!userType) return (
     <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center font-cairo">

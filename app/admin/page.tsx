@@ -6,6 +6,7 @@ import Link from 'next/link';
 import AdminSidebar from '@/app/components/AdminSidebar';
 import { getRequestDisplayName } from '@/app/lib/requestHelpers';
 import { timeAgo } from '@/app/lib/notifications';
+import { getCurrentUser, getLanguage, setLanguage, getUsers, getRequests, getQuotes, getActivityLogs } from '@/app/lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -51,14 +52,14 @@ export default function AdminDashboard() {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const currentUser = getCurrentUser<any>() || {};
     if (currentUser.userType !== 'admin') { router.push('/login'); return; }
-    setLang((localStorage.getItem('language') as Lang) || 'ar');
+    setLang(getLanguage());
 
-    try { setUsers(JSON.parse(localStorage.getItem('users') || '[]')); } catch {}
-    try { setRequests(JSON.parse(localStorage.getItem('requests') || '[]')); } catch {}
-    try { setQuotes(JSON.parse(localStorage.getItem('quotes') || '[]')); } catch {}
-    try { setLogs(JSON.parse(localStorage.getItem('activityLogs') || '[]')); } catch {}
+    setUsers(getUsers());
+    setRequests(getRequests());
+    setQuotes(getQuotes());
+    setLogs(getActivityLogs());
 
     let bytes = 0;
     for (let i = 0; i < localStorage.length; i++) {
@@ -68,7 +69,7 @@ export default function AdminDashboard() {
     setStorageBytes(bytes * 2); // UTF-16: two bytes per char
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
 
   const contractors = users.filter(u => u.userType === 'contractor');
   const suppliers = users.filter(u => u.userType === 'supplier');

@@ -7,6 +7,7 @@ import SupplierNav from '../components/SupplierNav';
 import Link from 'next/link';
 import { saudiCities, getCityName } from '../lib/translations';
 import { persistUserUpdate, displayVal } from '../lib/requestHelpers';
+import { getCurrentUser, getLanguage, setLanguage, getUsers, logout } from '../lib/store';
 import { MATERIAL_OPTIONS } from '../lib/materialOptions';
 import { verifyPassword, setUserPassword, ALLOWED_IMAGE_TYPES } from '../lib/auth';
 import { downloadBackup, parseBackup, restoreBackup } from '../lib/backup';
@@ -168,12 +169,10 @@ export default function ProfilePage() {
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
+    setLang(getLanguage());
 
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) { router.push('/login'); return; }
-    const u = JSON.parse(userData);
+    const u = getCurrentUser<any>();
+    if (!u) { router.push('/login'); return; }
     setUser(u);
     setName(u.name || '');
     setCompany(u.company || '');
@@ -189,7 +188,7 @@ export default function ProfilePage() {
     setAutoMatch(!!u.autoMatch);
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
 
   const handleSaveInfo = () => {
     if (!user) return;
@@ -289,7 +288,7 @@ export default function ProfilePage() {
     if (newPass !== confirmPass) { setPassMsg({ type: 'err', text: t('passNoMatch', lang) }); return; }
 
     // check current password — always required
-    const allUsers = JSON.parse(localStorage.getItem('users') || '[]');
+    const allUsers = getUsers();
     const dbUser = allUsers.find((u: any) => u.email === user.email);
     if (!currentPass || !dbUser || !(await verifyPassword(dbUser, currentPass))) {
       setPassMsg({ type: 'err', text: t('passWrong', lang) });
@@ -304,7 +303,7 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('currentUser');
+    logout();
     router.push('/login');
   };
 

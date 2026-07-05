@@ -8,6 +8,7 @@ import { displayVal, restoreRequest, permanentlyDeleteRequest, purgeExpiredTrash
 import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
+import { getCurrentUser, getLanguage, setLanguage, getDeletedRequests, getDeletedDrafts } from '../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -33,27 +34,25 @@ export default function Trash() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) { router.push('/login'); return; }
-    const parsedUser = JSON.parse(userData);
+    const parsedUser = getCurrentUser<any>();
+    if (!parsedUser) { router.push('/login'); return; }
     if (parsedUser.userType !== 'contractor') { router.push('/dashboard'); return; }
     setUser(parsedUser);
     if (parsedUser.name) setUserName(parsedUser.name);
 
     purgeExpiredTrash(RETENTION_DAYS);
-    const allDeleted = JSON.parse(localStorage.getItem('deletedRequests') || '[]');
+    const allDeleted = getDeletedRequests<RequestLike>();
     const mine = allDeleted.filter((r: RequestLike) => r.contractorId === parsedUser.email);
     setItems(mine.sort((a: RequestLike, b: RequestLike) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime()));
 
-    const allDeletedDrafts = JSON.parse(localStorage.getItem('deletedDrafts') || '[]');
+    const allDeletedDrafts = getDeletedDrafts<DraftLike>();
     const myDrafts = allDeletedDrafts.filter((d: DraftLike) => d.contractorId === parsedUser.email);
     setDraftItems(myDrafts.sort((a: DraftLike, b: DraftLike) => new Date(b.deletedAt).getTime() - new Date(a.deletedAt).getTime()));
 
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
+    setLang(getLanguage());
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   const getRequestName = (req: RequestLike) => {

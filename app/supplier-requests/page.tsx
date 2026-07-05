@@ -4,11 +4,12 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import SupplierNav from '../components/SupplierNav';
-import { displayVal, getDeadlineUrgency, formatDay, quoteDraftKey } from '../lib/requestHelpers';
+import { displayVal, getDeadlineUrgency, formatDay, readQuoteDraft } from '../lib/requestHelpers';
 import { getSupplierVisibleRequests, isRequestMatchedToSupplier } from '../lib/marketplace';
 import { MATERIAL_OPTIONS } from '../lib/materialOptions';
 import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
+import { getCurrentUser, getLanguage, setLanguage as persistLanguage, getRequests, getQuotes } from '../lib/store';
 
 type Lang = 'ar' | 'en';
 type FilterTab = 'all' | 'notQuoted' | 'quoted' | 'urgent';
@@ -115,18 +116,16 @@ export default function SupplierRequests() {
   const dir = language === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) { router.push('/login'); return; }
-    const parsedUser = JSON.parse(userData);
+    const parsedUser = getCurrentUser<any>();
+    if (!parsedUser) { router.push('/login'); return; }
     if (parsedUser.userType !== 'supplier') { router.push('/dashboard'); return; }
     setUser(parsedUser);
 
-    const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
+    const allRequests = getRequests<Request>();
     setRequests(getSupplierVisibleRequests(allRequests, parsedUser));
-    setAllQuotes(JSON.parse(localStorage.getItem('quotes') || '[]'));
+    setAllQuotes(getQuotes());
 
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLanguage(savedLang);
+    setLanguage(getLanguage());
   }, [router]);
 
   useEffect(() => {
@@ -144,7 +143,7 @@ export default function SupplierRequests() {
   const myQuoteFor = (requestId: number) => allQuotes.find((q: any) => q.requestId === requestId && q.supplierId === user?.email);
   const hasDraft = (requestId: number) => {
     if (typeof window === 'undefined' || !user?.email) return false;
-    return !!localStorage.getItem(quoteDraftKey(user.email, requestId)) || !!localStorage.getItem(`quoteDraft_${requestId}`);
+    return !!readQuoteDraft(user.email, requestId);
   };
 
   const getReqName = (r: Request) => {
@@ -269,7 +268,7 @@ export default function SupplierRequests() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)] font-cairo md:ps-[190px]" dir={dir}>
-      <SupplierNav lang={language} setLang={l => { setLanguage(l); localStorage.setItem('language', l); }} userName={user.name || ''} active="/supplier-requests" />
+      <SupplierNav lang={language} setLang={l => { setLanguage(l); persistLanguage(l); }} userName={user.name || ''} active="/supplier-requests" />
 
       <Suspense fallback={null}>
         <ReqIdParamReader onFound={setPendingReqId} />

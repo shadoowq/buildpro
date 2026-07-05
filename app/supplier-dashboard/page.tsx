@@ -6,6 +6,7 @@ import SupplierNav from '../components/SupplierNav'
 import { displayVal, getDeadlineUrgency, formatDay } from '../lib/requestHelpers'
 import { getSupplierVisibleRequests } from '../lib/marketplace'
 import { getCityName } from '../lib/translations'
+import { getCurrentUser, getLanguage, setLanguage, getRequests, getQuotes, getRatings } from '../lib/store'
 
 type Lang = 'ar' | 'en'
 
@@ -88,25 +89,21 @@ export default function SupplierDashboardPage() {
   const dir = lang === 'ar' ? 'rtl' : 'ltr'
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('language') as Lang
-    if (savedLang) setLang(savedLang)
+    setLang(getLanguage())
 
-    const userData = localStorage.getItem('currentUser')
-    if (userData) {
-      try {
-        const u = JSON.parse(userData)
-        if (u.name) setUserName(u.name)
-        if (u.email) setUserEmail(u.email)
-        setSupplier(u)
-      } catch {}
+    const u = getCurrentUser<any>()
+    if (u) {
+      if (u.name) setUserName(u.name)
+      if (u.email) setUserEmail(u.email)
+      setSupplier(u)
     }
 
-    try { setRawRequests(JSON.parse(localStorage.getItem('requests') || '[]')) } catch {}
-    try { setAllQuotes(JSON.parse(localStorage.getItem('quotes') || '[]')) } catch {}
-    try { setRatings(JSON.parse(localStorage.getItem('ratings') || '[]')) } catch {}
+    setRawRequests(getRequests())
+    setAllQuotes(getQuotes())
+    setRatings(getRatings())
   }, [])
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l) }
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l) }
 
   /* ── my data ── */
   const myQuotes = allQuotes.filter(q => q.supplierId === userEmail)

@@ -6,6 +6,11 @@ import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
 import SupplierNav from '../components/SupplierNav';
 import { buildNotifications, buildSupplierNotifications, notifIconMap, timeAgo, notifHref, NotifItem } from '../lib/notifications';
+import {
+  getCurrentUser, getLanguage, setLanguage,
+  getRequests, getQuotes, getRatings, getActivityLogs, getRequestQuestions,
+  getNotifSeenIds, setNotifSeenIds,
+} from '../lib/store';
 
 type Lang = 'ar' | 'en';
 
@@ -45,11 +50,11 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    try { setRequests((JSON.parse(localStorage.getItem('requests') || '[]')).filter((r: any) => r.contractorId === userEmail)); } catch {}
-    try { setQuotes(JSON.parse(localStorage.getItem('quotes') || '[]')); } catch {}
-    try { setActivityLogs(JSON.parse(localStorage.getItem('activityLogs') || '[]')); } catch {}
-    try { setQuestions(JSON.parse(localStorage.getItem('requestQuestions') || '[]')); } catch {}
-    try { setSeenIds(new Set(JSON.parse(localStorage.getItem(`notifSeen_${userEmail}`) || '[]'))); } catch {}
+    setRequests(getRequests().filter((r: any) => r.contractorId === userEmail));
+    setQuotes(getQuotes());
+    setActivityLogs(getActivityLogs());
+    setQuestions(getRequestQuestions());
+    setSeenIds(new Set(getNotifSeenIds(userEmail)));
   }, [userEmail]);
 
   const notifs: NotifItem[] = buildNotifications(quotes, activityLogs, requests, { includeLogs: true, allQuestions: questions });
@@ -68,14 +73,14 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
   const markAllRead = () => {
     const updated = new Set([...seenIds, ...notifs.map(n => n.id)]);
     setSeenIds(updated);
-    if (userEmail) localStorage.setItem(`notifSeen_${userEmail}`, JSON.stringify([...updated]));
+    if (userEmail) setNotifSeenIds(userEmail, [...updated]);
   };
 
   const markRead = (id: string) => {
     if (seenIds.has(id)) return;
     const updated = new Set([...seenIds, id]);
     setSeenIds(updated);
-    if (userEmail) localStorage.setItem(`notifSeen_${userEmail}`, JSON.stringify([...updated]));
+    if (userEmail) setNotifSeenIds(userEmail, [...updated]);
   };
 
   return (
@@ -160,13 +165,14 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   useEffect(() => {
-    try { setQuotes(JSON.parse(localStorage.getItem('quotes') || '[]')); } catch {}
-    try { setRequests(JSON.parse(localStorage.getItem('requests') || '[]')); } catch {}
-    try { setRatings(JSON.parse(localStorage.getItem('ratings') || '[]')); } catch {}
-    try { setActivityLogs(JSON.parse(localStorage.getItem('activityLogs') || '[]')); } catch {}
-    try { setQuestions(JSON.parse(localStorage.getItem('requestQuestions') || '[]')); } catch {}
-    try { setSeenIds(new Set(JSON.parse(localStorage.getItem(`notifSeen_${userEmail}`) || '[]'))); } catch {}
-    try { const cu = JSON.parse(localStorage.getItem('currentUser') || 'null'); if (cu) setSupplier(cu); } catch {}
+    setQuotes(getQuotes());
+    setRequests(getRequests());
+    setRatings(getRatings());
+    setActivityLogs(getActivityLogs());
+    setQuestions(getRequestQuestions());
+    setSeenIds(new Set(getNotifSeenIds(userEmail)));
+    const cu = getCurrentUser<any>();
+    if (cu) setSupplier(cu);
   }, [userEmail]);
 
   const notifs: NotifItem[] = buildSupplierNotifications(quotes, activityLogs, requests, ratings, supplier, { allQuestions: questions });
@@ -185,14 +191,14 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
   const markAllRead = () => {
     const updated = new Set([...seenIds, ...notifs.map(n => n.id)]);
     setSeenIds(updated);
-    if (userEmail) localStorage.setItem(`notifSeen_${userEmail}`, JSON.stringify([...updated]));
+    if (userEmail) setNotifSeenIds(userEmail, [...updated]);
   };
 
   const markRead = (id: string) => {
     if (seenIds.has(id)) return;
     const updated = new Set([...seenIds, id]);
     setSeenIds(updated);
-    if (userEmail) localStorage.setItem(`notifSeen_${userEmail}`, JSON.stringify([...updated]));
+    if (userEmail) setNotifSeenIds(userEmail, [...updated]);
   };
 
   return (
@@ -272,18 +278,15 @@ export default function NotificationsPage() {
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
-    const savedLang = localStorage.getItem('language') as Lang || 'ar';
-    setLang(savedLang);
-    const userData = localStorage.getItem('currentUser');
-    if (!userData) { router.push('/login'); return; }
-    let user: any;
-    try { user = JSON.parse(userData); } catch { router.push('/login'); return; }
+    setLang(getLanguage());
+    const user = getCurrentUser<any>();
+    if (!user) { router.push('/login'); return; }
     setUserType(user.userType);
     setUserEmail(user.email || '');
     if (user.name) setUserName(user.name);
   }, [router]);
 
-  const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
+  const handleLangChange = (l: Lang) => { setLang(l); setLanguage(l); };
 
   if (!userType) return (
     <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center font-cairo">
