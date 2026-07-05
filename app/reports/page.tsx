@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import ContractorNav from '../components/ContractorNav';
 import HelpTooltip from '../components/HelpTooltip';
 import QuoteCompareTable from '../components/QuoteCompareTable';
+import { MonthlyActivityChart, MonthlyValueChart } from '../components/MonthlyActivityChart';
 import { displayVal } from '../lib/requestHelpers';
 import { getCurrentUser, getLanguage, setLanguage, getRequests, getQuotes, getRatings } from '../lib/store';
 
@@ -32,10 +33,12 @@ const REPORT_TABS = [
 ];
 
 function t(ar: string, en: string, lang: Lang) { return lang === 'ar' ? ar : en; }
-/* 'ar-EG' not 'ar-SA' — ar-SA renders Eastern Arabic-Indic digits (١٢٣) which clash with the
-   Western digits (123) used everywhere else in the app (dashboard, quotes, print views). */
-function fmtN(n: number, lang: Lang = 'ar') { return n.toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US'); }
-function fmtDate(d: string, lang: Lang) { return new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
+/* 'ar-EG-u-nu-latn' not 'ar-EG' — plain 'ar-EG' still renders Eastern Arabic-Indic
+   digits (١٢٣) which clash with the Western digits (123) used everywhere else in
+   the app (dashboard, quotes, print views); the '-u-nu-latn' extension forces
+   Western digits while keeping Arabic month names. */
+function fmtN(n: number, lang: Lang = 'ar') { return n.toLocaleString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US'); }
+function fmtDate(d: string, lang: Lang) { return new Date(d).toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
 
 const TH = (lang: Lang) => `border border-stone-200 bg-[var(--chrome)] px-3 py-2.5 ${lang === 'ar' ? 'text-right' : 'text-left'} text-white font-semibold text-[11px] whitespace-nowrap`;
 const TD = 'border border-stone-200 px-3 py-2 text-[11px] text-stone-700';
@@ -52,7 +55,7 @@ export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('summary');
   const [compareReqId, setCompareReqId] = useState<number | ''>('');
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
-  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   useEffect(() => {
     setLang(getLanguage());
@@ -214,7 +217,7 @@ export default function ReportsPage() {
     return { open, closed, pendQ, accQ, rejQ, totalV, avgDays, top3, avgRating };
   }, [requests, quotes, ratings, report2]);
 
-  const formatMonth = (m: string) => new Date(m + '-01').toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long' });
+  const formatMonth = (m: string) => new Date(m + '-01').toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long' });
 
   const stars = (n: number) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
 
@@ -450,6 +453,24 @@ export default function ReportsPage() {
         {/* ══════ REPORT 4: Monthly ══════ */}
         {activeTab === 'monthly' && (
           <div className="space-y-4">
+            {report4.length > 0 && (
+            <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[var(--line-soft)]">
+                <h2 className="text-sm font-bold text-stone-900">📊 {t('الطلبات والعروض شهرياً','Requests & Quotes by Month',lang)}</h2>
+              </div>
+              <MonthlyActivityChart data={report4} lang={lang} />
+            </div>
+            )}
+
+            {report4.some(r => r.totalVal > 0) && (
+            <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-[var(--line-soft)]">
+                <h2 className="text-sm font-bold text-stone-900">💰 {t('إجمالي القيمة المقبولة شهرياً','Total Accepted Value by Month',lang)}</h2>
+              </div>
+              <MonthlyValueChart data={report4} lang={lang} currency={t('ر.س','SAR',lang)} />
+            </div>
+            )}
+
             <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden">
               <div className="px-5 py-3.5 border-b border-[var(--line-soft)]">
                 <h2 className="text-sm font-bold text-stone-900">📅 {t('النشاط الشهري (آخر 12 شهر)','Monthly Activity (Last 12 Months)',lang)}</h2>

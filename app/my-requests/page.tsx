@@ -556,7 +556,7 @@ export default function MyRequests() {
       <div className="bg-[var(--chrome)] px-7 pt-6 pb-0">
         <div className="flex items-end justify-between">
           <div>
-            <p className="text-white/50 text-xs mb-1">{new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="text-white/50 text-xs mb-1">{new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
             <h1 className="text-white text-xl font-bold mb-1">{t('myRequests', lang)}</h1>
             <p className="text-white/50 text-xs">{stats.active} {t('active', lang)} — {stats.quotes} {t('incomingQ', lang)}</p>
           </div>

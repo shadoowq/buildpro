@@ -279,7 +279,7 @@ export default function SupplierRequests() {
         <div className="flex items-end justify-between flex-wrap gap-3">
           <div>
             <p className="text-white/70 text-xs mb-1">
-              {new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date().toLocaleDateString(language === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
             <h1 className="text-white text-xl font-bold mb-1">{tStr('title', language)}</h1>
           </div>

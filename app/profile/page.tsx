@@ -333,7 +333,7 @@ export default function ProfilePage() {
   );
 
   const memberSince = user.createdAt
-    ? new Date(user.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long' })
+    ? new Date(user.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long' })
     : (lang === 'ar' ? 'غير معروف' : 'Unknown');
 
   return (

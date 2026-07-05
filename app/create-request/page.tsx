@@ -540,8 +540,8 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
 
   const validMaterials = materials.filter(isRowValid);
   const now = new Date();
-  const dateStr = now.toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US');
-  const timeStr = now.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+  const dateStr = now.toLocaleDateString(language === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US');
+  const timeStr = now.toLocaleTimeString(language === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { hour: '2-digit', minute: '2-digit' });
 
   return (
     <div className="bp-page md:ps-[190px]" style={{ direction: language === 'ar' ? 'rtl' : 'ltr' }}>

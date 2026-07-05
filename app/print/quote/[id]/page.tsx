@@ -95,8 +95,8 @@ export default function PrintQuote() {
     </div>
   );
 
-  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const quoteDate = new Date(quote.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const quoteDate = new Date(quote.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const reqName   = req?.projectName?.trim() || `${lang === 'ar' ? 'طلب' : 'Request'} #${quote.requestId}`;
   const statusMap = { pending: { ar: 'قيد الانتظار', en: 'Pending', color: '#D97706' }, accepted: { ar: 'مقبول', en: 'Accepted', color: '#059669' }, rejected: { ar: 'مرفوض', en: 'Rejected', color: '#DC2626' }, revision: { ar: 'طلب تعديل', en: 'Revision', color: '#D97706' }, expired: { ar: 'منتهي الصلاحية', en: 'Expired', color: '#78716C' } };
   const statusInfo = statusMap[getEffectiveQuoteStatus(quote)];
@@ -242,7 +242,7 @@ export default function PrintQuote() {
             <div style={{ fontSize: 10, opacity: 0.7, marginBottom: 4 }}>{lang === 'ar' ? 'تاريخ التسليم المتوقع' : 'EXPECTED DELIVERY'}</div>
             <div style={{ fontSize: 14, fontWeight: 700 }}>
               {new Date(new Date(quote.createdAt).getTime() + quote.deliveryDays * 86400000)
-                .toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                .toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
           </div>
         </div>

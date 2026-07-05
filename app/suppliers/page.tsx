@@ -335,7 +335,7 @@ export default function SuppliersPage() {
 
                 {/* last activity */}
                 <p className="text-[10px] text-stone-300 mt-3">
-                  {lang === 'ar' ? 'آخر نشاط:' : 'Last:'} {new Date(s.lastActivity).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}
+                  {lang === 'ar' ? 'آخر نشاط:' : 'Last:'} {new Date(s.lastActivity).toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US')}
                 </p>
               </div>
             ))}
@@ -409,7 +409,7 @@ export default function SuppliersPage() {
                           <td className="px-4 py-2.5 font-bold text-stone-900">{Number(q.totalPrice).toLocaleString()} {t('sar', lang)}</td>
                           <td className="px-4 py-2.5 text-stone-600">{q.deliveryDays} {t('days', lang)}</td>
                           <td className="px-4 py-2.5"><StatusBadge status={q.status} lang={lang} /></td>
-                          <td className="px-4 py-2.5 text-stone-400">{new Date(q.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</td>
+                          <td className="px-4 py-2.5 text-stone-400">{new Date(q.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US')}</td>
                         </tr>
                       ))}
                     </tbody>

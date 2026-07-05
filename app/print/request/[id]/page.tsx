@@ -73,7 +73,7 @@ export default function PrintRequest() {
     : getLegacyMaterials();
 
   const reqName   = req.projectName?.trim() || `${lang === 'ar' ? 'طلب تسعير' : 'RFQ'} #${req.id}`;
-  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   const colsAr = ['#', 'المادة', 'الاستخدام', 'المقاس', 'السماكة', 'الفنش', 'اللون', 'الكمية', 'السعر المستهدف', 'الصناعة', 'تاريخ التوريد', 'ملاحظات', 'الصور'];
   const colsEn = ['#', 'Material', 'Usage', 'Size', 'Thickness', 'Finish', 'Color', 'Qty', 'Target Price', 'Origin', 'Delivery Date', 'Notes', 'Images'];
@@ -149,7 +149,7 @@ export default function PrintRequest() {
                     {req.location && <tr><td style={{ color: '#78716C', paddingBottom: 3 }}>{lang === 'ar' ? 'المدينة:' : 'City:'}</td><td style={{ fontWeight: 600, color: '#292524', paddingBottom: 3 }}>{req.location}</td></tr>}
                     {req.deadline && <tr><td style={{ color: '#78716C', paddingBottom: 3 }}>{lang === 'ar' ? 'الموعد النهائي:' : 'Deadline:'}</td><td style={{ fontWeight: 600, color: '#292524', paddingBottom: 3 }}>{req.deadline}</td></tr>}
                     {req.budget   && <tr><td style={{ color: '#78716C', paddingBottom: 3 }}>{lang === 'ar' ? 'الميزانية:' : 'Budget:'}</td><td style={{ fontWeight: 600, color: 'var(--chrome)', paddingBottom: 3 }}>{Number(req.budget).toLocaleString()} {lang === 'ar' ? 'ر.س' : 'SAR'}</td></tr>}
-                    <tr><td style={{ color: '#78716C' }}>{lang === 'ar' ? 'تاريخ الإنشاء:' : 'Created:'}</td><td style={{ fontWeight: 600, color: '#292524' }}>{new Date(req.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US')}</td></tr>
+                    <tr><td style={{ color: '#78716C' }}>{lang === 'ar' ? 'تاريخ الإنشاء:' : 'Created:'}</td><td style={{ fontWeight: 600, color: '#292524' }}>{new Date(req.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US')}</td></tr>
                   </tbody>
                 </table>
               </div>

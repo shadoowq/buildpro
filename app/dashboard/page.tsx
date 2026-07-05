@@ -438,7 +438,7 @@ export default function DashboardPage() {
         <div className="max-w-[1400px] mx-auto flex items-end justify-between">
           <div>
             <p className="text-white/50 text-xs mb-1">
-              {new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </p>
             <h1 className="text-white text-xl font-bold mb-1">{tStr('hello', lang)} {userName}</h1>
             <p className="text-white/50 text-xs">

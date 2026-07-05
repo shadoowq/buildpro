@@ -23,9 +23,11 @@ const REPORT_TABS = [
 ];
 
 function t(ar: string, en: string, lang: Lang) { return lang === 'ar' ? ar : en; }
-/* 'ar-EG' not 'ar-SA' — ar-SA renders Eastern Arabic-Indic digits (١٢٣) which clash with the
-   Western digits (123) used everywhere else in the app (dashboard, quotes, print views). */
-function fmtN(n: number, lang: Lang) { return Math.round(n).toLocaleString(lang === 'ar' ? 'ar-EG' : 'en-US'); }
+/* 'ar-EG-u-nu-latn' not 'ar-EG' — plain 'ar-EG' still renders Eastern Arabic-Indic
+   digits (١٢٣) which clash with the Western digits (123) used everywhere else in
+   the app (dashboard, quotes, print views); the '-u-nu-latn' extension forces
+   Western digits while keeping Arabic month names. */
+function fmtN(n: number, lang: Lang) { return Math.round(n).toLocaleString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US'); }
 
 const TH = (lang: Lang) => `border border-stone-200 bg-[var(--chrome)] px-3 py-2.5 ${lang === 'ar' ? 'text-right' : 'text-left'} text-white font-semibold text-xs whitespace-nowrap`;
 const TD = 'border border-stone-200 px-3 py-2 text-xs text-stone-700';
@@ -40,7 +42,7 @@ export default function SupplierReportsPage() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [activeTab, setActiveTab] = useState('summary');
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
-  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
   useEffect(() => {
     setLang(getLanguage());
@@ -119,7 +121,7 @@ export default function SupplierReportsPage() {
     quotes.forEach(q => {
       const d = new Date(q.createdAt);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const label = d.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long' });
+      const label = d.toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long' });
       if (!map.has(key)) map.set(key, { key, label, count: 0, acceptedValue: 0, acceptedCount: 0 });
       const stat = map.get(key)!;
       stat.count += 1;

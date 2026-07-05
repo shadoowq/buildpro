@@ -73,11 +73,14 @@ export function getSupplierData(supplierId: string): any | null {
 }
 
 /* One Gregorian formatter for the whole app — 'ar-SA' defaults to the Hijri calendar
-   in some engines, and raw ISO strings render backwards in RTL, so neither is safe. */
+   in some engines, and raw ISO strings render backwards in RTL, so neither is safe.
+   The '-u-nu-latn' extension forces Western digits — plain 'ar-EG' still renders
+   Eastern Arabic-Indic digits (١٢٣) which clash with the Western digits (123) used
+   everywhere else in the app (dashboard, quotes, print views). */
 export function formatDate(ts: string, lang: Lang): string {
   const d = new Date(ts);
   if (isNaN(d.getTime())) return ts || '—';
-  return d.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  return d.toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 /** Formats a date-only string (deadline, validUntil). Falls back to the raw value if unparseable. */

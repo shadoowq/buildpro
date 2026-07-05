@@ -60,8 +60,8 @@ export default function PrintPurchaseOrder() {
   );
 
   const poNumber = generatePoNumber(quote.quoteNumber, quote.id);
-  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const acceptDate = new Date(quote.statusChangedAt || quote.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const acceptDate = new Date(quote.statusChangedAt || quote.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const reqName = req?.projectName?.trim() || `${lang === 'ar' ? 'طلب' : 'Request'} #${quote.requestId}`;
   const executionLabel = quote.executionStatus === 'delivered'
     ? (lang === 'ar' ? 'تم التوريد' : 'Delivered')

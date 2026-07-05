@@ -48,8 +48,8 @@ export default function PrintDraft() {
 
   const materials = draft.materials.filter((m: MaterialRow) => m.type?.trim() || m.typePending?.trim());
   const draftName = draft.projectName?.trim() || (materials.length > 0 ? materials.map(m => m.type || m.typePending).join('، ') : (lang === 'ar' ? 'مسودة' : 'Draft'));
-  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const savedDate = new Date(draft.savedAt).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' } as any);
+  const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const savedDate = new Date(draft.savedAt).toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' } as any);
 
   const cols   = lang === 'ar' ? ['#', 'المادة', 'الاستخدام', 'المقاس', 'السماكة', 'الفنش', 'اللون', 'الكمية', 'السعر المستهدف', 'الصناعة', 'تاريخ التوريد', 'ملاحظات', 'الصور'] : ['#', 'Material', 'Usage', 'Size', 'Thickness', 'Finish', 'Color', 'Qty', 'Target Price', 'Origin', 'Delivery Date', 'Notes', 'Images'];
   const fields = ['type', 'usage', 'size', 'thickness', 'finish', 'color', 'quantity', 'targetPrice', 'origin', 'deliveryDate', 'note'];
