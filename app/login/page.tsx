@@ -23,7 +23,7 @@ export default function LoginPage() {
     if (user) {
       try {
         const u = JSON.parse(user);
-        router.push(u.userType === 'supplier' ? '/supplier-requests' : '/dashboard');
+        router.push(u.userType === 'admin' ? '/admin' : u.userType === 'supplier' ? '/supplier-requests' : '/dashboard');
       } catch {}
     }
   }, [router]);
@@ -47,6 +47,10 @@ export default function LoginPage() {
     const user  = users.find((u: any) => u.email === email);
     if (!user || !(await verifyPassword(user, password))) {
       setError(lang === 'ar' ? 'البريد الإلكتروني أو كلمة المرور غلط' : 'Incorrect email or password');
+      return;
+    }
+    if (user.suspended) {
+      setError(lang === 'ar' ? 'تم تعليق هذا الحساب من إدارة المنصة — تواصل معنا لإعادة تفعيله' : 'This account has been suspended by the platform — contact us to reactivate it');
       return;
     }
     setSessionUser(user);

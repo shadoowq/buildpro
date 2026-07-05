@@ -85,7 +85,7 @@ export function setSessionUser(user: Record<string, any>): void {
 /* demo admin — hash of the admin password with a fixed salt, so no plaintext lives in the bundle */
 export const ADMIN_EMAIL = 'admin@buildpro.sa';
 const ADMIN_SALT = 'buildpro-admin';
-const ADMIN_HASH = '20b174a1de7842e413250764e698b4c1ffaf5d231995f8c19e8f42e58d8a6a33';
+const ADMIN_HASH = 'dd26f474a749bcbda3c5f56ea8d6d0ede5e537301f6d254d2dde4fa76943c440';
 
 export async function verifyAdmin(email: string, password: string): Promise<boolean> {
   if (email !== ADMIN_EMAIL) return false;

@@ -116,9 +116,9 @@ describe('migrateLegacyPasswords', () => {
 
 describe('verifyAdmin', () => {
   it('accepts the admin credentials and rejects everything else', async () => {
-    expect(await verifyAdmin(ADMIN_EMAIL, 'Admin@2025')).toBe(true);
+    expect(await verifyAdmin(ADMIN_EMAIL, 'BuildPro@2026')).toBe(true);
     expect(await verifyAdmin(ADMIN_EMAIL, 'wrong')).toBe(false);
-    expect(await verifyAdmin('not-admin@x.c', 'Admin@2025')).toBe(false);
+    expect(await verifyAdmin('not-admin@x.c', 'BuildPro@2026')).toBe(false);
   });
 });
 

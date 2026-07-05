@@ -101,7 +101,9 @@ export function isQuoteExpired(q: Pick<Quote, 'status' | 'validUntil'>): boolean
   if (q.status !== 'pending' || !q.validUntil) return false;
   const d = new Date(q.validUntil);
   if (isNaN(d.getTime())) return false;
-  d.setHours(23, 59, 59, 999); // the quote stays valid through its last day
+  // date-only strings parse as UTC midnight — use setUTCHours (not setHours) so the
+  // end-of-day boundary doesn't shift with the browser's local timezone offset
+  d.setUTCHours(23, 59, 59, 999); // the quote stays valid through its last day
   return d.getTime() < Date.now();
 }
 
@@ -111,7 +113,7 @@ export function quoteValidityDaysLeft(q: Pick<Quote, 'validUntil'>): number | nu
   if (!q.validUntil) return null;
   const end = new Date(q.validUntil);
   if (isNaN(end.getTime())) return null;
-  end.setHours(23, 59, 59, 999);
+  end.setUTCHours(23, 59, 59, 999); // see isQuoteExpired — UTC keeps this timezone-independent
   return Math.floor((end.getTime() - Date.now()) / 86400000);
 }
 
