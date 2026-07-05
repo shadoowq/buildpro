@@ -13,6 +13,8 @@ interface Request {
   materials?: any[];
   ceramic: number; porcelain: number; marble: number; granite: number; terrazzo: number;
   location: string; deadline: string;
+  locationCoords?: { lat: number; lng: number };
+  paymentTerms?: string;
   budget?: number; description?: string;
   status: 'open' | 'closed';
   createdAt: string;
@@ -147,7 +149,9 @@ export default function PrintRequest() {
                 <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
                   <tbody>
                     {req.location && <tr><td style={{ color: '#78716C', paddingBottom: 3 }}>{lang === 'ar' ? 'المدينة:' : 'City:'}</td><td style={{ fontWeight: 600, color: '#292524', paddingBottom: 3 }}>{req.location}</td></tr>}
+                    {req.locationCoords && <tr><td style={{ color: '#78716C', paddingBottom: 3 }}>{lang === 'ar' ? 'الموقع:' : 'Location:'}</td><td style={{ fontWeight: 600, color: '#292524', paddingBottom: 3 }}>{req.locationCoords.lat.toFixed(5)}, {req.locationCoords.lng.toFixed(5)}</td></tr>}
                     {req.deadline && <tr><td style={{ color: '#78716C', paddingBottom: 3 }}>{lang === 'ar' ? 'الموعد النهائي:' : 'Deadline:'}</td><td style={{ fontWeight: 600, color: '#292524', paddingBottom: 3 }}>{req.deadline}</td></tr>}
+                    {req.paymentTerms && <tr><td style={{ color: '#78716C', paddingBottom: 3 }}>{lang === 'ar' ? 'شروط الدفع:' : 'Payment Terms:'}</td><td style={{ fontWeight: 600, color: '#292524', paddingBottom: 3 }}>{req.paymentTerms}</td></tr>}
                     {req.budget   && <tr><td style={{ color: '#78716C', paddingBottom: 3 }}>{lang === 'ar' ? 'الميزانية:' : 'Budget:'}</td><td style={{ fontWeight: 600, color: 'var(--chrome)', paddingBottom: 3 }}>{Number(req.budget).toLocaleString()} {lang === 'ar' ? 'ر.س' : 'SAR'}</td></tr>}
                     <tr><td style={{ color: '#78716C' }}>{lang === 'ar' ? 'تاريخ الإنشاء:' : 'Created:'}</td><td style={{ fontWeight: 600, color: '#292524' }}>{new Date(req.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US')}</td></tr>
                   </tbody>

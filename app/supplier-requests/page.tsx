@@ -23,6 +23,8 @@ interface Request {
   materials?: any[];
   ceramic: number; porcelain: number; marble: number; granite: number; terrazzo: number;
   location: string;
+  locationCoords?: { lat: number; lng: number };
+  paymentTerms?: string;
   deadline: string;
   budget: number;
   description: string;
@@ -69,6 +71,8 @@ const T = {
   close:        { ar: 'إغلاق',              en: 'Close'         },
   reqMaterials: { ar: 'المواد المطلوبة',     en: 'Required Materials' },
   description:  { ar: 'الوصف',              en: 'Description'   },
+  paymentTerms: { ar: 'شروط الدفع المفضلة', en: 'Preferred Payment Terms' },
+  viewOnMap:    { ar: 'عرض على الخريطة',     en: 'View on map'   },
   material:     { ar: 'نوع المادة',          en: 'Material'      },
   usage:        { ar: 'الاستخدام',           en: 'Usage'         },
   size:         { ar: 'المقاس',              en: 'Size'          },
@@ -523,6 +527,21 @@ export default function SupplierRequests() {
                   <h3 className="text-sm font-bold text-stone-900 mb-2">{tStr('description', language)}</h3>
                   <div className="bg-stone-50 rounded-xl p-4 text-sm text-stone-600">{previewRequest.description}</div>
                 </div>
+              )}
+
+              {previewRequest.paymentTerms && (
+                <div>
+                  <h3 className="text-sm font-bold text-stone-900 mb-2">{tStr('paymentTerms', language)}</h3>
+                  <div className="bg-stone-50 rounded-xl p-4 text-sm text-stone-600">{previewRequest.paymentTerms}</div>
+                </div>
+              )}
+
+              {previewRequest.locationCoords && (
+                <p className="text-xs text-stone-500">
+                  📍 <a href={`https://www.openstreetmap.org/?mlat=${previewRequest.locationCoords.lat}&mlon=${previewRequest.locationCoords.lng}#map=15/${previewRequest.locationCoords.lat}/${previewRequest.locationCoords.lng}`} target="_blank" rel="noreferrer" className="underline">
+                    {tStr('viewOnMap', language)}
+                  </a>
+                </p>
               )}
             </div>
 

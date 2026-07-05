@@ -131,6 +131,21 @@ export default function RequestDetailModal({
             </div>
           )}
 
+          {req.paymentTerms && (
+            <div>
+              <h3 className="text-sm font-bold text-stone-900 mb-2">{tr('شروط الدفع المفضلة', 'Preferred Payment Terms')}</h3>
+              <div className="bg-stone-50 rounded-xl p-4 text-sm text-stone-600">{req.paymentTerms}</div>
+            </div>
+          )}
+
+          {req.locationCoords && (
+            <p className="text-xs text-stone-500">
+              📍 <a href={`https://www.openstreetmap.org/?mlat=${req.locationCoords.lat}&mlon=${req.locationCoords.lng}#map=15/${req.locationCoords.lat}/${req.locationCoords.lng}`} target="_blank" rel="noreferrer" className="underline">
+                {tr('عرض على الخريطة', 'View on map')}
+              </a>
+            </p>
+          )}
+
           {/* quotes */}
           <div>
             <div className="flex items-center justify-between mb-3">

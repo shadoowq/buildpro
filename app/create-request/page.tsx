@@ -6,10 +6,11 @@ import { saudiCities, getCityName } from '@/app/lib/translations';
 import ContractorNav from '../components/ContractorNav';
 import { appendActivityLog, arToEn } from '../lib/requestHelpers';
 import { isValidImageFile, isValidAttachmentFile } from '../lib/auth';
-import { MATERIAL_OPTIONS as OPTIONS } from '../lib/materialOptions';
+import { MATERIAL_OPTIONS as OPTIONS, OTHER_VALUE, resolveOther, PAYMENT_TERMS_OPTIONS } from '../lib/materialOptions';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
 import HelpTooltip from '../components/HelpTooltip';
+import MapPickerModal from '../components/MapPickerModal';
 import {
   getCurrentUser, getAllUserShadows, getUsers,
   getRatings, getQuotes,
@@ -22,18 +23,18 @@ import {
 
 interface MaterialRow {
   id: number;
-  type: string; typePending: string;
-  usage: string; usagePending: string;
-  size: string; sizePending: string;
-  thickness: string; thicknessPending: string;
-  finish: string; finishPending: string;
-  color: string; colorPending: string;
+  type: string; typePending: string; typePendingOther: string;
+  usage: string; usagePending: string; usagePendingOther: string;
+  size: string; sizePending: string; sizePendingOther: string;
+  thickness: string; thicknessPending: string; thicknessPendingOther: string;
+  finish: string; finishPending: string; finishPendingOther: string;
+  color: string; colorPending: string; colorPendingOther: string;
   quantity: string;
-  unit: string;
+  unit: string; unitOther: string;
   targetPrice: string;
   currency: string;
   deliveryDate: string;
-  origin: string; originPending: string;
+  origin: string; originPending: string; originPendingOther: string;
   images: string[];
   note: string;
 }
@@ -46,18 +47,24 @@ interface AttachedFile {
 
 const defaultRow = (): MaterialRow => ({
   id: Date.now() + Math.random(),
-  type: '', typePending: '',
-  usage: '', usagePending: '',
-  size: '', sizePending: '',
-  thickness: '', thicknessPending: '',
-  finish: '', finishPending: '',
-  color: '', colorPending: '',
-  quantity: '', unit: 'م²',
+  type: '', typePending: '', typePendingOther: '',
+  usage: '', usagePending: '', usagePendingOther: '',
+  size: '', sizePending: '', sizePendingOther: '',
+  thickness: '', thicknessPending: '', thicknessPendingOther: '',
+  finish: '', finishPending: '', finishPendingOther: '',
+  color: '', colorPending: '', colorPendingOther: '',
+  quantity: '', unit: 'م²', unitOther: '',
   targetPrice: '', currency: 'ر.س',
   deliveryDate: '',
-  origin: '', originPending: '',
+  origin: '', originPending: '', originPendingOther: '',
   images: [], note: '',
 });
+
+/** Reconstructs the select+Other UI state from a saved flat string — e.g. a saved
+    city outside the preset list re-selects "Other" with the value prefilled, instead
+    of leaving the dropdown showing nothing selected. */
+const applyOtherState = (value: string, presets: string[]): [string, string] =>
+  presets.includes(value) ? [value, ''] : [OTHER_VALUE, value];
 
 const isRowValid = (m: MaterialRow) =>
   !!(m.type?.trim() || m.typePending?.trim() || m.usage?.trim() || m.size?.trim() || m.quantity?.trim() || m.finish?.trim() || m.color?.trim());
@@ -73,8 +80,13 @@ export default function CreateRequest() {
   const [projectName, setProjectName] = useState('');
   const [materials, setMaterials] = useState<MaterialRow[]>([defaultRow()]);
   const [location, setLocation] = useState('');
+  const [locationOther, setLocationOther] = useState('');
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [showMapPicker, setShowMapPicker] = useState(false);
   const [deadline, setDeadline] = useState('');
   const [description, setDescription] = useState('');
+  const [paymentTerms, setPaymentTerms] = useState('');
+  const [paymentTermsOther, setPaymentTermsOther] = useState('');
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -129,9 +141,11 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
           })));
         }
         if (req.projectName) setProjectName(req.projectName);
-        if (req.location) setLocation(req.location);
+        if (req.location) { const [loc, other] = applyOtherState(req.location, saudiCities); setLocation(loc); setLocationOther(other); }
+        if (req.locationCoords) setLocationCoords(req.locationCoords);
         if (req.deadline) setDeadline(req.deadline);
         if (req.description) setDescription(req.description);
+        if (req.paymentTerms) { const [pt, other] = applyOtherState(req.paymentTerms, PAYMENT_TERMS_OPTIONS); setPaymentTerms(pt); setPaymentTermsOther(other); }
         if (req.selectedSuppliers) { setSelectedSuppliers(req.selectedSuppliers); setOriginalSuppliers(req.selectedSuppliers); }
         if (req.attachedFiles) setAttachedFiles(req.attachedFiles);
 
@@ -148,9 +162,11 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       if (parsed) {
         if (parsed.projectName) setProjectName(parsed.projectName);
         if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
-        if (parsed.location) setLocation(parsed.location);
+        if (parsed.location) { const [loc, other] = applyOtherState(parsed.location, saudiCities); setLocation(loc); setLocationOther(other); }
+        if (parsed.locationCoords) setLocationCoords(parsed.locationCoords);
         if (parsed.deadline) setDeadline(parsed.deadline);
         if (parsed.description) setDescription(parsed.description);
+        if (parsed.paymentTerms) { const [pt, other] = applyOtherState(parsed.paymentTerms, PAYMENT_TERMS_OPTIONS); setPaymentTerms(pt); setPaymentTermsOther(other); }
         if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
         if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
       }
@@ -160,9 +176,11 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       if (parsed) {
         if (parsed.projectName) setProjectName(parsed.projectName);
         if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, images: m.images ? [...m.images] : [] })));
-        if (parsed.location) setLocation(parsed.location);
+        if (parsed.location) { const [loc, other] = applyOtherState(parsed.location, saudiCities); setLocation(loc); setLocationOther(other); }
+        if (parsed.locationCoords) setLocationCoords(parsed.locationCoords);
         if (parsed.deadline) setDeadline(parsed.deadline);
         if (parsed.description) setDescription(parsed.description);
+        if (parsed.paymentTerms) { const [pt, other] = applyOtherState(parsed.paymentTerms, PAYMENT_TERMS_OPTIONS); setPaymentTerms(pt); setPaymentTermsOther(other); }
         if (parsed.selectedSuppliers) setSelectedSuppliers(parsed.selectedSuppliers);
         if (parsed.attachedFiles) setAttachedFiles(parsed.attachedFiles);
         if (parsed.hadAttachments) {
@@ -186,11 +204,15 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       const lightMaterials = materials.map(m => ({ ...m, images: [] }));
       const hadAttachments = materials.some(m => m.images && m.images.length > 0) || attachedFiles.length > 0;
       setCreateRequestDraft({
-        projectName, materials: lightMaterials, location, deadline, description, selectedSuppliers, attachedFiles: [],
+        projectName, materials: lightMaterials,
+        location: resolveOther(location, locationOther), locationCoords,
+        deadline, description,
+        paymentTerms: resolveOther(paymentTerms, paymentTermsOther),
+        selectedSuppliers, attachedFiles: [],
         savedAt: new Date().toISOString(), hadAttachments,
       });
     } catch (e) { /* ignore */ }
-  }, [projectName, materials, location, deadline, description, selectedSuppliers, attachedFiles]);
+  }, [projectName, materials, location, locationOther, locationCoords, deadline, description, paymentTerms, paymentTermsOther, selectedSuppliers, attachedFiles]);
 
   const getSupplierStats = (email: string) => {
     const rs = supplierRatings.filter((r: any) => r.supplierId === email);
@@ -218,14 +240,14 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     setMaterials(prev => prev.map(row => row.id === id ? { ...row, [field]: value } : row));
   };
 
-  const addOr = (id: number, valueField: keyof MaterialRow, pendingField: keyof MaterialRow) => {
+  const addOr = (id: number, valueField: keyof MaterialRow, pendingField: keyof MaterialRow, pendingOtherField: keyof MaterialRow) => {
     setMaterials(prev => prev.map(row => {
       if (row.id !== id) return row;
-      const pending = row[pendingField] as string;
+      const pending = resolveOther(row[pendingField] as string, row[pendingOtherField] as string);
       if (!pending) return row;
       const current = row[valueField] as string;
       const newValue = current ? current + ' أو ' + pending : pending;
-      return { ...row, [valueField]: newValue, [pendingField]: '' };
+      return { ...row, [valueField]: newValue, [pendingField]: '', [pendingOtherField]: '' };
     }));
   };
 
@@ -296,13 +318,13 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
   const validate = (): boolean => {
     setMaterials(prev => prev.map(row => ({
       ...row,
-      type: row.type || row.typePending,
-      usage: row.usage || row.usagePending,
-      size: row.size || row.sizePending,
-      thickness: row.thickness || row.thicknessPending,
-      finish: row.finish || row.finishPending,
-      color: row.color || row.colorPending,
-      origin: row.origin || row.originPending,
+      type: row.type || resolveOther(row.typePending, row.typePendingOther),
+      usage: row.usage || resolveOther(row.usagePending, row.usagePendingOther),
+      size: row.size || resolveOther(row.sizePending, row.sizePendingOther),
+      thickness: row.thickness || resolveOther(row.thicknessPending, row.thicknessPendingOther),
+      finish: row.finish || resolveOther(row.finishPending, row.finishPendingOther),
+      color: row.color || resolveOther(row.colorPending, row.colorPendingOther),
+      origin: row.origin || resolveOther(row.originPending, row.originPendingOther),
     })));
     const valid = materials.filter(isRowValid);
     if (selectedSuppliers.length === 0) {
@@ -313,7 +335,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       showToast(language === 'ar' ? 'الرجاء إضافة بيانات في مادة واحدة على الأقل' : 'Please fill at least one material row', 'error');
       return false;
     }
-    if (!location) {
+    if (!resolveOther(location, locationOther)) {
       showToast(language === 'ar' ? 'الرجاء اختيار المدينة' : 'Please select a city', 'error');
       return false;
     }
@@ -326,28 +348,33 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       id: Date.now(),
       contractorId: user?.email,
       materials: valid.map(m => ({
-        type: m.type || m.typePending,
-        usage: m.usage || m.usagePending,
-        size: m.size || m.sizePending,
-        thickness: m.thickness || m.thicknessPending,
-        finish: m.finish || m.finishPending,
-        color: m.color || m.colorPending,
+        type: m.type || resolveOther(m.typePending, m.typePendingOther),
+        usage: m.usage || resolveOther(m.usagePending, m.usagePendingOther),
+        size: m.size || resolveOther(m.sizePending, m.sizePendingOther),
+        thickness: m.thickness || resolveOther(m.thicknessPending, m.thicknessPendingOther),
+        finish: m.finish || resolveOther(m.finishPending, m.finishPendingOther),
+        color: m.color || resolveOther(m.colorPending, m.colorPendingOther),
         quantity: m.quantity,
-        unit: m.unit,
+        unit: resolveOther(m.unit, m.unitOther),
         targetPrice: m.targetPrice,
         currency: m.currency,
         deliveryDate: m.deliveryDate,
-        origin: m.origin || m.originPending,
+        origin: m.origin || resolveOther(m.originPending, m.originPendingOther),
         images: m.images,
         note: m.note,
       })),
       attachedFiles,
-      ceramic: valid.filter(m => (m.type || m.typePending).includes('سيراميك')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
-      porcelain: valid.filter(m => (m.type || m.typePending).includes('بورسلان')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
-      marble: valid.filter(m => (m.type || m.typePending).includes('رخام')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
-      granite: valid.filter(m => (m.type || m.typePending).includes('جرانيت')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
-      terrazzo: valid.filter(m => (m.type || m.typePending).includes('تيرازو')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
-      projectName, location, deadline, description, selectedSuppliers,
+      ceramic: valid.filter(m => (m.type || resolveOther(m.typePending, m.typePendingOther)).includes('سيراميك')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
+      porcelain: valid.filter(m => (m.type || resolveOther(m.typePending, m.typePendingOther)).includes('بورسلان')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
+      marble: valid.filter(m => (m.type || resolveOther(m.typePending, m.typePendingOther)).includes('رخام')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
+      granite: valid.filter(m => (m.type || resolveOther(m.typePending, m.typePendingOther)).includes('جرانيت')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
+      terrazzo: valid.filter(m => (m.type || resolveOther(m.typePending, m.typePendingOther)).includes('تيرازو')).reduce((s, m) => s + (parseFloat(m.quantity) || 0), 0),
+      projectName,
+      location: resolveOther(location, locationOther),
+      locationCoords: locationCoords ?? undefined,
+      deadline, description,
+      paymentTerms: resolveOther(paymentTerms, paymentTermsOther) || undefined,
+      selectedSuppliers,
       status: 'open', createdAt: new Date().toISOString()
     };
   };
@@ -403,36 +430,16 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
 
   const handleConfirmSubmit = () => { submitRequest(); };
 
-  const handlePrint = () => {
-    const printArea = document.querySelector('.print-area');
-    if (!printArea) return;
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <html><head><title>BuildPro - طلب تسعير</title>
-      <style>
-        body { font-family: Arial, sans-serif; direction: ${language === 'ar' ? 'rtl' : 'ltr'}; padding: 20px; color: #333; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px; }
-        th { background-color: #f1f3f5; padding: 8px 6px; border: 1px solid #ccc; font-weight: bold; text-align: center; }
-        td { padding: 7px 6px; border: 1px solid #ccc; text-align: center; }
-        h2 { color: #333; margin-bottom: 15px; }
-        ul { font-size: 13px; }
-        img { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
-        .no-print { display: none; }
-        @page { margin: 1cm; size: A4 landscape; }
-      </style></head>
-      <body>${printArea.innerHTML}</body></html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
-  };
+  const handlePrint = () => { window.print(); };
 
   const handleSaveDraft = () => {
     const draftData = {
       id: draftIdToRemove ?? Date.now(),
       contractorId: user?.email,
-      projectName, materials, location, deadline, description,
+      projectName, materials,
+      location: resolveOther(location, locationOther), locationCoords: locationCoords ?? undefined,
+      deadline, description,
+      paymentTerms: resolveOther(paymentTerms, paymentTermsOther) || undefined,
       selectedSuppliers, attachedFiles,
       savedAt: new Date().toISOString(),
     };
@@ -468,12 +475,16 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     selectAll: 'اختيار الكل', deselectAll: 'إلغاء الكل',
     reviewBtn: 'مراجعة الطلب', sendBtn: editRequestId ? 'حفظ التعديلات' : 'إرسال الطلب', draftBtn: 'حفظ مسودة',
     select: 'اختر...', optional: 'اختياري', orBtn: '+ أو',
+    otherOption: 'أخرى (اكتب يدويًا)', specify: 'حدد...',
     previewTitle: 'مراجعة الطلب قبل الإرسال', submittedBy: 'مقدم الطلب', dateTime: 'تاريخ ووقت المراجعة',
     confirm: 'تأكيد وإرسال الطلب', print: 'طباعة', back: 'رجوع للتعديل', noValue: '—',
     attachedFilesLabel: 'الملفات المرفقة', selectedSuppliersLabel: 'الموردين المختارين',
     maxImages: 'وصلت للحد الأقصى (صورتين)',
     zoomReset: 'إعادة ضبط', download: 'تحميل', close: 'إغلاق',
     zoomHint: 'استخدم عجلة الفأرة للتكبير والتصغير',
+    pinLocation: '📍 حدد الموقع على الخريطة (اختياري)', locationPinned: 'تم تحديد الموقع على الخريطة',
+    viewOnMap: 'عرض على الخريطة', paymentTermsLabel: 'شروط الدفع المفضلة (اختياري)',
+    selectOption: 'اختر...',
   } : {
     hint: 'Select from the list and press "+ OR" to add another option',
     projectNameLabel: 'Project Name', projectNamePlaceholder: 'e.g. Riyadh Villa - Ground Floor',
@@ -491,12 +502,16 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     selectAll: 'Select All', deselectAll: 'Deselect All',
     reviewBtn: 'Review Request', sendBtn: editRequestId ? 'Save Changes' : 'Send Request', draftBtn: 'Save Draft',
     select: 'Select...', optional: 'Optional', orBtn: '+ OR',
+    otherOption: 'Other (type manually)', specify: 'Specify...',
     previewTitle: 'Review Request Before Sending', submittedBy: 'Submitted By', dateTime: 'Review Date & Time',
     confirm: 'Confirm & Send Request', print: 'Print', back: 'Back to Edit', noValue: '—',
     attachedFilesLabel: 'Attached Files', selectedSuppliersLabel: 'Selected Suppliers',
     maxImages: 'Max 2 images reached',
     zoomReset: 'Reset', download: 'Download', close: 'Close',
     zoomHint: 'Use mouse wheel to zoom in/out',
+    pinLocation: '📍 Pin location on map (optional)', locationPinned: 'Location pinned on map',
+    viewOnMap: 'View on map', paymentTermsLabel: 'Preferred Payment Terms (optional)',
+    selectOption: 'Select...',
   };
 
   const labelStyle: React.CSSProperties = { display: 'block', marginBottom: '6px', fontWeight: 'bold', color: '#1C1917', fontSize: '15px' };
@@ -523,16 +538,21 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
     );
   };
 
-  const OrField = ({ row, valueField, pendingField, options }: { row: MaterialRow, valueField: keyof MaterialRow, pendingField: keyof MaterialRow, options: string[] }) => (
+  const OrField = ({ row, valueField, pendingField, pendingOtherField, options }: { row: MaterialRow, valueField: keyof MaterialRow, pendingField: keyof MaterialRow, pendingOtherField: keyof MaterialRow, options: string[] }) => (
     <div>
       {(row[valueField] as string) && <TokenDisplay id={row.id} field={valueField} value={row[valueField] as string} />}
       <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
         <select value={row[pendingField] as string} onChange={e => updateRow(row.id, pendingField, e.target.value)} style={selectStyle}>
           <option value="">{tx.select}</option>
           {options.map(o => <option key={o} value={o}>{display(o)}</option>)}
+          <option value={OTHER_VALUE}>{tx.otherOption}</option>
         </select>
-        <button type="button" onClick={() => addOr(row.id, valueField, pendingField)} style={orBtnStyle}>{tx.orBtn}</button>
+        <button type="button" onClick={() => addOr(row.id, valueField, pendingField, pendingOtherField)} style={orBtnStyle}>{tx.orBtn}</button>
       </div>
+      {row[pendingField] === OTHER_VALUE && (
+        <input type="text" value={row[pendingOtherField] as string} onChange={e => updateRow(row.id, pendingOtherField, e.target.value)}
+          placeholder={tx.specify} style={{ ...inputStyle, marginTop: '4px' }} />
+      )}
     </div>
   );
 
@@ -592,7 +612,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '14px' }}>
                   <div>
                     <label style={cardFieldLabelStyle}>{tx.material}</label>
-                    <OrField row={row} valueField="type" pendingField="typePending" options={OPTIONS.types} />
+                    <OrField row={row} valueField="type" pendingField="typePending" pendingOtherField="typePendingOther" options={OPTIONS.types} />
                   </div>
                   <div>
                     <label style={cardFieldLabelStyle}>
@@ -601,11 +621,11 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                         textAr="استخدام المادة في المشروع (أرضيات، جدران، درج...)"
                         textEn="Where this material will be used in the project (flooring, walls, stairs...)" />
                     </label>
-                    <OrField row={row} valueField="usage" pendingField="usagePending" options={OPTIONS.usages} />
+                    <OrField row={row} valueField="usage" pendingField="usagePending" pendingOtherField="usagePendingOther" options={OPTIONS.usages} />
                   </div>
                   <div>
                     <label style={cardFieldLabelStyle}>{tx.size}</label>
-                    <OrField row={row} valueField="size" pendingField="sizePending" options={OPTIONS.sizes} />
+                    <OrField row={row} valueField="size" pendingField="sizePending" pendingOtherField="sizePendingOther" options={OPTIONS.sizes} />
                   </div>
                   <div>
                     <label style={cardFieldLabelStyle}>
@@ -614,7 +634,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                         textAr="سمك البلاطة أو المادة بالمليمتر"
                         textEn="The tile/material thickness in millimeters" />
                     </label>
-                    <OrField row={row} valueField="thickness" pendingField="thicknessPending" options={OPTIONS.thicknesses} />
+                    <OrField row={row} valueField="thickness" pendingField="thicknessPending" pendingOtherField="thicknessPendingOther" options={OPTIONS.thicknesses} />
                   </div>
                   <div>
                     <label style={cardFieldLabelStyle}>
@@ -623,11 +643,11 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                         textAr="طريقة تشطيب سطح المادة (مصقول، مطفي، ساتان...)"
                         textEn="The surface finish of the material (polished, matte, satin...)" />
                     </label>
-                    <OrField row={row} valueField="finish" pendingField="finishPending" options={OPTIONS.finishes} />
+                    <OrField row={row} valueField="finish" pendingField="finishPending" pendingOtherField="finishPendingOther" options={OPTIONS.finishes} />
                   </div>
                   <div>
                     <label style={cardFieldLabelStyle}>{tx.color}</label>
-                    <OrField row={row} valueField="color" pendingField="colorPending" options={OPTIONS.colors} />
+                    <OrField row={row} valueField="color" pendingField="colorPending" pendingOtherField="colorPendingOther" options={OPTIONS.colors} />
                   </div>
                   <div>
                     <label style={cardFieldLabelStyle}>{tx.qty}</label>
@@ -637,7 +657,12 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                     <label style={cardFieldLabelStyle}>{tx.unit}</label>
                     <select value={row.unit} onChange={e => updateRow(row.id, 'unit', e.target.value)} style={{ ...inputStyle, padding: '5px 4px' }}>
                       {OPTIONS.units.map(u => <option key={u} value={u}>{display(u)}</option>)}
+                      <option value={OTHER_VALUE}>{tx.otherOption}</option>
                     </select>
+                    {row.unit === OTHER_VALUE && (
+                      <input type="text" value={row.unitOther} onChange={e => updateRow(row.id, 'unitOther', e.target.value)}
+                        placeholder={tx.specify} style={{ ...inputStyle, marginTop: '4px' }} />
+                    )}
                   </div>
                   <div>
                     <label style={cardFieldLabelStyle}>
@@ -666,7 +691,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                         textAr="بلد المنشأ أو نوع الصناعة المفضلة للمادة (محلي، إيطالي، تركي...)"
                         textEn="Preferred country of manufacture for the material (local, Italian, Turkish...)" />
                     </label>
-                    <OrField row={row} valueField="origin" pendingField="originPending" options={OPTIONS.origins} />
+                    <OrField row={row} valueField="origin" pendingField="originPending" pendingOtherField="originPendingOther" options={OPTIONS.origins} />
                   </div>
                 </div>
 
@@ -715,7 +740,32 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
               {saudiCities.map(city => (
                 <option key={city} value={city}>{language === 'ar' ? city : getCityName(city, 'en')}</option>
               ))}
+              <option value={OTHER_VALUE}>{tx.otherOption}</option>
             </select>
+            {location === OTHER_VALUE && (
+              <input type="text" value={locationOther} onChange={e => setLocationOther(e.target.value)}
+                placeholder={tx.specify} style={{ ...fieldStyle, marginTop: '6px' }} />
+            )}
+            <div style={{ marginTop: '8px' }}>
+              {locationCoords ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--tint)', border: '1px solid var(--brand-strong)', borderRadius: '999px', padding: '4px 10px', fontSize: '12px', color: 'var(--brand-strong)', fontWeight: 'bold' }}>
+                    📍 {tx.locationPinned}
+                  </span>
+                  <button type="button" onClick={() => setShowMapPicker(true)}
+                    style={{ background: 'none', border: 'none', color: 'var(--sec)', textDecoration: 'underline', cursor: 'pointer', fontSize: '12px', padding: 0 }}>
+                    {tx.viewOnMap}
+                  </button>
+                  <button type="button" onClick={() => setLocationCoords(null)}
+                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '12px', padding: 0 }}>✕</button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setShowMapPicker(true)}
+                  style={{ padding: '7px 12px', backgroundColor: 'transparent', color: 'var(--sec)', border: '1px solid var(--line)', borderRadius: '4px', cursor: 'pointer', fontSize: '12.5px', fontWeight: 600 }}>
+                  {tx.pinLocation}
+                </button>
+              )}
+            </div>
           </div>
           <div>
             <label style={{ ...labelStyle, display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -726,7 +776,28 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
             </label>
             <input type="date" value={deadline} onChange={e => setDeadline(e.target.value)} style={fieldStyle} />
           </div>
+          <div>
+            <label style={labelStyle}>{tx.paymentTermsLabel}</label>
+            <select value={paymentTerms} onChange={e => setPaymentTerms(e.target.value)} style={fieldStyle}>
+              <option value="">{tx.selectOption}</option>
+              {PAYMENT_TERMS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+              <option value={OTHER_VALUE}>{tx.otherOption}</option>
+            </select>
+            {paymentTerms === OTHER_VALUE && (
+              <input type="text" value={paymentTermsOther} onChange={e => setPaymentTermsOther(e.target.value)}
+                placeholder={tx.specify} style={{ ...fieldStyle, marginTop: '6px' }} />
+            )}
+          </div>
         </div>
+
+        {showMapPicker && (
+          <MapPickerModal
+            lang={language}
+            initial={locationCoords}
+            onConfirm={(coords) => { setLocationCoords(coords); setShowMapPicker(false); }}
+            onCancel={() => setShowMapPicker(false)}
+          />
+        )}
 
         <div style={{ marginBottom: '20px' }}>
           <label style={labelStyle}>{tx.attachments}</label>
@@ -833,7 +904,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
         {showPreview && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}
             onClick={() => setShowPreview(false)}>
-            <div className="print-area" style={{ backgroundColor: 'white', padding: '30px', borderRadius: '10px', maxWidth: '1100px', width: '95%', maxHeight: '90vh', overflowY: 'auto', direction: language === 'ar' ? 'rtl' : 'ltr' }}
+            <div className="print-area request-review-print-area" style={{ backgroundColor: 'white', padding: '30px', borderRadius: '10px', maxWidth: '1100px', width: '95%', maxHeight: '90vh', overflowY: 'auto', direction: language === 'ar' ? 'rtl' : 'ltr' }}
               onClick={e => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h2 style={{ color: '#333', margin: 0 }}>{tx.previewTitle}</h2>
@@ -844,8 +915,19 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                 {projectName && <p style={{ margin: 0, color: 'var(--chrome)', fontSize: '15px', fontWeight: 'bold', gridColumn: '1 / -1' }}>📁 {projectName}</p>}
                 <p style={{ margin: 0, color: '#333', fontSize: '14px' }}><strong>{tx.submittedBy}:</strong> {user.name} ({user.email})</p>
                 <p style={{ margin: 0, color: '#333', fontSize: '14px' }}><strong>{tx.dateTime}:</strong> {dateStr} - {timeStr}</p>
-                <p style={{ margin: 0, color: '#333', fontSize: '14px' }}><strong>{tx.city}:</strong> {location ? (language === 'ar' ? location : getCityName(location, 'en')) : tx.noValue}</p>
+                <p style={{ margin: 0, color: '#333', fontSize: '14px' }}><strong>{tx.city}:</strong> {(() => { const loc = resolveOther(location, locationOther); return loc ? (language === 'ar' ? loc : getCityName(loc, 'en')) : tx.noValue; })()}</p>
                 <p style={{ margin: 0, color: '#333', fontSize: '14px' }}><strong>{tx.deadline}:</strong> {deadline || tx.noValue}</p>
+                {locationCoords && (
+                  <p style={{ margin: 0, color: '#333', fontSize: '14px' }}>
+                    <strong>{tx.viewOnMap}:</strong>{' '}
+                    <a href={`https://www.openstreetmap.org/?mlat=${locationCoords.lat}&mlon=${locationCoords.lng}#map=15/${locationCoords.lat}/${locationCoords.lng}`} target="_blank" rel="noreferrer" className="no-print">
+                      {locationCoords.lat.toFixed(5)}, {locationCoords.lng.toFixed(5)}
+                    </a>
+                  </p>
+                )}
+                {(paymentTerms || paymentTermsOther) && (
+                  <p style={{ margin: 0, color: '#333', fontSize: '14px' }}><strong>{tx.paymentTermsLabel}:</strong> {resolveOther(paymentTerms, paymentTermsOther)}</p>
+                )}
                 {description && <p style={{ margin: 0, color: '#333', fontSize: '14px', gridColumn: '1 / -1' }}><strong>{tx.notes}:</strong> {description}</p>}
               </div>
               <div style={{ overflowX: 'auto', border: '1px solid var(--line)', borderRadius: '8px', marginBottom: '20px' }}>

@@ -111,6 +111,8 @@ const T = {
   city:         { ar: 'المدينة',                en: 'City' },
   deadline:     { ar: 'الموعد النهائي',          en: 'Deadline' },
   requestedMaterials: { ar: 'المواد المطلوبة',   en: 'Requested Materials' },
+  buyerPaymentTerms: { ar: 'شروط الدفع المفضلة للمقاول', en: "Contractor's Preferred Payment Terms" },
+  viewOnMap:    { ar: 'عرض على الخريطة',          en: 'View on map' },
   quoteDetails: { ar: 'تفاصيل العرض',            en: 'Quote Details' },
   clientName:   { ar: 'اسم العميل',              en: 'Client Name' },
   location:     { ar: 'الموقع',                 en: 'Location' },
@@ -598,6 +600,16 @@ export default function SupplierQuoteBuilder() {
             <p className="text-xs text-stone-600"><span className="font-semibold text-stone-700">{tx('project', language)}:</span> {reqName}</p>
             <p className="text-xs text-stone-600"><span className="font-semibold text-stone-700">{tx('city', language)}:</span> {getCityName(request.location, language)}</p>
             <p className="text-xs text-stone-600"><span className="font-semibold text-stone-700">{tx('deadline', language)}:</span> {formatDay(request.deadline, language)}</p>
+            {request.paymentTerms && (
+              <p className="text-xs text-stone-600"><span className="font-semibold text-stone-700">{tx('buyerPaymentTerms', language)}:</span> {request.paymentTerms}</p>
+            )}
+            {request.locationCoords && (
+              <p className="text-xs text-stone-600">
+                📍 <a href={`https://www.openstreetmap.org/?mlat=${request.locationCoords.lat}&mlon=${request.locationCoords.lng}#map=15/${request.locationCoords.lat}/${request.locationCoords.lng}`} target="_blank" rel="noreferrer" className="underline">
+                  {tx('viewOnMap', language)}
+                </a>
+              </p>
+            )}
           </div>
           {reqMaterialLines.length > 0 && (
             <div className="bg-[var(--bg-soft)] rounded-lg p-3">

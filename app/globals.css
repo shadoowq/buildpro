@@ -89,6 +89,24 @@ body {
   .print-area {
     background: #ffffff !important;
     color: #292524 !important;
+    /* the create-request review modal renders .print-area inside a fixed,
+       viewport-clamped overlay (position:fixed; max-height:90vh; overflow:auto) —
+       browsers can clip fixed-position content to one page when printing, so
+       force it back into normal, unclipped document flow for print. */
+    position: static !important;
+    inset: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* the review modal's materials table has 14 columns — same wide-table
+     treatment as .quote-print-area so every column stays visible on A4. */
+  .request-review-print-area table {
+    font-size: 9px !important;
+  }
+  .request-review-print-area th,
+  .request-review-print-area td {
+    padding: 3px 4px !important;
   }
 
   .no-print {

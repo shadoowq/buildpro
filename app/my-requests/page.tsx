@@ -51,6 +51,8 @@ interface Request {
   kanbanColumn?: KanbanCol;
   ceramic: number; porcelain: number; marble: number; granite: number; terrazzo: number;
   materials?: any[]; location: string; deadline: string;
+  locationCoords?: { lat: number; lng: number };
+  paymentTerms?: string;
   budget: number; description: string;
   status: 'open' | 'closed' | 'completed'; createdAt: string;
 }

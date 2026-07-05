@@ -32,6 +32,8 @@ interface Request {
   materials?: any[];
   ceramic: number; porcelain: number; marble: number; granite: number; terrazzo: number;
   location: string; deadline: string;
+  locationCoords?: { lat: number; lng: number };
+  paymentTerms?: string;
   budget: number; description: string;
   status: 'open' | 'closed';
   createdAt: string;
@@ -104,6 +106,8 @@ const T = {
   notFound:     { ar: 'الطلب غير موجود', en: 'Request not found' },
   goBack:       { ar: 'العودة لطلباتي', en: 'Back to Requests'   },
   location:     { ar: 'المدينة',        en: 'City'               },
+  viewOnMap:    { ar: 'عرض على الخريطة', en: 'View on map'        },
+  paymentTerms: { ar: 'شروط الدفع المفضلة', en: 'Preferred Payment Terms' },
   deadline:     { ar: 'الموعد النهائي', en: 'Deadline'           },
   createdAt:    { ar: 'تاريخ الإنشاء',  en: 'Created'            },
   budget:       { ar: 'الميزانية',      en: 'Budget'             },
@@ -512,6 +516,24 @@ export default function RequestDetailPage() {
             </div>
             <p className="px-5 py-4 text-sm text-stone-700 leading-relaxed">{request.description}</p>
           </div>
+        )}
+
+        {request.paymentTerms && (
+          <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden print:border-stone-200 print:rounded-lg">
+            <div className="px-5 py-3.5 border-b border-[var(--line-soft)] flex items-center gap-2">
+              <span className="text-base">💳</span>
+              <h2 className="text-sm font-bold text-stone-900">{t('paymentTerms', lang)}</h2>
+            </div>
+            <p className="px-5 py-4 text-sm text-stone-700 leading-relaxed">{request.paymentTerms}</p>
+          </div>
+        )}
+
+        {request.locationCoords && (
+          <p className="text-xs text-stone-500">
+            📍 <a href={`https://www.openstreetmap.org/?mlat=${request.locationCoords.lat}&mlon=${request.locationCoords.lng}#map=15/${request.locationCoords.lat}/${request.locationCoords.lng}`} target="_blank" rel="noreferrer" className="underline">
+              {t('viewOnMap', lang)}
+            </a>
+          </p>
         )}
 
         {/* Q&A */}
