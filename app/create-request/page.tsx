@@ -7,7 +7,8 @@ import ContractorNav from '../components/ContractorNav';
 import { appendActivityLog, arToEn } from '../lib/requestHelpers';
 import { isValidImageFile, isValidAttachmentFile } from '../lib/auth';
 import { MATERIAL_OPTIONS as OPTIONS, OTHER_VALUE, resolveOther, PAYMENT_TERMS_OPTIONS } from '../lib/materialOptions';
-import { MATERIAL_CATEGORIES, getCategory, isTilesCategory, MaterialCategory } from '../lib/materialCategories';
+import { MATERIAL_CATEGORIES, getCategory, isTilesCategory, specialtyLabel, MaterialCategory } from '../lib/materialCategories';
+import { specialtiesCoverCategory } from '../lib/marketplace';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
 import HelpTooltip from '../components/HelpTooltip';
@@ -73,6 +74,30 @@ const defaultRow = (): MaterialRow => ({
 const applyOtherState = (value: string, presets: string[]): [string, string] =>
   presets.includes(value) ? [value, ''] : [OTHER_VALUE, value];
 
+/** Same idea for a material row loaded back into the form: saved requests store
+    resolved flat values, so a custom unit or a custom category-field value that
+    isn't in its preset list must be re-split into select="Other" + text, or the
+    select renders empty and the value silently disappears on the next save. */
+const restoreRowOtherState = (m: any): Partial<MaterialRow> => {
+  const cat = getCategory(m.category);
+  const units = cat?.units || OPTIONS.units;
+  const unitPatch = m.unit && m.unit !== OTHER_VALUE && !units.includes(m.unit) && !m.unitOther
+    ? { unit: OTHER_VALUE, unitOther: m.unit } : {};
+  if (isTilesCategory(m.category)) return unitPatch;
+  if (m.fieldsOther && Object.keys(m.fieldsOther).length) return unitPatch; // draft rows keep live UI state
+  const fields: Record<string, string> = {};
+  const fieldsOther: Record<string, string> = {};
+  Object.entries((m.fields || {}) as Record<string, string>).forEach(([k, v]) => {
+    const def = cat?.fields.find(f => f.key === k);
+    if (def?.type === 'select' && v && v !== OTHER_VALUE && !(def.options || []).includes(v)) {
+      fields[k] = OTHER_VALUE; fieldsOther[k] = v;
+    } else {
+      fields[k] = v;
+    }
+  });
+  return { ...unitPatch, fields, fieldsOther };
+};
+
 const isRowValid = (m: MaterialRow) =>
   isTilesCategory(m.category)
     ? !!(m.type?.trim() || m.typePending?.trim() || m.usage?.trim() || m.size?.trim() || m.quantity?.trim() || m.finish?.trim() || m.color?.trim())
@@ -86,6 +111,7 @@ export default function CreateRequest() {
   const [supplierRatings, setSupplierRatings] = useState<any[]>([]);
   const [supplierQuotes, setSupplierQuotes] = useState<any[]>([]);
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
+  const [showAllSuppliers, setShowAllSuppliers] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [materials, setMaterials] = useState<MaterialRow[]>([defaultRow()]);
   const [location, setLocation] = useState('');
@@ -144,11 +170,13 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
         setPageTitle(savedLang === 'en' ? 'Edit Request' : 'تعديل الطلب');
         if (req.materials && req.materials.length > 0) {
           setMaterials(req.materials.map((m: any) => ({
+            ...defaultRow(),
             ...m,
             id: Date.now() + Math.random(),
             category: m.category || 'tiles',
             fields: m.fields || {},
             fieldsOther: {},
+            ...restoreRowOtherState(m),
             images: m.images ? [...m.images] : [],
           })));
         }
@@ -173,7 +201,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       const parsed = getCreateRequestDraft<any>();
       if (parsed) {
         if (parsed.projectName) setProjectName(parsed.projectName);
-        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, category: m.category || 'tiles', fields: m.fields || {}, fieldsOther: m.fieldsOther || {}, images: m.images ? [...m.images] : [] })));
+        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...defaultRow(), ...m, category: m.category || 'tiles', fields: m.fields || {}, fieldsOther: m.fieldsOther || {}, ...restoreRowOtherState(m), images: m.images ? [...m.images] : [] })));
         if (parsed.location) { const [loc, other] = applyOtherState(parsed.location, saudiCities); setLocation(loc); setLocationOther(other); }
         if (parsed.locationCoords) setLocationCoords(parsed.locationCoords);
         if (parsed.deadline) setDeadline(parsed.deadline);
@@ -187,7 +215,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
       const parsed = getCreateRequestDraft<any>();
       if (parsed) {
         if (parsed.projectName) setProjectName(parsed.projectName);
-        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...m, category: m.category || 'tiles', fields: m.fields || {}, fieldsOther: m.fieldsOther || {}, images: m.images ? [...m.images] : [] })));
+        if (parsed.materials) setMaterials(parsed.materials.map((m: any) => ({ ...defaultRow(), ...m, category: m.category || 'tiles', fields: m.fields || {}, fieldsOther: m.fieldsOther || {}, ...restoreRowOtherState(m), images: m.images ? [...m.images] : [] })));
         if (parsed.location) { const [loc, other] = applyOtherState(parsed.location, saudiCities); setLocation(loc); setLocationOther(other); }
         if (parsed.locationCoords) setLocationCoords(parsed.locationCoords);
         if (parsed.deadline) setDeadline(parsed.deadline);
@@ -253,7 +281,8 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
   };
 
   const changeRowCategory = (id: number, category: string) => {
-    setMaterials(prev => prev.map(row => row.id === id ? { ...row, category, fields: {}, fieldsOther: {} } : row));
+    const defaultUnit = getCategory(category)?.units?.[0] || OPTIONS.units[0];
+    setMaterials(prev => prev.map(row => row.id === id ? { ...row, category, fields: {}, fieldsOther: {}, unit: defaultUnit, unitOther: '' } : row));
   };
 
   const updateRowField = (id: number, key: string, value: string) => {
@@ -334,9 +363,26 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
   const handleSupplierToggle = (email: string) => {
     setSelectedSuppliers(prev => prev.includes(email) ? prev.filter(s => s !== email) : [...prev, email]);
   };
+
+  /* the supplier list follows the categories chosen in the material rows: suppliers
+     whose specialties cover any requested category are listed first, the rest sit
+     behind a "show all" toggle. If no supplier matches, everyone is shown. */
+  const requestCategories = [...new Set(materials.map(m => m.category || 'tiles'))];
+  const supplierMatchesRequest = (s: any) =>
+    requestCategories.some(cat => specialtiesCoverCategory(s.specialties || [], cat));
+  const matchingSuppliers = suppliers.filter(supplierMatchesRequest);
+  const nonMatchingSuppliers = suppliers.filter(s => !supplierMatchesRequest(s));
+  const visibleSuppliers = matchingSuppliers.length === 0
+    ? suppliers
+    : showAllSuppliers ? [...matchingSuppliers, ...nonMatchingSuppliers] : matchingSuppliers;
+
   const handleSelectAll = () => {
-    if (selectedSuppliers.length === suppliers.length) setSelectedSuppliers([]);
-    else setSelectedSuppliers(suppliers.map(s => s.email));
+    const visibleEmails = visibleSuppliers.map(s => s.email);
+    if (visibleEmails.every(e => selectedSuppliers.includes(e))) {
+      setSelectedSuppliers(prev => prev.filter(e => !visibleEmails.includes(e)));
+    } else {
+      setSelectedSuppliers(prev => [...new Set([...prev, ...visibleEmails])]);
+    }
   };
 
   const validate = (): boolean => {
@@ -724,7 +770,7 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                   <div>
                     <label style={cardFieldLabelStyle}>{tx.unit}</label>
                     <select value={row.unit} onChange={e => updateRow(row.id, 'unit', e.target.value)} style={{ ...inputStyle, padding: '5px 4px' }}>
-                      {OPTIONS.units.map(u => <option key={u} value={u}>{display(u)}</option>)}
+                      {(getCategory(row.category)?.units || OPTIONS.units).map(u => <option key={u} value={u}>{display(u)}</option>)}
                       <option value={OTHER_VALUE}>{tx.otherOption}</option>
                     </select>
                     {row.unit === OTHER_VALUE && (
@@ -904,27 +950,55 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                 textAr="سيُرسَل الطلب فقط إلى الموردين الذين تحددهم هنا. يمكنك اختيار مورد واحد أو أكثر."
                 textEn="Your request will only be sent to the suppliers you select here. You can choose one or more." />
             </label>
-            {suppliers.length > 0 && (
+            {visibleSuppliers.length > 0 && (
               <button type="button" onClick={handleSelectAll}
                 style={{ padding: '6px 12px', backgroundColor: 'var(--sec)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>
-                {selectedSuppliers.length === suppliers.length ? tx.deselectAll : tx.selectAll}
+                {visibleSuppliers.every(s => selectedSuppliers.includes(s.email)) ? tx.deselectAll : tx.selectAll}
               </button>
             )}
           </div>
           {suppliers.length === 0 ? (
             <div style={{ padding: '20px', backgroundColor: 'var(--bg-soft)', borderRadius: '4px', color: '#666', textAlign: 'center' }}>{tx.noSuppliers}</div>
           ) : (
-            <div style={{ border: '1px solid var(--line)', borderRadius: '4px', maxHeight: '250px', overflowY: 'auto', backgroundColor: '#fff' }}>
-              {suppliers.map((supplier, index) => {
+            <>
+            {matchingSuppliers.length === 0 && (
+              <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '8px', padding: '8px 12px', marginBottom: '8px', color: '#92400E', fontSize: '12px' }}>
+                {language === 'ar'
+                  ? 'لا يوجد موردون متخصصون في مجالات هذا الطلب حتى الآن — نعرض لك جميع الموردين.'
+                  : 'No suppliers specialize in this request\'s categories yet — showing all suppliers.'}
+              </div>
+            )}
+            <div style={{ border: '1px solid var(--line)', borderRadius: '4px', maxHeight: '280px', overflowY: 'auto', backgroundColor: '#fff' }}>
+              {visibleSuppliers.map((supplier, index) => {
                 const { avgRating, quoteCount } = getSupplierStats(supplier.email);
+                const matches = supplierMatchesRequest(supplier);
+                const specialtyChips = (supplier.specialties || [])
+                  .map((s: string) => specialtyLabel(s, language) || display(s))
+                  .filter(Boolean);
                 return (
                   <div key={supplier.email} onClick={() => handleSupplierToggle(supplier.email)}
-                    style={{ display: 'flex', alignItems: 'center', padding: '12px 15px', borderBottom: index < suppliers.length - 1 ? '1px solid var(--line-soft)' : 'none', cursor: 'pointer', backgroundColor: selectedSuppliers.includes(supplier.email) ? 'var(--tint)' : '#fff', gap: '12px' }}>
+                    style={{ display: 'flex', alignItems: 'center', padding: '12px 15px', borderBottom: index < visibleSuppliers.length - 1 ? '1px solid var(--line-soft)' : 'none', cursor: 'pointer', backgroundColor: selectedSuppliers.includes(supplier.email) ? 'var(--tint)' : '#fff', gap: '12px', opacity: matches || matchingSuppliers.length === 0 ? 1 : 0.6 }}>
                     <input type="checkbox" checked={selectedSuppliers.includes(supplier.email)} onChange={() => handleSupplierToggle(supplier.email)}
                       style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
                     <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontWeight: 'bold', color: '#333', fontSize: '15px' }}>{supplier.company}</p>
+                      <p style={{ margin: 0, fontWeight: 'bold', color: '#333', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        {supplier.company}
+                        {matchingSuppliers.length > 0 && (
+                          matches ? (
+                            <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#047857', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '999px', padding: '1px 8px' }}>
+                              ✓ {language === 'ar' ? 'مطابق للمجال' : 'Category match'}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#78716C', backgroundColor: 'var(--bg-soft)', border: '1px solid var(--line)', borderRadius: '999px', padding: '1px 8px' }}>
+                              {language === 'ar' ? 'خارج التخصص' : 'Outside specialty'}
+                            </span>
+                          )
+                        )}
+                      </p>
                       <p style={{ margin: 0, color: '#666', fontSize: '13px' }}>{supplier.name} - {supplier.phone}</p>
+                      {specialtyChips.length > 0 && (
+                        <p style={{ margin: '2px 0 0', color: '#999', fontSize: '11px' }}>{specialtyChips.join(' · ')}</p>
+                      )}
                     </div>
                     <div style={{ textAlign: language === 'ar' ? 'left' : 'right', flexShrink: 0 }}>
                       {avgRating > 0 ? (
@@ -940,6 +1014,15 @@ const [isDraftEdit, setIsDraftEdit] = useState(false);
                 );
               })}
             </div>
+            {matchingSuppliers.length > 0 && nonMatchingSuppliers.length > 0 && (
+              <button type="button" onClick={() => setShowAllSuppliers(v => !v)}
+                style={{ marginTop: '8px', padding: '6px 12px', backgroundColor: 'transparent', color: 'var(--sec)', border: '1px dashed var(--line)', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>
+                {showAllSuppliers
+                  ? (language === 'ar' ? 'إخفاء الموردين خارج التخصص' : 'Hide suppliers outside the specialty')
+                  : (language === 'ar' ? `عرض باقي الموردين خارج التخصص (${nonMatchingSuppliers.length})` : `Show ${nonMatchingSuppliers.length} more supplier(s) outside the specialty`)}
+              </button>
+            )}
+            </>
           )}
           <p style={{ color: selectedSuppliers.length > 0 ? 'var(--chrome)' : '#aaa', fontSize: '13px', marginTop: '8px', fontWeight: selectedSuppliers.length > 0 ? 'bold' : 'normal' }}>
             {language === 'ar' ? `تم اختيار ${selectedSuppliers.length} مورد` : `${selectedSuppliers.length} supplier(s) selected`}

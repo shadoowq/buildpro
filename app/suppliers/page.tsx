@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ContractorNav from '../components/ContractorNav';
+import { displayVal } from '../lib/requestHelpers';
+import { specialtyLabel } from '../lib/materialCategories';
 import { getCurrentUser, getLanguage, setLanguage, getRequests, getQuotes, getUsers, getRatings, getUserShadow } from '../lib/store';
 
 type Lang = 'ar' | 'en';
@@ -43,6 +45,7 @@ interface SupplierCard {
   acceptedCount: number;
   lastActivity: string;
   quotes: Quote[];
+  specialties: string[];
 }
 
 const T = {
@@ -176,6 +179,7 @@ export default function SuppliersPage() {
           acceptedCount: 0,
           lastActivity:  q.createdAt,
           quotes:        [],
+          specialties:   userData?.specialties || [],
         };
       }
       const s = supplierMap[q.supplierId];
@@ -312,6 +316,20 @@ export default function SuppliersPage() {
                     <span className="text-[10px] text-stone-400">({s.avgRating.toFixed(1)})</span>
                   )}
                 </div>
+
+                {/* specialties */}
+                {s.specialties.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {s.specialties.slice(0, 3).map(sp => (
+                      <span key={sp} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[var(--tint)] text-[var(--brand-strong)]">
+                        {specialtyLabel(sp, lang) || displayVal(sp, lang)}
+                      </span>
+                    ))}
+                    {s.specialties.length > 3 && (
+                      <span className="text-[10px] text-stone-400 px-1 py-0.5">+{s.specialties.length - 3}</span>
+                    )}
+                  </div>
+                )}
 
                 {/* stats */}
                 <div className="flex gap-3 border-t border-[var(--line-soft)] pt-3">

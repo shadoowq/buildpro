@@ -14,6 +14,9 @@ export interface MaterialCategory {
   labelAr: string;
   labelEn: string;
   fields: CategoryField[];
+  /** measurement units that make sense for this domain (first = default);
+      tiles omits this and keeps using MATERIAL_OPTIONS.units */
+  units?: string[];
 }
 
 export const MATERIAL_CATEGORIES: MaterialCategory[] = [
@@ -38,6 +41,7 @@ export const MATERIAL_CATEGORIES: MaterialCategory[] = [
       { key: 'coverage', labelAr: 'التغطية (م²/لتر)', labelEn: 'Coverage (m²/L)', type: 'number' },
       { key: 'brand', labelAr: 'الماركة', labelEn: 'Brand', type: 'text' },
     ],
+    units: ['لتر', 'جالون', 'برميل', 'م²'],
   },
   {
     id: 'concrete', icon: '🏗️', labelAr: 'الخرسانة والأسمنت', labelEn: 'Concrete & Cement',
@@ -47,6 +51,7 @@ export const MATERIAL_CATEGORIES: MaterialCategory[] = [
       { key: 'usage', labelAr: 'الاستخدام', labelEn: 'Usage', type: 'select', options: ['أساسات', 'أعمدة', 'أسقف', 'أرضيات'] },
       { key: 'additive', labelAr: 'الإضافات', labelEn: 'Additive', type: 'select', options: ['بدون', 'مانع تسرب', 'مسرع تصلب', 'مؤخر شك'] },
     ],
+    units: ['م³', 'طن', 'شيكارة'],
   },
   {
     id: 'rebar', icon: '🔩', labelAr: 'حديد التسليح', labelEn: 'Rebar / Steel',
@@ -56,6 +61,7 @@ export const MATERIAL_CATEGORIES: MaterialCategory[] = [
       { key: 'grade', labelAr: 'الدرجة', labelEn: 'Grade', type: 'select', options: ['Grade 60', 'Grade 40', 'B500B'] },
       { key: 'shape', labelAr: 'الشكل', labelEn: 'Shape', type: 'select', options: ['مستقيم', 'ملفوف', 'مشكل حسب المخطط'] },
     ],
+    units: ['طن', 'قطعة'],
   },
   {
     id: 'blocks', icon: '🧊', labelAr: 'البلوك والطوب', labelEn: 'Blocks & Bricks',
@@ -64,6 +70,7 @@ export const MATERIAL_CATEGORIES: MaterialCategory[] = [
       { key: 'size', labelAr: 'المقاس', labelEn: 'Size', type: 'select', options: ['20×20×40', '15×20×40', '10×20×40', 'هوردي'] },
       { key: 'usage', labelAr: 'الاستخدام', labelEn: 'Usage', type: 'select', options: ['جدران حاملة', 'جدران فاصلة', 'عزل حراري'] },
     ],
+    units: ['قطعة', 'ألف قطعة', 'م²'],
   },
   {
     id: 'electrical', icon: '⚡', labelAr: 'الكهرباء', labelEn: 'Electrical',
@@ -73,6 +80,7 @@ export const MATERIAL_CATEGORIES: MaterialCategory[] = [
       { key: 'amperage', labelAr: 'الأمبير', labelEn: 'Amperage', type: 'select', options: ['16A', '20A', '32A', '63A', '100A'] },
       { key: 'standard', labelAr: 'المواصفة', labelEn: 'Standard', type: 'select', options: ['SASO', 'IEC', 'UL'] },
     ],
+    units: ['متر', 'لفة', 'قطعة'],
   },
   {
     id: 'ac', icon: '❄️', labelAr: 'التكييف والتبريد', labelEn: 'AC & Cooling',
@@ -82,6 +90,7 @@ export const MATERIAL_CATEGORIES: MaterialCategory[] = [
       { key: 'efficiency', labelAr: 'كفاءة الطاقة', labelEn: 'Efficiency', type: 'select', options: ['عادي', 'انفرتر توفير عالي'] },
       { key: 'brand', labelAr: 'الماركة', labelEn: 'Brand', type: 'text' },
     ],
+    units: ['قطعة'],
   },
   {
     id: 'plumbing', icon: '🚿', labelAr: 'السباكة', labelEn: 'Plumbing',
@@ -90,6 +99,7 @@ export const MATERIAL_CATEGORIES: MaterialCategory[] = [
       { key: 'diameter', labelAr: 'القطر', labelEn: 'Diameter', type: 'select', options: ['½"', '¾"', '1"', '1½"', '2"', '4"'] },
       { key: 'usage', labelAr: 'الاستخدام', labelEn: 'Usage', type: 'select', options: ['مياه باردة', 'مياه ساخنة', 'صرف صحي'] },
     ],
+    units: ['متر', 'قطعة'],
   },
   {
     id: 'aluminum_glass', icon: '🪟', labelAr: 'الألومنيوم والزجاج', labelEn: 'Aluminum & Glass',
@@ -99,6 +109,7 @@ export const MATERIAL_CATEGORIES: MaterialCategory[] = [
       { key: 'usage', labelAr: 'الاستخدام', labelEn: 'Usage', type: 'select', options: ['نوافذ', 'واجهات', 'أبواب', 'فواصل'] },
       { key: 'color', labelAr: 'اللون', labelEn: 'Color', type: 'select', options: ['أبيض', 'برونزي', 'أسود', 'طبيعي'] },
     ],
+    units: ['م²', 'قطعة', 'م طولي'],
   },
   {
     id: 'insulation', icon: '💧', labelAr: 'العزل', labelEn: 'Insulation',
@@ -107,6 +118,7 @@ export const MATERIAL_CATEGORIES: MaterialCategory[] = [
       { key: 'thickness', labelAr: 'السماكة', labelEn: 'Thickness', type: 'select', options: ['25mm', '50mm', '75mm', '100mm'] },
       { key: 'usage', labelAr: 'الاستخدام', labelEn: 'Usage', type: 'select', options: ['أسطح', 'جدران', 'أساسات'] },
     ],
+    units: ['م²', 'لفة', 'برميل'],
   },
 ];
 
@@ -114,3 +126,12 @@ export const getCategory = (id: string | undefined): MaterialCategory | undefine
   MATERIAL_CATEGORIES.find(c => c.id === id);
 
 export const isTilesCategory = (id: string | undefined): boolean => !id || id === 'tiles';
+
+/** Human label for a supplier specialty value. Specialties saved after the
+    categories feature are category ids ('paint', 'rebar'...); older profiles
+    hold raw tile-type strings ('سيراميك'...) which pass through unchanged for
+    the caller to translate via displayVal. */
+export function specialtyLabel(value: string, lang: 'ar' | 'en'): string | null {
+  const cat = getCategory(value);
+  return cat ? `${cat.icon} ${lang === 'ar' ? cat.labelAr : cat.labelEn}` : null;
+}

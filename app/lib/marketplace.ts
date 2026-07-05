@@ -19,7 +19,7 @@ export interface SupplierMatchProfile {
 /** A supplier's specialty covers a material category if they picked that category
     directly, or — for suppliers who set up their profile before categories existed —
     they picked one of the old tile-type strings, which implicitly covers 'tiles'. */
-function specialtiesCoverCategory(specialties: string[], category: string): boolean {
+export function specialtiesCoverCategory(specialties: string[], category: string): boolean {
   if (specialties.includes(category)) return true;
   if (category === 'tiles') return specialties.some(s => MATERIAL_OPTIONS.types.includes(s));
   return false;

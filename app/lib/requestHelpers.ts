@@ -47,6 +47,9 @@ export const arToEn: Record<string, string> = {
   'أبواب': 'Doors', 'فواصل': 'Partitions', 'برونزي': 'Bronze', 'طبيعي': 'Natural',
   /* insulation */
   'رغوة بولي يوريثان': 'Polyurethane Foam', 'ألواح فوم': 'Foam Boards', 'صوف صخري': 'Rock Wool',
+  /* per-category units */
+  'لتر': 'Liter', 'جالون': 'Gallon', 'برميل': 'Drum', 'م³': 'm³',
+  'شيكارة': 'Bag', 'ألف قطعة': '1,000 pcs', 'متر': 'Meter', 'لفة': 'Roll',
 };
 
 export interface QuoteLineItem {

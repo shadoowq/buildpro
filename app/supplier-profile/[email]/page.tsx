@@ -6,6 +6,7 @@ import ContractorNav from '../../components/ContractorNav';
 import SupplierNav from '../../components/SupplierNav';
 import { useEscapeKey } from '../../components/useEscapeKey';
 import { displayVal } from '../../lib/requestHelpers';
+import { specialtyLabel } from '../../lib/materialCategories';
 import { getCityName } from '../../lib/translations';
 import { ratingsOfSupplier, Rating } from '../../lib/marketplace';
 import { getCurrentUser, getLanguage, setLanguage, getUsers, getRatings } from '../../lib/store';
@@ -136,7 +137,7 @@ export default function SupplierPublicProfilePage() {
             ) : (
               <div className="flex flex-wrap gap-2">
                 {specialties.map(s => (
-                  <span key={s} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-[var(--tint)] text-[var(--brand-strong)]">{displayVal(s, lang)}</span>
+                  <span key={s} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-[var(--tint)] text-[var(--brand-strong)]">{specialtyLabel(s, lang) || displayVal(s, lang)}</span>
                 ))}
               </div>
             )}

@@ -32,12 +32,26 @@ describe('isRequestMatchedToSupplier', () => {
     expect(isRequestMatchedToSupplier(baseRequest, { email: 's@x.sa', autoMatch: true, specialties: ['بورسلان'], coverageCities: ['جدة'] })).toBe(false);
   });
 
-  it('is false when no material overlaps', () => {
-    expect(isRequestMatchedToSupplier(baseRequest, { email: 's@x.sa', autoMatch: true, specialties: ['رخام'], coverageCities: ['الرياض'] })).toBe(false);
+  it('is false when no category overlaps', () => {
+    // paint supplier vs a tiles request
+    expect(isRequestMatchedToSupplier(baseRequest, { email: 's@x.sa', autoMatch: true, specialties: ['paint'], coverageCities: ['الرياض'] })).toBe(false);
   });
 
   it('is true when opted in, city and material both match', () => {
     expect(isRequestMatchedToSupplier(baseRequest, { email: 's@x.sa', autoMatch: true, specialties: ['بورسلان'], coverageCities: ['الرياض'] })).toBe(true);
+  });
+
+  it('matches at the category level: a legacy tile-type specialty covers every tile request', () => {
+    // marble supplier + porcelain request are both the tiles category — matching
+    // is by domain now, not exact type string
+    expect(isRequestMatchedToSupplier(baseRequest, { email: 's@x.sa', autoMatch: true, specialties: ['رخام'], coverageCities: ['الرياض'] })).toBe(true);
+    expect(isRequestMatchedToSupplier(baseRequest, { email: 's@x.sa', autoMatch: true, specialties: ['tiles'], coverageCities: ['الرياض'] })).toBe(true);
+  });
+
+  it('matches non-tile categories by category id', () => {
+    const paintRequest = { id: 2, status: 'open', location: 'الرياض', materials: [{ category: 'paint', fields: { type: 'معجون' } }] };
+    expect(isRequestMatchedToSupplier(paintRequest, { email: 's@x.sa', autoMatch: true, specialties: ['paint'], coverageCities: ['الرياض'] })).toBe(true);
+    expect(isRequestMatchedToSupplier(paintRequest, { email: 's@x.sa', autoMatch: true, specialties: ['بورسلان'], coverageCities: ['الرياض'] })).toBe(false);
   });
 
   it('is false for closed requests', () => {

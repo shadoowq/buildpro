@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { hashPassword, makeSalt } from '../lib/auth';
+import { MATERIAL_CATEGORIES } from '../lib/materialCategories';
 import { getCurrentUser, getLanguage, setLanguage, getUsers, setUsers, getUserShadow, setUserShadow } from '../lib/store';
 
 type Lang = 'ar' | 'en';
@@ -22,6 +23,10 @@ export default function SignupPage() {
     phone:    '',
     userType: 'contractor' as UserType,
   });
+  const [specialties, setSpecialties] = useState<string[]>([]);
+
+  const toggleSpecialty = (id: string) =>
+    setSpecialties(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
 
   useEffect(() => {
     setLang(getLanguage());
@@ -60,6 +65,10 @@ export default function SignupPage() {
       setError(t('كلمة المرور 6 أحرف على الأقل', 'Password must be at least 6 characters'));
       return;
     }
+    if (formData.userType === 'supplier' && specialties.length === 0) {
+      setError(t('اختر مجالاً واحداً على الأقل من مجالات التوريد', 'Pick at least one supply category'));
+      return;
+    }
 
     const existingUser = getUserShadow(formData.email);
     if (existingUser) {
@@ -77,6 +86,7 @@ export default function SignupPage() {
       company:   formData.company,
       phone:     formData.phone,
       userType:  formData.userType,
+      ...(formData.userType === 'supplier' ? { specialties } : {}),
       verified:  false,
       rating:    0,
       joinDate:  new Date().toISOString(),
@@ -254,6 +264,30 @@ export default function SignupPage() {
                   className="w-full border border-[var(--line)] bg-[var(--bg-soft)] rounded-xl px-4 py-2.5 text-sm text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[var(--sec)] focus:border-transparent transition-all"
                   dir="ltr" />
               </div>
+
+              {/* supplier specialties — known from day one so matching works immediately */}
+              {formData.userType === 'supplier' && (
+                <div>
+                  <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                    {t('مجالات التوريد', 'Supply categories')} <span className="text-red-400">*</span>
+                  </label>
+                  <p className="text-[11px] text-stone-400 mb-2">
+                    {t('اختر المجالات التي تورّدها — تُستخدم لترشيح الطلبات المناسبة لك', 'Pick what you supply — used to match you with the right requests')}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {MATERIAL_CATEGORIES.map(c => (
+                      <button key={c.id} type="button" onClick={() => toggleSpecialty(c.id)}
+                        className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-full border transition-colors ${
+                          specialties.includes(c.id)
+                            ? 'bg-[var(--brand)] border-[var(--brand)] text-[var(--on-brand)]'
+                            : 'bg-white text-stone-500 border-[var(--line)] hover:bg-[var(--bg-soft)]'
+                        }`}>
+                        {c.icon} {lang === 'ar' ? c.labelAr : c.labelEn}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* email */}
               <div>
