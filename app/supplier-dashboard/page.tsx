@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import SupplierNav from '../components/SupplierNav'
 import { displayVal, getDeadlineUrgency, formatDay } from '../lib/requestHelpers'
+import { getSupplierVisibleRequests } from '../lib/marketplace'
 import { getCityName } from '../lib/translations'
 
 type Lang = 'ar' | 'en'
@@ -82,6 +83,7 @@ export default function SupplierDashboardPage() {
   const [rawRequests, setRawRequests] = useState<any[]>([])
   const [allQuotes, setAllQuotes] = useState<any[]>([])
   const [ratings, setRatings] = useState<any[]>([])
+  const [supplier, setSupplier] = useState<any>({ email: '' })
 
   const dir = lang === 'ar' ? 'rtl' : 'ltr'
 
@@ -95,6 +97,7 @@ export default function SupplierDashboardPage() {
         const u = JSON.parse(userData)
         if (u.name) setUserName(u.name)
         if (u.email) setUserEmail(u.email)
+        setSupplier(u)
       } catch {}
     }
 
@@ -108,7 +111,7 @@ export default function SupplierDashboardPage() {
   /* ── my data ── */
   const myQuotes = allQuotes.filter(q => q.supplierId === userEmail)
   const myRatings = ratings.filter(r => r.supplierId === userEmail)
-  const availableRequests = rawRequests.filter(r => r.selectedSuppliers?.includes(userEmail) && r.status === 'open')
+  const availableRequests = getSupplierVisibleRequests(rawRequests.filter(r => r.status === 'open'), supplier)
 
   const hasQuoted = (reqId: number) => myQuotes.some(q => q.requestId === reqId)
 

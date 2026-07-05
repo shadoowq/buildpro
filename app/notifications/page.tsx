@@ -38,6 +38,7 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
   const [quotes, setQuotes] = useState<any[]>([]);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<any[]>([]);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<FilterTab>('all');
 
@@ -47,10 +48,11 @@ function ContractorNotifications({ lang, setLang, userName, userEmail }: { lang:
     try { setRequests((JSON.parse(localStorage.getItem('requests') || '[]')).filter((r: any) => r.contractorId === userEmail)); } catch {}
     try { setQuotes(JSON.parse(localStorage.getItem('quotes') || '[]')); } catch {}
     try { setActivityLogs(JSON.parse(localStorage.getItem('activityLogs') || '[]')); } catch {}
+    try { setQuestions(JSON.parse(localStorage.getItem('requestQuestions') || '[]')); } catch {}
     try { setSeenIds(new Set(JSON.parse(localStorage.getItem(`notifSeen_${userEmail}`) || '[]'))); } catch {}
   }, [userEmail]);
 
-  const notifs: NotifItem[] = buildNotifications(quotes, activityLogs, requests, { includeLogs: true });
+  const notifs: NotifItem[] = buildNotifications(quotes, activityLogs, requests, { includeLogs: true, allQuestions: questions });
 
   const filteredNotifs = notifs.filter(n => {
     if (filter === 'unread') return n.unread && !seenIds.has(n.id);
@@ -150,6 +152,8 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
   const [requests, setRequests] = useState<any[]>([]);
   const [ratings, setRatings] = useState<any[]>([]);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [supplier, setSupplier] = useState<any>({ email: userEmail });
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const [filter, setFilter] = useState<SupplierFilterTab>('all');
 
@@ -160,10 +164,12 @@ function SupplierNotifications({ lang, setLang, userName, userEmail }: { lang: L
     try { setRequests(JSON.parse(localStorage.getItem('requests') || '[]')); } catch {}
     try { setRatings(JSON.parse(localStorage.getItem('ratings') || '[]')); } catch {}
     try { setActivityLogs(JSON.parse(localStorage.getItem('activityLogs') || '[]')); } catch {}
+    try { setQuestions(JSON.parse(localStorage.getItem('requestQuestions') || '[]')); } catch {}
     try { setSeenIds(new Set(JSON.parse(localStorage.getItem(`notifSeen_${userEmail}`) || '[]'))); } catch {}
+    try { const cu = JSON.parse(localStorage.getItem('currentUser') || 'null'); if (cu) setSupplier(cu); } catch {}
   }, [userEmail]);
 
-  const notifs: NotifItem[] = buildSupplierNotifications(quotes, activityLogs, requests, ratings, userEmail);
+  const notifs: NotifItem[] = buildSupplierNotifications(quotes, activityLogs, requests, ratings, supplier, { allQuestions: questions });
 
   const filteredNotifs = notifs.filter(n => {
     if (filter === 'unread') return n.unread && !seenIds.has(n.id);

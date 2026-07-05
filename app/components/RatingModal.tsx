@@ -7,6 +7,7 @@ type Lang = 'ar' | 'en';
 
 const RT = {
   rateSupplier: { ar: 'قيّم المورد', en: 'Rate Supplier' },
+  rateContractor: { ar: 'قيّم المقاول', en: 'Rate Contractor' },
   rateExp: { ar: 'كيف كانت تجربتك مع', en: 'How was your experience with' },
   rateComments: { ar: 'ملاحظات (اختياري)', en: 'Comments (Optional)' },
   rateWrite: { ar: 'اكتب تجربتك مع المورد...', en: 'Write your experience...' },
@@ -20,9 +21,11 @@ const RT = {
 };
 function rt(key: keyof typeof RT, lang: Lang): string { return RT[key][lang]; }
 
-export default function RatingModal({ lang, supplierCompany, onSubmit, onSkip }: {
+export default function RatingModal({ lang, supplierCompany, target = 'supplier', onSubmit, onSkip }: {
   lang: Lang;
   supplierCompany: string;
+  /** which side is being rated — flips the modal title only; the rated party's name still comes from supplierCompany */
+  target?: 'supplier' | 'contractor';
   onSubmit: (stars: number, comment: string) => void;
   onSkip: () => void;
 }) {
@@ -34,7 +37,7 @@ export default function RatingModal({ lang, supplierCompany, onSubmit, onSkip }:
   return (
     <div className="fixed inset-0 bg-black/60 z-[2000] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl p-7 max-w-sm w-full" dir={dir} role="dialog" aria-modal="true">
-        <h2 className="text-lg font-bold text-stone-900 text-center mb-1">{rt('rateSupplier', lang)}</h2>
+        <h2 className="text-lg font-bold text-stone-900 text-center mb-1">{rt(target === 'contractor' ? 'rateContractor' : 'rateSupplier', lang)}</h2>
         <p className="text-stone-500 text-sm text-center mb-5">{rt('rateExp', lang)} <strong>{supplierCompany}</strong>؟</p>
         <div className="flex justify-center gap-2 mb-2">
           {[1, 2, 3, 4, 5].map(star => (

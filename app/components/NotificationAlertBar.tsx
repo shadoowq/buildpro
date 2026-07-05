@@ -19,6 +19,9 @@ const alertAccent: Record<NotifType, { border: string; ring: string }> = {
   editRequest: { border: 'border-amber-500', ring: 'bg-amber-500' },
   withdrawn:   { border: 'border-stone-400', ring: 'bg-stone-400' },
   expiring:    { border: 'border-orange-500', ring: 'bg-orange-500' },
+  question:    { border: 'border-[var(--brand-strong)]', ring: 'bg-[var(--brand)]' },
+  answer:      { border: 'border-emerald-500', ring: 'bg-emerald-500' },
+  delivered:   { border: 'border-emerald-500', ring: 'bg-emerald-500' },
 };
 
 /**

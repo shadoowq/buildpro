@@ -9,7 +9,8 @@ import RatingModal from '../../components/RatingModal';
 import HelpTooltip from '../../components/HelpTooltip';
 import QuoteCompareTable from '../../components/QuoteCompareTable';
 import { useEscapeKey } from '../../components/useEscapeKey';
-import { formatDate, displayVal, arToEn, appendActivityLog, setQuoteStatus, softDeleteRequest, getDeadlineUrgency, getEffectiveQuoteStatus, isQuoteExpired } from '../../lib/requestHelpers';
+import { formatDate, displayVal, arToEn, appendActivityLog, setQuoteStatus, softDeleteRequest, getDeadlineUrgency, getEffectiveQuoteStatus, isQuoteExpired, canUndoQuoteDecisionFreely } from '../../lib/requestHelpers';
+import { answerRequestQuestion, RequestQuestion } from '../../lib/marketplace';
 import { getCityName } from '../../lib/translations';
 import { useConfirm } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
@@ -43,6 +44,7 @@ interface Quote {
   revisionNote?: string;
   createdAt: string;
   validUntil?: string;
+  statusChangedAt?: string;
 }
 
 interface ActivityLog {
@@ -113,6 +115,13 @@ const T = {
   images:       { ar: 'الصور',          en: 'Images'             },
   compareBtn:   { ar: 'مقارنة العروض',   en: 'Compare Quotes'     },
   cardsBtn:     { ar: 'عرض تفصيلي',      en: 'Detailed View'      },
+  qaTitle:      { ar: 'أسئلة وأجوبة',    en: 'Questions & Answers' },
+  qaNone:       { ar: 'لا توجد أسئلة من الموردين بعد', en: 'No questions from suppliers yet' },
+  qaAnswerPh:   { ar: 'اكتب ردك...',     en: 'Write your reply...' },
+  qaAnswerBtn:  { ar: 'إرسال الرد',      en: 'Send Reply'         },
+  undoReasonPrompt: { ar: 'مضى وقت على القرار — اكتب سبب الإلغاء:', en: 'Some time has passed — write a reason for undoing:' },
+  undoReasonPh: { ar: 'مثال: غيّرت رأيي في المواصفات...', en: 'Ex: I changed my mind about the specs...' },
+  undoConfirm:  { ar: 'تأكيد الإلغاء',   en: 'Confirm Undo'       },
 };
 
 function t(key: keyof typeof T, lang: Lang): string { return (T[key] as any)[lang]; }
@@ -140,6 +149,10 @@ export default function RequestDetailPage() {
   const [ratingQuote, setRatingQuote] = useState<Quote | null>(null);
   const [showCompare, setShowCompare] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [questions, setQuestions] = useState<RequestQuestion[]>([]);
+  const [answerDrafts, setAnswerDrafts] = useState<Record<number, string>>({});
+  const [undoReasonQuoteId, setUndoReasonQuoteId] = useState<number | null>(null);
+  const [undoReasonText, setUndoReasonText] = useState('');
 
   useEscapeKey(() => { if (lightbox) setLightbox(null); });
 
@@ -171,6 +184,11 @@ export default function RequestDetailPage() {
 
     try { setRatings(JSON.parse(localStorage.getItem('ratings') || '[]')); } catch {}
 
+    try {
+      const allQuestions: RequestQuestion[] = JSON.parse(localStorage.getItem('requestQuestions') || '[]');
+      setQuestions(allQuestions.filter(q => q.requestId === id));
+    } catch {}
+
     setLoading(false);
   }, [id, router]);
 
@@ -181,7 +199,15 @@ export default function RequestDetailPage() {
     setLogs(allLogs.filter((l: ActivityLog) => l.requestId === id).sort((a: ActivityLog, b: ActivityLog) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
   };
 
-  const handleQuoteAction = async (quoteId: number, action: QuoteStatus | 'pending') => {
+  const handleAnswerQuestion = (questionId: number) => {
+    const answer = (answerDrafts[questionId] || '').trim();
+    if (!answer) return;
+    const updated = answerRequestQuestion(questionId, answer);
+    setQuestions(updated.filter(q => q.requestId === id));
+    setAnswerDrafts(prev => { const next = { ...prev }; delete next[questionId]; return next; });
+  };
+
+  const handleQuoteAction = async (quoteId: number, action: QuoteStatus | 'pending', undoReason?: string) => {
     const target = quotes.find(q => q.id === quoteId);
     if (action === 'accepted' && target && isQuoteExpired(target)) {
       showToast(lang === 'ar' ? 'لا يمكن قبول عرض منتهي الصلاحية' : "Can't accept an expired quote", 'error');
@@ -199,8 +225,22 @@ export default function RequestDetailPage() {
     if (q) {
       if (action === 'accepted') addLog(`تم قبول عرض ${q.supplierCompany} بسعر ${q.totalPrice} ر.س`, `Accepted ${q.supplierCompany} at ${q.totalPrice} SAR`);
       else if (action === 'rejected') addLog(`تم رفض عرض ${q.supplierCompany}`, `Rejected ${q.supplierCompany}`);
-      else if (action === 'pending') addLog(`تم إلغاء القرار على عرض ${q.supplierCompany}`, `Undid decision on ${q.supplierCompany}`);
+      else if (action === 'pending') addLog(
+        undoReason ? `تم إلغاء القرار على عرض ${q.supplierCompany} — السبب: "${undoReason}"` : `تم إلغاء القرار على عرض ${q.supplierCompany}`,
+        undoReason ? `Undid decision on ${q.supplierCompany} — reason: "${undoReason}"` : `Undid decision on ${q.supplierCompany}`);
     }
+  };
+
+  const handleUndoClick = (q: Quote) => {
+    if (canUndoQuoteDecisionFreely(q)) { handleQuoteAction(q.id, 'pending'); return; }
+    setUndoReasonQuoteId(q.id);
+    setUndoReasonText('');
+  };
+  const handleUndoReasonSubmit = (quoteId: number) => {
+    if (!undoReasonText.trim()) return;
+    handleQuoteAction(quoteId, 'pending', undoReasonText.trim());
+    setUndoReasonQuoteId(null);
+    setUndoReasonText('');
   };
 
   const handleRevisionSubmit = (quoteId: number) => {
@@ -476,6 +516,38 @@ export default function RequestDetailPage() {
           </div>
         )}
 
+        {/* Q&A */}
+        {questions.length > 0 && (
+          <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden print:hidden">
+            <div className="px-5 py-3.5 border-b border-[var(--line-soft)] flex items-center gap-2">
+              <span className="text-base">❓</span>
+              <h2 className="text-sm font-bold text-stone-900">{t('qaTitle', lang)}</h2>
+            </div>
+            <div className="divide-y divide-[var(--line-soft)]">
+              {questions.map(q => (
+                <div key={q.id} className="px-5 py-3.5">
+                  <p className="text-xs text-stone-700"><span className="font-semibold text-stone-500">{q.supplierCompany}:</span> {q.question}</p>
+                  {q.answer ? (
+                    <p className="text-xs text-emerald-700 mt-1.5">💬 {q.answer}</p>
+                  ) : (
+                    <div className="flex gap-2 mt-2">
+                      <input type="text" value={answerDrafts[q.id] || ''}
+                        onChange={e => setAnswerDrafts(prev => ({ ...prev, [q.id]: e.target.value }))}
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAnswerQuestion(q.id); } }}
+                        placeholder={t('qaAnswerPh', lang)}
+                        className="flex-1 text-xs border border-[var(--line)] rounded-lg px-3 py-2 outline-none font-cairo bg-white focus:border-[var(--sec)]" />
+                      <button onClick={() => handleAnswerQuestion(q.id)}
+                        className="shrink-0 text-[11px] font-bold px-3 py-2 bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white rounded-lg transition-colors">
+                        {t('qaAnswerBtn', lang)}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* QUOTES */}
         <div className="bg-white border border-[var(--line)] rounded-2xl overflow-hidden print:border-stone-200 print:rounded-lg">
           <div className="px-5 py-3.5 border-b border-[var(--line-soft)] flex items-center justify-between">
@@ -526,7 +598,8 @@ export default function RequestDetailPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-bold text-stone-900">{q.supplierCompany}</p>
+                        <Link href={`/supplier-profile/${encodeURIComponent(q.supplierId)}`}
+                          className="text-sm font-bold text-stone-900 hover:text-[var(--brand-strong)] hover:underline">{q.supplierCompany}</Link>
                         <p className="text-[11px] text-stone-400">{q.supplierName}</p>
                         <StatusBadge status={getEffectiveQuoteStatus(q)} lang={lang} />
                         {q.id === cheapestId && <span className="text-[9px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-bold">{t('cheapest', lang)}</span>}
@@ -562,7 +635,7 @@ export default function RequestDetailPage() {
                           </button>
                         </>
                       ) : (
-                        <button onClick={() => handleQuoteAction(q.id, 'pending')}
+                        <button onClick={() => handleUndoClick(q)}
                           className="text-[11px] font-semibold px-3 py-1.5 bg-stone-100 text-stone-600 rounded-lg hover:bg-stone-200 transition-colors">
                           {t('undo', lang)}
                         </button>
@@ -573,6 +646,25 @@ export default function RequestDetailPage() {
                       </a>
                     </div>
                   </div>
+                  {/* undo reason (only past the grace window) */}
+                  {undoReasonQuoteId === q.id && (
+                    <div className="px-5 py-4 bg-stone-50 border-t border-stone-200">
+                      <p className="text-xs font-bold text-stone-600 mb-2">{t('undoReasonPrompt', lang)}</p>
+                      <textarea value={undoReasonText} onChange={e => setUndoReasonText(e.target.value)} rows={2}
+                        placeholder={t('undoReasonPh', lang)}
+                        className="w-full text-xs border border-stone-200 rounded-lg px-3 py-2 outline-none font-cairo bg-white resize-none text-stone-700" />
+                      <div className="flex gap-2 mt-2">
+                        <button onClick={() => handleUndoReasonSubmit(q.id)}
+                          className="text-xs font-semibold px-4 py-2 bg-stone-600 text-white rounded-lg hover:bg-stone-700 transition-colors">
+                          {t('undoConfirm', lang)}
+                        </button>
+                        <button onClick={() => { setUndoReasonQuoteId(null); setUndoReasonText(''); }}
+                          className="text-xs font-semibold px-4 py-2 bg-white border border-stone-200 text-stone-700 rounded-lg hover:bg-stone-50 transition-colors">
+                          {t('cancel', lang)}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {/* revision input */}
                   {revisionQuoteId === q.id && (
                     <div className="px-5 py-4 bg-amber-50 border-t border-amber-200">

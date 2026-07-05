@@ -4,10 +4,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import ContractorNav from '../components/ContractorNav';
 import SupplierNav from '../components/SupplierNav';
+import Link from 'next/link';
 import { saudiCities, getCityName } from '../lib/translations';
-import { persistUserUpdate } from '../lib/requestHelpers';
+import { persistUserUpdate, displayVal } from '../lib/requestHelpers';
+import { MATERIAL_OPTIONS } from '../lib/materialOptions';
 import { verifyPassword, setUserPassword, ALLOWED_IMAGE_TYPES } from '../lib/auth';
 import { downloadBackup, parseBackup, restoreBackup } from '../lib/backup';
+import { compressImageToDataUrl } from '../lib/images';
 import { useConfirm } from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
 import HelpTooltip from '../components/HelpTooltip';
@@ -59,6 +62,24 @@ const T = {
   logoTooBig:    { ar: 'حجم الصورة كبير جداً (الحد الأقصى 800 كيلوبايت)', en: 'Image too large (max 800KB)' },
   logoSaved:     { ar: 'تم حفظ الهيدر ✓',          en: 'Header saved ✓'           },
   footerSaved:   { ar: 'تم حفظ الفوتر ✓',          en: 'Footer saved ✓'           },
+  marketplace:   { ar: 'ملفك التعريفي في السوق',    en: 'Your Marketplace Profile' },
+  marketplaceNote:{ ar: 'هذه البيانات تظهر للمقاولين وتُستخدم لترشيح طلباتك تلقائيًا حسب تخصصك ومدنك.', en: 'This shows to contractors and is used to auto-match requests to your specialty and cities.' },
+  autoMatchLabel:{ ar: 'استقبال الطلبات المطابقة تلقائيًا', en: 'Auto-receive matching requests' },
+  autoMatchNote: { ar: 'لما تفعّلها، أي طلب مفتوح يطابق تخصصك ومدنك هيظهر في "الطلبات المتاحة" حتى لو المقاول ما اختارك يدويًا', en: "When on, any open request matching your specialty and cities appears in 'Available Requests' even if the contractor didn't hand-pick you" },
+  specialties:   { ar: 'تخصصاتك (المواد)',          en: 'Your Specialties (Materials)' },
+  coverageCities:{ ar: 'مدن التغطية',               en: 'Coverage Cities'          },
+  bio:           { ar: 'نبذة عن الشركة',            en: 'Company Bio'              },
+  bioPh:         { ar: 'اكتب نبذة قصيرة عن خبرتك ومميزاتك...', en: 'Write a short intro about your experience...' },
+  certifications:{ ar: 'الشهادات والاعتمادات',       en: 'Certifications'           },
+  certPh:        { ar: 'مثال: شهادة الهيئة السعودية للمواصفات', en: 'Ex: SASO certified' },
+  addCert:       { ar: '+ إضافة',                  en: '+ Add'                     },
+  gallery:       { ar: 'معرض الأعمال',              en: 'Work Gallery'              },
+  galleryNote:   { ar: 'ارفع صورًا لمنتجاتك أو أعمال سابقة (حتى 6 صور)', en: 'Upload photos of your products or past work (up to 6)' },
+  uploadPhoto:   { ar: '+ رفع صورة',                en: '+ Upload Photo'            },
+  maxPhotos:     { ar: 'وصلت للحد الأقصى (6 صور)',  en: 'Max 6 photos reached'      },
+  saveMarketplace:{ ar: 'حفظ ملف السوق',            en: 'Save Marketplace Profile'  },
+  viewPublic:    { ar: 'معاينة الملف العام ↗',       en: 'Preview Public Profile ↗'  },
+  marketplaceSaved:{ ar: 'تم حفظ ملف السوق ✓',      en: 'Marketplace profile saved ✓' },
   backup:        { ar: 'النسخ الاحتياطي',           en: 'Backup'                   },
   backupNote:    { ar: 'بياناتك محفوظة على هذا الجهاز فقط — صدّر نسخة احتياطية بانتظام واحتفظ بها في مكان آمن. مسح بيانات المتصفح يعني فقدان كل شيء بدونها.', en: 'Your data lives on this device only — export a backup regularly and keep it somewhere safe. Clearing browser data means losing everything without one.' },
   exportBtn:     { ar: '⬇ تصدير نسخة احتياطية',    en: '⬇ Export Backup'          },
@@ -128,6 +149,16 @@ export default function ProfilePage() {
   const [letterhead, setLetterhead] = useState<string | null>(null);
   const [letterheadFooter, setLetterheadFooter] = useState<string | null>(null);
 
+  // marketplace profile (suppliers only)
+  const [specialties, setSpecialties] = useState<string[]>([]);
+  const [coverageCities, setCoverageCities] = useState<string[]>([]);
+  const [bio, setBio] = useState('');
+  const [certifications, setCertifications] = useState<string[]>([]);
+  const [certInput, setCertInput] = useState('');
+  const [gallery, setGallery] = useState<string[]>([]);
+  const [autoMatch, setAutoMatch] = useState(false);
+  const [marketplaceSaved, setMarketplaceSaved] = useState(false);
+
   // password form
   const [currentPass, setCurrentPass]   = useState('');
   const [newPass, setNewPass]           = useState('');
@@ -150,6 +181,12 @@ export default function ProfilePage() {
     setCity(u.city || u.location || '');
     setLetterhead(u.letterhead || null);
     setLetterheadFooter(u.letterheadFooter || null);
+    setSpecialties(u.specialties || []);
+    setCoverageCities(u.coverageCities || []);
+    setBio(u.bio || '');
+    setCertifications(u.certifications || []);
+    setGallery(u.gallery || []);
+    setAutoMatch(!!u.autoMatch);
   }, [router]);
 
   const handleLangChange = (l: Lang) => { setLang(l); localStorage.setItem('language', l); };
@@ -160,6 +197,37 @@ export default function ProfilePage() {
     setUser(updated);
     setInfoSaved(true);
     setTimeout(() => setInfoSaved(false), 2500);
+  };
+
+  const toggleSpecialty = (m: string) => setSpecialties(prev => prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]);
+  const toggleCity = (c: string) => setCoverageCities(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c]);
+  const addCert = () => {
+    if (!certInput.trim()) return;
+    setCertifications(prev => [...prev, certInput.trim()]);
+    setCertInput('');
+  };
+  const removeCert = (i: number) => setCertifications(prev => prev.filter((_, idx) => idx !== i));
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    const remaining = 6 - gallery.length;
+    for (const file of files.slice(0, remaining)) {
+      try {
+        const dataUrl = await compressImageToDataUrl(file);
+        setGallery(prev => prev.length < 6 ? [...prev, dataUrl] : prev);
+      } catch { /* skip files that fail to decode */ }
+    }
+  };
+  const removeGalleryPhoto = (i: number) => setGallery(prev => prev.filter((_, idx) => idx !== i));
+
+  const handleSaveMarketplace = () => {
+    if (!user) return;
+    const updated = persistUserUpdate({ specialties, coverageCities, bio, certifications, gallery, autoMatch });
+    setUser(updated);
+    setMarketplaceSaved(true);
+    showToast(t('marketplaceSaved', lang));
+    setTimeout(() => setMarketplaceSaved(false), 2500);
   };
 
   const MAX_LETTERHEAD_BYTES = 800 * 1024;
@@ -388,6 +456,115 @@ export default function ProfilePage() {
                   </label>
                 )}
               </div>
+            </div>
+          </SectionCard>
+        )}
+
+        {/* MARKETPLACE PROFILE (suppliers only) */}
+        {user.userType === 'supplier' && (
+          <SectionCard title={t('marketplace', lang)}>
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <p className="text-xs text-stone-500 leading-relaxed">{t('marketplaceNote', lang)}</p>
+              <Link href={`/supplier-profile/${encodeURIComponent(user.email)}`} target="_blank"
+                className="shrink-0 text-[11px] font-semibold text-[var(--sec)] hover:underline whitespace-nowrap">
+                {t('viewPublic', lang)}
+              </Link>
+            </div>
+
+            <div className="space-y-5">
+              {/* auto-match toggle */}
+              <div className="flex items-center justify-between gap-3 bg-[var(--bg-soft)] border border-[var(--line)] rounded-xl px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-stone-800">{t('autoMatchLabel', lang)}</p>
+                  <p className="text-[11px] text-stone-400 mt-0.5 leading-relaxed">{t('autoMatchNote', lang)}</p>
+                </div>
+                <button type="button" onClick={() => setAutoMatch(v => !v)}
+                  className={`shrink-0 w-11 h-6 rounded-full relative transition-colors ${autoMatch ? 'bg-emerald-500' : 'bg-stone-300'}`}>
+                  <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${autoMatch ? 'end-0.5' : 'start-0.5'}`} />
+                </button>
+              </div>
+
+              {/* specialties */}
+              <Field label={t('specialties', lang)}>
+                <div className="flex flex-wrap gap-2">
+                  {MATERIAL_OPTIONS.types.map(m => (
+                    <button key={m} type="button" onClick={() => toggleSpecialty(m)}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${specialties.includes(m) ? 'bg-[var(--brand)] border-[var(--brand)]' : 'bg-white text-stone-600 border-[var(--line)] hover:bg-[var(--bg-soft)]'}`}>
+                      {displayVal(m, lang)}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+
+              {/* coverage cities */}
+              <Field label={t('coverageCities', lang)}>
+                <div className="max-h-40 overflow-y-auto flex flex-wrap gap-2 border border-[var(--line)] rounded-xl p-3 bg-white">
+                  {saudiCities.map(c => (
+                    <button key={c} type="button" onClick={() => toggleCity(c)}
+                      className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors ${coverageCities.includes(c) ? 'bg-[var(--brand)] border-[var(--brand)]' : 'bg-white text-stone-600 border-[var(--line)] hover:bg-[var(--bg-soft)]'}`}>
+                      {getCityName(c, lang)}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+
+              {/* bio */}
+              <Field label={t('bio', lang)}>
+                <textarea value={bio} onChange={e => setBio(e.target.value)} rows={3}
+                  placeholder={t('bioPh', lang)} className={`${inputCls} resize-none`} />
+              </Field>
+
+              {/* certifications */}
+              <Field label={t('certifications', lang)}>
+                <div className="flex gap-2 mb-2">
+                  <input type="text" value={certInput} onChange={e => setCertInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCert(); } }}
+                    placeholder={t('certPh', lang)} className={inputCls} />
+                  <button type="button" onClick={addCert}
+                    className="shrink-0 text-xs font-bold px-4 rounded-xl bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white transition-colors">
+                    {t('addCert', lang)}
+                  </button>
+                </div>
+                {certifications.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {certifications.map((c, i) => (
+                      <span key={i} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-[var(--tint)] text-[var(--brand-strong)]">
+                        🏅 {c}
+                        <button type="button" onClick={() => removeCert(i)} className="text-[var(--brand-strong)]/60 hover:text-red-600">✕</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </Field>
+
+              {/* gallery */}
+              <Field label={t('gallery', lang)} note={t('galleryNote', lang)}>
+                <div className="flex flex-wrap gap-3">
+                  {gallery.map((img, i) => (
+                    <div key={i} className="relative w-20 h-20">
+                      <img src={img} alt="" className="w-20 h-20 object-cover rounded-xl border border-[var(--line)]" />
+                      <button type="button" onClick={() => removeGalleryPhoto(i)}
+                        className="absolute -top-1.5 -end-1.5 w-5 h-5 bg-red-500 text-white rounded-full text-[10px] flex items-center justify-center leading-none">✕</button>
+                    </div>
+                  ))}
+                  {gallery.length < 6 ? (
+                    <label className="w-20 h-20 flex flex-col items-center justify-center gap-1 border-2 border-dashed border-[var(--line)] rounded-xl cursor-pointer hover:bg-[var(--bg-soft)] transition-colors text-center px-1">
+                      <span className="text-lg text-stone-400">＋</span>
+                      <span className="text-[9px] text-stone-400">{t('uploadPhoto', lang)}</span>
+                      <input type="file" accept="image/png,image/jpeg,image/webp" multiple onChange={handleGalleryUpload} className="hidden" />
+                    </label>
+                  ) : (
+                    <div className="w-20 h-20 flex items-center justify-center text-center text-[9px] text-amber-700 bg-amber-50 rounded-xl px-1">
+                      {t('maxPhotos', lang)}
+                    </div>
+                  )}
+                </div>
+              </Field>
+
+              <button onClick={handleSaveMarketplace}
+                className={`w-full py-2.5 rounded-xl text-sm font-bold transition-all ${marketplaceSaved ? 'bg-emerald-500 text-white' : 'bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-white'}`}>
+                {marketplaceSaved ? t('saved', lang) : t('saveMarketplace', lang)}
+              </button>
             </div>
           </SectionCard>
         )}

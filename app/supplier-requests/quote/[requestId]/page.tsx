@@ -17,6 +17,7 @@ import {
   Quote, QuoteLineItem, QuoteAttachment,
 } from '../../../lib/requestHelpers';
 import { isValidImageFile, isValidAttachmentFile } from '../../../lib/auth';
+import { isRequestMatchedToSupplier, askRequestQuestion, answerRequestQuestion, RequestQuestion } from '../../../lib/marketplace';
 import { compressImageToDataUrl, readFileAsDataUrl } from '../../../lib/images';
 
 type Lang = 'ar' | 'en';
@@ -162,6 +163,13 @@ const T = {
   noValue:      { ar: '—',                       en: '—' },
   legacyToast:  { ar: 'هذا عرض قديم — الرجاء إعادة إدخال أسعار البنود', en: 'This is a legacy quote — please re-enter item prices' },
   overdueWarn:  { ar: 'انتهى الموعد النهائي لهذا الطلب — ننصح بالتواصل مع المقاول للتأكد أنه ما زال بحاجة للتوريد قبل إرسال العرض.', en: "This request's deadline has passed — check with the contractor that they still need the supply before sending a quote." },
+  qaTitle:      { ar: 'أسئلة وأجوبة',            en: 'Questions & Answers' },
+  qaNote:       { ar: 'أسئلتك وإجاباتها تظهر لكل الموردين المدعوين على هذا الطلب', en: 'Your questions and their answers are visible to every supplier invited on this request' },
+  qaPlaceholder:{ ar: 'اسأل المقاول عن أي تفصيلة في الطلب...', en: 'Ask the contractor about any detail in the request...' },
+  qaSend:       { ar: 'إرسال السؤال',            en: 'Send Question' },
+  qaWaiting:    { ar: 'بانتظار رد المقاول...',    en: "Waiting for the contractor's reply..." },
+  qaNone:       { ar: 'لا توجد أسئلة بعد — كن أول من يسأل',  en: 'No questions yet — be the first to ask' },
+  questionSent: { ar: 'تم إرسال سؤالك للمقاول',   en: 'Your question was sent to the contractor' },
   cannotEdit:   { ar: 'لا يمكن تعديل هذا العرض',  en: 'This quote cannot be edited' },
   notAvailable: { ar: 'الطلب غير متاح',          en: 'Request not available' },
   alreadyQuoted:{ ar: 'لقد قدمت عرض سعر لهذا الطلب من قبل', en: 'You already submitted a quote for this request' },
@@ -227,6 +235,8 @@ export default function SupplierQuoteBuilder() {
   const [showPreview, setShowPreview] = useState(false);
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [questions, setQuestions] = useState<RequestQuestion[]>([]);
+  const [newQuestion, setNewQuestion] = useState('');
   const skipSaveRef = useRef(false);
 
   const dir = language === 'ar' ? 'rtl' : 'ltr';
@@ -248,12 +258,18 @@ export default function SupplierQuoteBuilder() {
 
     const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
     const req = allRequests.find((r: any) => r.id === requestId);
-    if (!req || !req.selectedSuppliers?.includes(parsedUser.email)) {
+    const visible = req && (req.selectedSuppliers?.includes(parsedUser.email) || isRequestMatchedToSupplier(req, parsedUser));
+    if (!visible) {
       showToast(tx('notAvailable', savedLang), 'error');
       router.push('/supplier-requests');
       return;
     }
     setRequest(req);
+
+    try {
+      const allQuestions: RequestQuestion[] = JSON.parse(localStorage.getItem('requestQuestions') || '[]');
+      setQuestions(allQuestions.filter(q => q.requestId === requestId));
+    } catch {}
 
     const contractor = getSupplierData(req.contractorId);
     const searchParams = new URLSearchParams(window.location.search);
@@ -371,6 +387,14 @@ export default function SupplierQuoteBuilder() {
     e.target.value = '';
   };
   const removeAttachment = (index: number) => setAttachments(prev => prev.filter((_, i) => i !== index));
+
+  const handleAskQuestion = () => {
+    if (!newQuestion.trim() || !user) return;
+    const updated = askRequestQuestion(requestId, { email: user.email, name: user.name, company: user.company }, newQuestion.trim());
+    setQuestions(updated.filter(q => q.requestId === requestId));
+    setNewQuestion('');
+    showToast(tx('questionSent', language));
+  };
 
   const rowSubtotal = (li: FormLineItem) => lineSubtotal(li);
   const rowTax = (li: FormLineItem) => rowSubtotal(li) * VAT_RATE;
@@ -579,6 +603,37 @@ export default function SupplierQuoteBuilder() {
               {reqMaterialLines.map((line, i) => <p key={i} className="text-xs text-stone-700 my-0.5">• {line}</p>)}
             </div>
           )}
+        </div>
+
+        {/* Q&A */}
+        <div className="bg-white border border-[var(--line)] rounded-2xl p-5">
+          <h2 className="text-sm font-bold text-stone-900 mb-1">{tx('qaTitle', language)}</h2>
+          <p className="text-[11px] text-stone-400 mb-3">{tx('qaNote', language)}</p>
+          {questions.length === 0 ? (
+            <p className="text-xs text-stone-400 mb-3">{tx('qaNone', language)}</p>
+          ) : (
+            <div className="space-y-2 mb-3">
+              {questions.map(q => (
+                <div key={q.id} className="bg-[var(--bg-soft)] rounded-lg p-3">
+                  <p className="text-xs text-stone-700"><span className="font-semibold text-stone-500">{q.supplierCompany}:</span> {q.question}</p>
+                  {q.answer ? (
+                    <p className="text-xs text-emerald-700 mt-1.5">💬 {q.answer}</p>
+                  ) : (
+                    <p className="text-[11px] text-amber-600 mt-1.5">⏳ {tx('qaWaiting', language)}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <input type="text" value={newQuestion} onChange={e => setNewQuestion(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAskQuestion(); } }}
+              placeholder={tx('qaPlaceholder', language)} className={inputCls} />
+            <button type="button" onClick={handleAskQuestion}
+              className="shrink-0 text-xs font-bold px-4 rounded-xl bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white transition-colors">
+              {tx('qaSend', language)}
+            </button>
+          </div>
         </div>
 
         {/* QUOTE META */}

@@ -1,7 +1,8 @@
 import { getRequestDisplayName, isQuoteExpired, quoteValidityDaysLeft, RequestLike } from './requestHelpers';
+import { isRequestMatchedToSupplier, SupplierMatchProfile } from './marketplace';
 
 export type Lang = 'ar' | 'en';
-export type NotifType = 'quote' | 'accepted' | 'rejected' | 'revision' | 'close' | 'open' | 'rated' | 'invite' | 'editRequest' | 'withdrawn' | 'expiring';
+export type NotifType = 'quote' | 'accepted' | 'rejected' | 'revision' | 'close' | 'open' | 'rated' | 'invite' | 'editRequest' | 'withdrawn' | 'expiring' | 'question' | 'answer' | 'delivered';
 
 export interface NotifItem {
   id: string;
@@ -25,10 +26,13 @@ export const notifIconMap: Record<NotifType, { bg: string; icon: string; color: 
   editRequest: { bg: 'bg-amber-50', icon: '🔏', color: 'text-amber-500' },
   withdrawn: { bg: 'bg-stone-100', icon: '↩', color: 'text-stone-500' },
   expiring:  { bg: 'bg-orange-50', icon: '⏳', color: 'text-orange-500' },
+  question:  { bg: 'bg-[#F3EAE0]', icon: '❓', color: 'text-[#C0603E]' },
+  answer:    { bg: 'bg-emerald-50', icon: '💬', color: 'text-emerald-600' },
+  delivered: { bg: 'bg-emerald-50', icon: '📦', color: 'text-emerald-600' },
 };
 
 export function notifHref(n: Pick<NotifItem, 'type' | 'requestId'>, role?: 'contractor' | 'supplier'): string {
-  const quoteTypes: NotifType[] = ['quote', 'accepted', 'rejected', 'revision', 'editRequest', 'expiring'];
+  const quoteTypes: NotifType[] = ['quote', 'accepted', 'rejected', 'revision', 'editRequest', 'expiring', 'answer', 'delivered'];
   if (role === 'supplier') {
     return quoteTypes.includes(n.type)
       ? `/my-quotes?reqId=${n.requestId}`
@@ -54,7 +58,7 @@ export function buildNotifications(
   allQuotes: any[],
   allActivityLogs: any[],
   myRequests: (RequestLike | number)[],
-  opts?: { includeLogs?: boolean; limit?: number }
+  opts?: { includeLogs?: boolean; limit?: number; allQuestions?: { id: number; requestId: number; question: string; supplierCompany: string; answer?: string; createdAt: string }[] }
 ): NotifItem[] {
   /* accepts full request objects (preferred — enables project names) or bare ids (legacy) */
   const reqById = new Map<number, RequestLike>();
@@ -126,7 +130,31 @@ export function buildNotifications(
     })
     .filter((x): x is NotifItem => x !== null);
 
-  const all = [...quoteItems, ...editRequestItems, ...logItems]
+  const questionItems: NotifItem[] = (opts?.allQuestions || [])
+    .filter(q => idSet.has(q.requestId) && !q.answer)
+    .map(q => ({
+      id: `question-${q.id}`,
+      type: 'question' as NotifType,
+      requestId: q.requestId,
+      textAr: `${q.supplierCompany} سأل سؤالاً على «${nameAr(q.requestId)}»: "${q.question}"`,
+      textEn: `${q.supplierCompany} asked a question on "${nameEn(q.requestId)}": "${q.question}"`,
+      timestamp: q.createdAt,
+      unread: true,
+    }));
+
+  const deliveredItems: NotifItem[] = allQuotes
+    .filter(q => idSet.has(q.requestId) && q.executionStatus === 'delivered')
+    .map(q => ({
+      id: `delivered-${q.id}-${q.executionStatusChangedAt || ''}`,
+      type: 'delivered' as NotifType,
+      requestId: q.requestId,
+      textAr: `${q.supplierCompany} أعلن اكتمال توريد «${nameAr(q.requestId)}»`,
+      textEn: `${q.supplierCompany} marked "${nameEn(q.requestId)}" as delivered`,
+      timestamp: q.executionStatusChangedAt || q.statusChangedAt || q.createdAt,
+      unread: true,
+    }));
+
+  const all = [...quoteItems, ...editRequestItems, ...logItems, ...questionItems, ...deliveredItems]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return opts?.limit ? all.slice(0, opts.limit) : all;
@@ -137,9 +165,10 @@ export function buildSupplierNotifications(
   allActivityLogs: any[],
   allRequests: any[],
   allRatings: any[],
-  supplierEmail: string,
-  opts?: { limit?: number }
+  supplier: SupplierMatchProfile,
+  opts?: { limit?: number; allQuestions?: { id: number; requestId: number; supplierId: string; answer?: string; answeredAt?: string; createdAt: string }[] }
 ): NotifItem[] {
+  const supplierEmail = supplier.email;
   const myQuotes = allQuotes.filter(q => q.supplierId === supplierEmail);
   const reqById = new Map<number, RequestLike>(allRequests.map((r: RequestLike) => [r.id, r]));
   const nameAr = (id: number) => getRequestDisplayName(reqById.get(id), 'ar', id);
@@ -178,7 +207,8 @@ export function buildSupplierNotifications(
 
   const invitedRequestIds = new Set(myQuotes.map(q => q.requestId));
   const inviteItems: NotifItem[] = allRequests
-    .filter(r => r.status === 'open' && r.selectedSuppliers?.includes(supplierEmail) && !invitedRequestIds.has(r.id))
+    .filter(r => r.status === 'open' && !invitedRequestIds.has(r.id)
+      && (r.selectedSuppliers?.includes(supplierEmail) || isRequestMatchedToSupplier(r, supplier)))
     .map(r => ({
       id: `invite-${r.id}`,
       type: 'invite' as NotifType,
@@ -224,7 +254,19 @@ export function buildSupplierNotifications(
     })
     .filter((x): x is NotifItem => x !== null);
 
-  const all = [...statusItems, ...editRequestDeclinedItems, ...inviteItems, ...ratingItems, ...expiryItems]
+  const answerItems: NotifItem[] = (opts?.allQuestions || [])
+    .filter(q => q.supplierId === supplierEmail && q.answer)
+    .map(q => ({
+      id: `answer-${q.id}`,
+      type: 'answer' as NotifType,
+      requestId: q.requestId,
+      textAr: `تم الرد على سؤالك بخصوص «${nameAr(q.requestId)}»`,
+      textEn: `Your question about "${nameEn(q.requestId)}" was answered`,
+      timestamp: q.answeredAt || q.createdAt,
+      unread: true,
+    }));
+
+  const all = [...statusItems, ...editRequestDeclinedItems, ...inviteItems, ...ratingItems, ...expiryItems, ...answerItems]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return opts?.limit ? all.slice(0, opts.limit) : all;

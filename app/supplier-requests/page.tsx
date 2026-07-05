@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import SupplierNav from '../components/SupplierNav';
 import { displayVal, getDeadlineUrgency, formatDay, quoteDraftKey } from '../lib/requestHelpers';
+import { getSupplierVisibleRequests, isRequestMatchedToSupplier } from '../lib/marketplace';
 import { MATERIAL_OPTIONS } from '../lib/materialOptions';
 import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
@@ -56,6 +57,8 @@ const T = {
   sortDeadline: { ar: 'الأقرب ميعادًا',       en: 'Soonest Deadline' },
   allCities:    { ar: 'كل المدن',            en: 'All cities'   },
   allMaterials: { ar: 'كل المواد',           en: 'All materials' },
+  matched:      { ar: 'مطابقة',              en: 'Matched' },
+  matchedNote:  { ar: 'ظهر لك هذا الطلب تلقائيًا لأنه يطابق تخصصك ومدنك — لم يخترك المقاول يدويًا', en: "This request appeared automatically because it matches your specialty and cities — the contractor didn't hand-pick you" },
   preview:      { ar: 'معاينة سريعة',        en: 'Quick Preview' },
   reqId:        { ar: 'رقم الطلب',           en: 'Request #'    },
   name:         { ar: 'الاسم',               en: 'Name'         },
@@ -119,9 +122,7 @@ export default function SupplierRequests() {
     setUser(parsedUser);
 
     const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
-    setRequests(allRequests.filter((req: Request) =>
-      req.selectedSuppliers && req.selectedSuppliers.includes(parsedUser.email)
-    ));
+    setRequests(getSupplierVisibleRequests(allRequests, parsedUser));
     setAllQuotes(JSON.parse(localStorage.getItem('quotes') || '[]'));
 
     const savedLang = localStorage.getItem('language') as Lang || 'ar';
@@ -380,7 +381,12 @@ export default function SupplierRequests() {
                       <td className="px-4 py-3 font-semibold text-[var(--brand-strong)]">
                         {urgency === 'overdue' ? '🔴' : urgency === 'soon' ? '🟠' : '🟢'} {String(request.id).slice(-6)}
                       </td>
-                      <td className="px-4 py-3 font-bold text-stone-900 whitespace-nowrap">{getReqName(request)}</td>
+                      <td className="px-4 py-3 font-bold text-stone-900 whitespace-nowrap">
+                        {getReqName(request)}
+                        {!request.selectedSuppliers?.includes(user.email) && (
+                          <span className="ms-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--tint)] text-[var(--brand-strong)]" title={tStr('matchedNote', language)}>🎯</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-stone-500 max-w-[220px] truncate">{getReqMaterialLines(request).join(' · ') || tStr('noValue', language)}</td>
                       <td className="px-4 py-3 text-stone-500 whitespace-nowrap">📍 {getCityName(request.location, language)}</td>
                       <td className="px-4 py-3 whitespace-nowrap">
@@ -405,9 +411,14 @@ export default function SupplierRequests() {
                 <div key={request.id} id={`avail-req-${request.id}`}
                   className="bg-white border border-[var(--line)] rounded-2xl p-5 transition-shadow cursor-pointer hover:shadow-md"
                   onClick={() => setPreviewRequest(request)}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-bold text-stone-900">{getReqName(request)}</h3>
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${urgency === 'overdue' ? 'bg-red-50 text-red-700 border border-red-200' : urgency === 'soon' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                  <div className="flex items-center justify-between mb-3 gap-2">
+                    <h3 className="text-sm font-bold text-stone-900 flex items-center gap-1.5 min-w-0">
+                      <span className="truncate">{getReqName(request)}</span>
+                      {!request.selectedSuppliers?.includes(user.email) && (
+                        <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--tint)] text-[var(--brand-strong)]" title={tStr('matchedNote', language)}>🎯 {tStr('matched', language)}</span>
+                      )}
+                    </h3>
+                    <span className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full ${urgency === 'overdue' ? 'bg-red-50 text-red-700 border border-red-200' : urgency === 'soon' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
                       {urgency === 'overdue' ? '🔴' : urgency === 'soon' ? '🟠' : '🟢'} {String(request.id).slice(-6)}
                     </span>
                   </div>

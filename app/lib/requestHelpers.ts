@@ -48,6 +48,9 @@ export interface Quote {
   editRequestNote?: string;
   editRequestedAt?: string;
   statusChangedAt?: string;
+  /** post-acceptance execution tracking — set by the supplier once the quote is accepted */
+  executionStatus?: 'preparing' | 'delivered';
+  executionStatusChangedAt?: string;
 }
 
 export interface ActivityLog { id: number; requestId: number; action: string; actionEn: string; timestamp: string; }
@@ -137,6 +140,16 @@ export function appendActivityLog(requestId: number, actionAr: string, actionEn:
   allLogs.push(newLog);
   localStorage.setItem('activityLogs', JSON.stringify(allLogs));
   return allLogs;
+}
+
+/** Undoing an accept/reject is free for a short grace window — a supplier may have already
+ *  acted on it (booked stock, told another client no) once the window passes, so past that
+ *  point the contractor must give a reason (logged, not just silently reversed). */
+export const UNDO_GRACE_MS = 60 * 60 * 1000; // 1 hour
+
+export function canUndoQuoteDecisionFreely(q: Pick<Quote, 'statusChangedAt'>): boolean {
+  if (!q.statusChangedAt) return true;
+  return Date.now() - new Date(q.statusChangedAt).getTime() < UNDO_GRACE_MS;
 }
 
 export function setQuoteStatus(quoteId: number, status: Quote['status'], revisionNote?: string): { quotes: Quote[]; quote: Quote | undefined } {

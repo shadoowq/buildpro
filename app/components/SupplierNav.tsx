@@ -48,7 +48,8 @@ export default function SupplierNav({ lang, setLang, userName, active }: Supplie
       const allRequests = JSON.parse(localStorage.getItem('requests') || '[]');
       const allRatings = JSON.parse(localStorage.getItem('ratings') || '[]');
       const allLogs = JSON.parse(localStorage.getItem('activityLogs') || '[]');
-      setNotifs(buildSupplierNotifications(allQuotes, allLogs, allRequests, allRatings, user.email, { limit: 10 }));
+      const allQuestions = JSON.parse(localStorage.getItem('requestQuestions') || '[]');
+      setNotifs(buildSupplierNotifications(allQuotes, allLogs, allRequests, allRatings, user, { limit: 10, allQuestions }));
     };
 
     fetchNotifs();
