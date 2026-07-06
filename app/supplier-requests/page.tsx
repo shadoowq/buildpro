@@ -21,6 +21,7 @@ interface Request {
   id: number;
   contractorId: string;
   projectName?: string;
+  projectId?: number;
   materials?: any[];
   ceramic: number; porcelain: number; marble: number; granite: number; terrazzo: number;
   location: string;
@@ -184,6 +185,36 @@ export default function SupplierRequests() {
     if (r.granite > 0) lines.push(`${language === 'ar' ? 'جرانيت' : 'Granite'}: ${r.granite} m²`);
     if (r.terrazzo > 0) lines.push(`${language === 'ar' ? 'تيرازو' : 'Terrazzo'}: ${r.terrazzo} m²`);
     return lines;
+  };
+
+  /* Requests created through the project flow are always single-material, so the
+     material itself (what actually determines whether this supplier can see the
+     request at all) should lead the title — projectName used to take priority and
+     made every material under the same project show an identical card title. */
+  const getMaterialTitle = (r: Request): string | null => {
+    if (r.materials?.length !== 1) return null;
+    const m = r.materials[0];
+    const cat = getCategory(m.category);
+    const typeLabel = displayVal(isTilesCategory(m.category) ? (m.type || m.typePending) : m.fields?.type, language);
+    const label = typeLabel !== '—' ? typeLabel : (cat ? (language === 'ar' ? cat.labelAr : cat.labelEn) : '');
+    if (!label) return null;
+    return isTilesCategory(m.category) ? label : `${cat?.icon || ''} ${label}`.trim();
+  };
+
+  /* Project name is shown as a secondary tag (never a link to sibling requests) —
+     a supplier only ever sees requests that already matched their own specialty,
+     so this is just context, not a way to browse other suppliers' categories. */
+  const ReqTitle = ({ r }: { r: Request }) => {
+    const materialTitle = getMaterialTitle(r);
+    if (!materialTitle) return <>{getReqName(r)}</>;
+    return (
+      <>
+        {materialTitle}
+        {r.projectName?.trim() && (
+          <span className="text-stone-400 font-normal text-[11px]"> · 📁 {r.projectName.trim()}</span>
+        )}
+      </>
+    );
   };
 
   if (!user) return (
@@ -401,7 +432,7 @@ export default function SupplierRequests() {
                         {urgency === 'overdue' ? '🔴' : urgency === 'soon' ? '🟠' : '🟢'} {String(request.id).slice(-6)}
                       </td>
                       <td className="px-4 py-3 font-bold text-stone-900 whitespace-nowrap">
-                        {getReqName(request)}
+                        <ReqTitle r={request} />
                         {!request.selectedSuppliers?.includes(user.email) && (
                           <span className="ms-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--tint)] text-[var(--brand-strong)]" title={tStr('matchedNote', language)}>🎯</span>
                         )}
@@ -434,7 +465,7 @@ export default function SupplierRequests() {
                   onClick={() => setPreviewRequest(request)}>
                   <div className="flex items-center justify-between mb-3 gap-2">
                     <h3 className="text-sm font-bold text-stone-900 flex items-center gap-1.5 min-w-0">
-                      <span className="truncate">{getReqName(request)}</span>
+                      <span className="truncate"><ReqTitle r={request} /></span>
                       {!request.selectedSuppliers?.includes(user.email) && (
                         <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--tint)] text-[var(--brand-strong)]" title={tStr('matchedNote', language)}>🎯 {tStr('matched', language)}</span>
                       )}
@@ -480,7 +511,7 @@ export default function SupplierRequests() {
             <div className="flex items-center justify-between p-5 border-b border-stone-100 flex-wrap gap-3">
               <div className="flex items-center gap-3 flex-wrap">
                 <h2 className="text-lg font-bold text-stone-900">{tStr('previewTitle', language)}</h2>
-                <span className="text-[var(--sec)] font-bold text-sm">{getReqName(previewRequest)}</span>
+                <span className="text-[var(--sec)] font-bold text-sm"><ReqTitle r={previewRequest} /></span>
                 <span className="text-stone-500 text-sm">📍 {getCityName(previewRequest.location, language)}</span>
                 {previewRequest.deadline && <span className="text-stone-500 text-sm">⏱ {formatDay(previewRequest.deadline, language)}</span>}
               </div>
