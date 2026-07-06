@@ -24,6 +24,7 @@ interface ContractorNavProps {
 
 const NAV_LINKS = [
   { icon: '🏠', labelAr: 'لوحة التحكم',  labelEn: 'Dashboard',   href: '/dashboard'   },
+  { icon: '📁', labelAr: 'المشاريع',     labelEn: 'Projects',     href: '/projects'    },
   { icon: '📋', labelAr: 'طلباتي',       labelEn: 'My Requests',  href: '/my-requests' },
   { icon: '📄', labelAr: 'عروض الأسعار', labelEn: 'Quotes',       href: '/my-quotes'   },
   { icon: '🏢', labelAr: 'الموردون',     labelEn: 'Suppliers',    href: '/suppliers'   },

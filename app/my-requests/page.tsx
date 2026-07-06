@@ -11,6 +11,7 @@ import HelpTooltip from '../components/HelpTooltip';
 import QuoteCompareTable from '../components/QuoteCompareTable';
 import { displayVal, appendActivityLog, setQuoteStatus, softDeleteRequest, softDeleteRequests, getDeadlineUrgency, approveQuoteEdit, declineQuoteEdit, isQuoteExpired } from '../lib/requestHelpers';
 import { getCategory } from '../lib/materialCategories';
+import { Project, getProjectStatusLabel, getProjectStatusClasses } from '../lib/projects';
 import { getCityName } from '../lib/translations';
 import { useToast } from '../components/Toast';
 import { useConfirm } from '../components/ConfirmDialog';
@@ -22,6 +23,7 @@ import {
   getActivityLogs,
   getRatings, setRatings as persistRatings,
   getSeenQuoteIds, setSeenQuoteIds,
+  getProjects,
 } from '../lib/store';
 
 function ReqIdParamReader({ onFound }: { onFound: (id: number) => void }) {
@@ -50,6 +52,7 @@ type KanbanCol = 'active' | 'awaiting' | 'closed';
 interface Request {
   id: number; contractorId: string;
   projectName?: string;
+  projectId?: number;
   kanbanColumn?: KanbanCol;
   ceramic: number; porcelain: number; marble: number; granite: number; terrazzo: number;
   materials?: any[]; location: string; deadline: string;
@@ -267,6 +270,7 @@ export default function MyRequests() {
   const [showFilters, setShowFilters] = useState(false);
   const [moveMenuId, setMoveMenuId] = useState<number | null>(null);
   const [projectFilter, setProjectFilter] = useState<string | null>(null);
+  const [projects, setProjectsState] = useState<Project[]>([]);
   const [pendingReqId, setPendingReqId] = useState<number | null>(null);
   const router = useRouter();
 
@@ -282,6 +286,7 @@ export default function MyRequests() {
     setSeenQuotes(getSeenQuoteIds(parsedUser.email));
     setActivityLogs(getActivityLogs());
     setRatings(getRatings());
+    setProjectsState(getProjects<Project>().filter(p => p.contractorId === parsedUser.email));
 
     setLang(getLanguage());
     const onStorage = (e: StorageEvent) => { if (e.key === 'language' && e.newValue) setLang(e.newValue as Lang); };
@@ -1051,6 +1056,8 @@ export default function MyRequests() {
                     const openCount = reqs.filter(r => r.status === 'open').length;
                     const closedCount = reqs.filter(r => r.status === 'closed').length;
                     const hasNew = reqs.some(r => getRequestNewQuotes(r.id) > 0);
+                    const linkedProjectId = reqs.find(r => r.projectId)?.projectId;
+                    const linkedProject = linkedProjectId ? projects.find(p => p.id === linkedProjectId) : undefined;
                     return (
                       <div key={key}
                         className={`bg-white border rounded-2xl p-5 cursor-pointer hover:shadow-md transition-all relative ${hasNew ? 'border-emerald-300' : 'border-[var(--line)]'}`}
@@ -1065,6 +1072,11 @@ export default function MyRequests() {
                             <p className="text-[11px] text-stone-400 mt-0.5">{t('projReqs', lang, reqs.length)}</p>
                           </div>
                         </div>
+                        {linkedProject && (
+                          <span className={`inline-block text-[10px] font-bold px-2.5 py-1 rounded-full border mb-3 ${getProjectStatusClasses(linkedProject.status)}`}>
+                            {getProjectStatusLabel(linkedProject.status, lang)}
+                          </span>
+                        )}
                         {/* stats */}
                         <div className="grid grid-cols-2 gap-2 mb-4">
                           <div className="bg-stone-50 rounded-lg px-3 py-2">
@@ -1099,6 +1111,12 @@ export default function MyRequests() {
                           )}
                           <span className="text-[10px] text-[var(--sec)] font-semibold mr-auto hover:underline">{t('viewProj', lang)} →</span>
                         </div>
+                        {linkedProject && (
+                          <a href={`/projects/${linkedProject.id}`} onClick={e => e.stopPropagation()}
+                            className="block mt-2 text-[10px] text-[var(--brand-strong)] font-semibold hover:underline">
+                            {lang === 'ar' ? 'إدارة المشروع (الحالة والتفاصيل) ↗' : 'Manage project (status & details) ↗'}
+                          </a>
+                        )}
                       </div>
                     );
                   })}

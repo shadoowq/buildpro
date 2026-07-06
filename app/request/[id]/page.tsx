@@ -14,6 +14,7 @@ import { formatDate, displayVal, arToEn, appendActivityLog, setQuoteStatus, soft
 import { answerRequestQuestion, RequestQuestion } from '../../lib/marketplace';
 import { getCityName } from '../../lib/translations';
 import { getCategory, isTilesCategory } from '../../lib/materialCategories';
+import { Project, getProjectStatusLabel, getProjectStatusClasses } from '../../lib/projects';
 import { useConfirm } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
 import {
@@ -22,6 +23,7 @@ import {
   getQuotes, getActivityLogs,
   getRatings, setRatings as persistRatings,
   getRequestQuestions,
+  getProjects,
 } from '../../lib/store';
 
 type Lang = 'ar' | 'en';
@@ -31,6 +33,7 @@ interface Request {
   id: number;
   contractorId: string;
   projectName?: string;
+  projectId?: number;
   materials?: any[];
   ceramic: number; porcelain: number; marble: number; granite: number; terrazzo: number;
   location: string; deadline: string;
@@ -168,6 +171,7 @@ export default function RequestDetailPage() {
   const [answerDrafts, setAnswerDrafts] = useState<Record<number, string>>({});
   const [undoReasonQuoteId, setUndoReasonQuoteId] = useState<number | null>(null);
   const [undoReasonText, setUndoReasonText] = useState('');
+  const [linkedProject, setLinkedProject] = useState<Project | null>(null);
 
   useEscapeKey(() => { if (lightbox) setLightbox(null); });
 
@@ -183,6 +187,9 @@ export default function RequestDetailPage() {
     const found = allReqs.find(r => r.id === id);
     if (found && found.contractorId !== user.email) { router.push('/my-requests'); return; }
     setRequest(found || null);
+    if (found?.projectId) {
+      setLinkedProject(getProjects<Project>().find(p => p.id === found.projectId) || null);
+    }
 
     const allQuotes: Quote[] = getQuotes<Quote>();
     setQuotes(allQuotes.filter(q => q.requestId === id));
@@ -376,6 +383,14 @@ export default function RequestDetailPage() {
             <Link href="/my-requests" className="text-white/50 text-xs hover:text-white/80 transition-colors mb-2 inline-block">
               {t('back', lang)}
             </Link>
+            {linkedProject && (
+              <Link href={`/projects/${linkedProject.id}`} className="flex items-center gap-2 mb-2 group w-fit">
+                <span className="text-white/70 text-xs group-hover:text-white transition-colors">📁 {linkedProject.name}</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getProjectStatusClasses(linkedProject.status)}`}>
+                  {getProjectStatusLabel(linkedProject.status, lang)}
+                </span>
+              </Link>
+            )}
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-white text-xl font-bold">{getReqName(request)}</h1>
               <span className="text-[var(--sec)] font-mono font-bold text-sm">#{request.id}</span>

@@ -7,6 +7,7 @@
 
 import type { Quote, RequestLike, ActivityLog } from './requestHelpers';
 import type { RequestQuestion, QuoteMessage, Rating } from './marketplace';
+import type { Project } from './projects';
 import type { StoredUser } from './auth';
 
 export type Lang = 'ar' | 'en';
@@ -29,6 +30,9 @@ export const getRequests = <T = RequestLike>(): T[] => readArray<T>('requests');
 export const setRequests = <T = RequestLike>(v: T[]): void => writeArray('requests', v);
 export const getDeletedRequests = <T = RequestLike>(): T[] => readArray<T>('deletedRequests');
 export const setDeletedRequests = <T = RequestLike>(v: T[]): void => writeArray('deletedRequests', v);
+
+export const getProjects = <T = Project>(): T[] => readArray<T>('projects');
+export const setProjects = <T = Project>(v: T[]): void => writeArray('projects', v);
 
 export const getRequestDrafts = <T = any>(): T[] => readArray<T>('requestDrafts');
 export const setRequestDrafts = <T = any>(v: T[]): void => writeArray('requestDrafts', v);

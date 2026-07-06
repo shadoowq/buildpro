@@ -100,6 +100,9 @@ export interface ActivityLog { id: number; requestId: number; action: string; ac
 export interface RequestLike {
   id: number; status: string; location?: string; deadline?: string; description?: string;
   materials?: any[]; ceramic?: number; porcelain?: number; marble?: number; granite?: number; terrazzo?: number;
+  /** owning Project, if this request was created through the project flow — projectName stays
+      a denormalized copy on the request itself so existing display code needs no changes */
+  projectId?: number;
   [k: string]: any;
 }
 

@@ -105,16 +105,16 @@ export default function LandingPage() {
       </nav>
 
       {/* ══ HERO ══ */}
-      <section className="bg-[var(--brand)] pt-16 pb-0 px-6 md:px-10 relative overflow-hidden">
-        {/* decorative circles */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-white/[0.03] pointer-events-none" />
-        <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[400px] h-[400px] rounded-full bg-[var(--sec)]/10 pointer-events-none" />
+      <section className="bg-[var(--chrome)] pt-16 pb-0 px-6 md:px-10 relative overflow-hidden">
+        {/* decorative circles — same treatment as the login/signup chrome panel */}
+        <div className="absolute top-0 right-0 w-72 h-72 bg-[var(--brand)]/10 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-56 h-56 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2 pointer-events-none" />
 
         <div className="max-w-4xl mx-auto text-center relative z-10">
           {/* badge */}
-          <div className="inline-flex items-center gap-2 bg-[var(--sec)]/20 border border-[var(--sec)]/30 rounded-full px-4 py-1.5 mb-6">
-            <span className="w-1.5 h-1.5 bg-[var(--sec)] rounded-full animate-pulse" />
-            <span className="text-[#7ECFDA] text-xs font-semibold">
+          <div className="inline-flex items-center gap-2 bg-[var(--brand)]/15 border border-[var(--brand)]/30 rounded-full px-4 py-1.5 mb-6">
+            <span className="w-1.5 h-1.5 bg-[var(--brand)] rounded-full animate-pulse" />
+            <span className="text-[var(--chrome-active-ink)] text-xs font-semibold">
               {t('منصة تسعير مواد البناء رقم 1 في السعودية', '#1 Building Materials Pricing Platform in Saudi Arabia')}
             </span>
           </div>
@@ -122,7 +122,7 @@ export default function LandingPage() {
           <h1 className="text-white text-3xl md:text-5xl font-extrabold leading-tight mb-4">
             {t('اطلب تسعير مواد البناء', 'Request Building Materials')}
             <br />
-            <span className="text-[var(--sec)]">
+            <span className="text-[var(--chrome-active-ink)]">
               {t('من 300+ مورد في دقائق', 'Pricing from 300+ Suppliers in Minutes')}
             </span>
           </h1>
@@ -136,7 +136,7 @@ export default function LandingPage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-10">
             <Link href="/signup?type=contractor"
-              className="w-full sm:w-auto bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-all hover:shadow-lg hover:shadow-[var(--sec)]/30 flex items-center justify-center gap-2">
+              className="w-full sm:w-auto bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-[var(--on-brand)] font-bold px-8 py-3.5 rounded-xl text-sm transition-all hover:shadow-lg hover:shadow-[var(--brand)]/30 flex items-center justify-center gap-2">
               <span>👷</span> {t('سجل كمقاول', 'Sign up as Contractor')}
             </Link>
             <Link href="/signup?type=supplier"
@@ -201,7 +201,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══ STATS ══ */}
-      <section className="bg-[var(--brand)] py-14 px-6 md:px-10">
+      <section className="bg-[var(--chrome)] py-14 px-6 md:px-10">
         <div className="max-w-5xl mx-auto">
           <p className="text-center text-white/40 text-xs font-bold tracking-widest uppercase mb-10">
             {t('BuildPro بالأرقام', 'BuildPro By The Numbers')}
@@ -342,7 +342,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══ BOTTOM CTA ══ */}
-      <section className="bg-[var(--brand)] py-16 px-6 md:px-10">
+      <section className="bg-[var(--chrome)] py-16 px-6 md:px-10">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-white text-2xl md:text-3xl font-extrabold mb-3">
             {t('جاهز تبدأ؟', 'Ready to Start?')}
@@ -355,7 +355,7 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link href="/signup?type=contractor"
-              className="w-full sm:w-auto bg-[var(--sec)] hover:bg-[var(--sec-hover)] text-white font-bold px-8 py-3.5 rounded-xl text-sm transition-all hover:shadow-lg hover:shadow-[var(--sec)]/30 flex items-center justify-center gap-2">
+              className="w-full sm:w-auto bg-[var(--brand)] hover:bg-[var(--brand-hover)] text-[var(--on-brand)] font-bold px-8 py-3.5 rounded-xl text-sm transition-all hover:shadow-lg hover:shadow-[var(--brand)]/30 flex items-center justify-center gap-2">
               <span>👷</span> {t('سجل كمقاول', 'Sign up as Contractor')}
             </Link>
             <Link href="/signup?type=supplier"
@@ -367,7 +367,7 @@ export default function LandingPage() {
       </section>
 
       {/* ══ FOOTER ══ */}
-      <footer className="bg-stone-900 py-10 px-6 md:px-10">
+      <footer className="bg-[var(--chrome)] py-10 px-6 md:px-10">
         <div className="max-w-5xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             {/* brand */}
