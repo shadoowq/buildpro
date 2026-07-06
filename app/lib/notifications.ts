@@ -2,7 +2,7 @@ import { getRequestDisplayName, isQuoteExpired, quoteValidityDaysLeft, RequestLi
 import { isRequestMatchedToSupplier, SupplierMatchProfile } from './marketplace';
 
 export type Lang = 'ar' | 'en';
-export type NotifType = 'quote' | 'accepted' | 'rejected' | 'revision' | 'close' | 'open' | 'rated' | 'invite' | 'editRequest' | 'withdrawn' | 'expiring' | 'question' | 'answer' | 'delivered';
+export type NotifType = 'quote' | 'accepted' | 'rejected' | 'revision' | 'close' | 'open' | 'rated' | 'invite' | 'editRequest' | 'withdrawn' | 'expiring' | 'question' | 'answer' | 'shipping' | 'delivered' | 'received';
 
 export interface NotifItem {
   id: string;
@@ -28,11 +28,13 @@ export const notifIconMap: Record<NotifType, { bg: string; icon: string; color: 
   expiring:  { bg: 'bg-orange-50', icon: '⏳', color: 'text-orange-500' },
   question:  { bg: 'bg-[#F3EAE0]', icon: '❓', color: 'text-[#C0603E]' },
   answer:    { bg: 'bg-emerald-50', icon: '💬', color: 'text-emerald-600' },
+  shipping:  { bg: 'bg-sky-50',     icon: '🚚', color: 'text-sky-600'     },
   delivered: { bg: 'bg-emerald-50', icon: '📦', color: 'text-emerald-600' },
+  received:  { bg: 'bg-emerald-50', icon: '✅', color: 'text-emerald-700' },
 };
 
 export function notifHref(n: Pick<NotifItem, 'type' | 'requestId'>, role?: 'contractor' | 'supplier'): string {
-  const quoteTypes: NotifType[] = ['quote', 'accepted', 'rejected', 'revision', 'editRequest', 'expiring', 'answer', 'delivered'];
+  const quoteTypes: NotifType[] = ['quote', 'accepted', 'rejected', 'revision', 'editRequest', 'expiring', 'answer', 'shipping', 'delivered', 'received'];
   if (role === 'supplier') {
     return quoteTypes.includes(n.type)
       ? `/my-quotes?reqId=${n.requestId}`
@@ -142,17 +144,26 @@ export function buildNotifications(
       unread: true,
     }));
 
+  /* execution updates the contractor should act on or know about — 'received' is the
+     contractor's own action, so it doesn't notify them */
   const deliveredItems: NotifItem[] = allQuotes
-    .filter(q => idSet.has(q.requestId) && q.executionStatus === 'delivered')
-    .map(q => ({
-      id: `delivered-${q.id}-${q.executionStatusChangedAt || ''}`,
-      type: 'delivered' as NotifType,
-      requestId: q.requestId,
-      textAr: `${q.supplierCompany} أعلن اكتمال توريد «${nameAr(q.requestId)}»`,
-      textEn: `${q.supplierCompany} marked "${nameEn(q.requestId)}" as delivered`,
-      timestamp: q.executionStatusChangedAt || q.statusChangedAt || q.createdAt,
-      unread: true,
-    }));
+    .filter(q => idSet.has(q.requestId) && (q.executionStatus === 'shipping' || q.executionStatus === 'delivered'))
+    .map(q => {
+      const shipping = q.executionStatus === 'shipping';
+      return {
+        id: `${q.executionStatus}-${q.id}-${q.executionStatusChangedAt || ''}`,
+        type: (shipping ? 'shipping' : 'delivered') as NotifType,
+        requestId: q.requestId,
+        textAr: shipping
+          ? `${q.supplierCompany} بدأ شحن توريد «${nameAr(q.requestId)}»`
+          : `${q.supplierCompany} أعلن اكتمال توريد «${nameAr(q.requestId)}» — بانتظار تأكيدك للاستلام`,
+        textEn: shipping
+          ? `${q.supplierCompany} started shipping "${nameEn(q.requestId)}"`
+          : `${q.supplierCompany} marked "${nameEn(q.requestId)}" as delivered — awaiting your receipt confirmation`,
+        timestamp: q.executionStatusChangedAt || q.statusChangedAt || q.createdAt,
+        unread: true,
+      };
+    });
 
   const all = [...quoteItems, ...editRequestItems, ...logItems, ...questionItems, ...deliveredItems]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -266,7 +277,19 @@ export function buildSupplierNotifications(
       unread: true,
     }));
 
-  const all = [...statusItems, ...editRequestDeclinedItems, ...inviteItems, ...ratingItems, ...expiryItems, ...answerItems]
+  const receivedItems: NotifItem[] = myQuotes
+    .filter(q => q.executionStatus === 'received')
+    .map(q => ({
+      id: `received-${q.id}-${q.executionStatusChangedAt || ''}`,
+      type: 'received' as NotifType,
+      requestId: q.requestId,
+      textAr: `أكد المقاول استلام توريد «${nameAr(q.requestId)}»`,
+      textEn: `The contractor confirmed receipt of "${nameEn(q.requestId)}"`,
+      timestamp: q.executionStatusChangedAt || q.statusChangedAt || q.createdAt,
+      unread: true,
+    }));
+
+  const all = [...statusItems, ...editRequestDeclinedItems, ...inviteItems, ...ratingItems, ...expiryItems, ...answerItems, ...receivedItems]
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   return opts?.limit ? all.slice(0, opts.limit) : all;

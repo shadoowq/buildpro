@@ -45,7 +45,7 @@ interface Quote {
   editRequestStatus?: 'pending' | 'rejected';
   editRequestNote?: string;
   statusChangedAt?: string;
-  executionStatus?: 'preparing' | 'delivered';
+  executionStatus?: 'preparing' | 'shipping' | 'delivered' | 'received';
   executionStatusChangedAt?: string;
 }
 
@@ -132,7 +132,12 @@ const T = {
   dealContactTitle: { ar: 'بيانات التواصل بعد القبول', en: 'Contact Info (Post-Acceptance)' },
   deliveredStatus: { ar: 'تم التوريد',          en: 'Delivered'             },
   preparingStatus: { ar: 'قيد التجهيز',          en: 'Preparing'             },
+  shippingStatus: { ar: 'جاري الشحن',           en: 'Shipping'              },
+  receivedStatus: { ar: 'تم الاستلام',           en: 'Received'              },
+  markShipping:  { ar: '🚚 بدء الشحن',          en: '🚚 Start Shipping'     },
   markDelivered: { ar: '✓ تم التوريد',          en: '✓ Mark Delivered'      },
+  confirmReceipt:{ ar: '✓ تأكيد الاستلام',       en: '✓ Confirm Receipt'     },
+  awaitingReceipt:{ ar: 'بانتظار تأكيد المقاول للاستلام', en: "Awaiting the contractor's receipt confirmation" },
   viewPo:       { ar: 'أمر الشراء',            en: 'Purchase Order'        },
   undoReasonPrompt: { ar: 'مضى وقت على القرار — اكتب سبب الإلغاء:', en: 'Some time has passed — write a reason for undoing:' },
   undoReasonPh: { ar: 'مثال: غيّرت رأيي في المواصفات...', en: 'Ex: I changed my mind about the specs...' },
@@ -143,6 +148,15 @@ function tFn(key: keyof typeof T, lang: Lang, n?: number): string {
   const entry = T[key] as any;
   const val = entry[lang];
   return typeof val === 'function' ? val(n ?? 0) : val;
+}
+
+/** Colored pill for the post-acceptance execution state — shared by both views. */
+function ExecStatusPill({ status, lang }: { status: Quote['executionStatus']; lang: Lang }) {
+  const s = status === 'received' ? { cls: 'bg-emerald-700 text-white', label: `✓ ${tFn('receivedStatus', lang)}` }
+    : status === 'delivered' ? { cls: 'bg-emerald-600 text-white', label: `📦 ${tFn('deliveredStatus', lang)}` }
+    : status === 'shipping' ? { cls: 'bg-sky-100 text-sky-800', label: `🚚 ${tFn('shippingStatus', lang)}` }
+    : { cls: 'bg-amber-100 text-amber-800', label: `⏳ ${tFn('preparingStatus', lang)}` };
+  return <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${s.cls}`}>{s.label}</span>;
 }
 
 /* ══════════════════════ CONTRACTOR VIEW ══════════════════════ */
@@ -170,6 +184,8 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
   const [pendingReqId, setPendingReqId] = useState<number | null>(null);
   const [undoReasonQuoteId, setUndoReasonQuoteId] = useState<number | null>(null);
   const [undoReasonText, setUndoReasonText] = useState('');
+  const [ratings, setRatings] = useState<Rating[]>([]);
+  const [ratingTarget, setRatingTarget] = useState<{ requestId: number; supplierId: string; supplierCompany: string } | null>(null);
   const dir = lang === 'ar' ? 'rtl' : 'ltr';
 
   /* deep-link: scroll a specific request's quotes into view via ?reqId= */
@@ -193,6 +209,7 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
     const quotes: Quote[] = getQuotes<Quote>().filter((q: Quote) => reqIds.includes(q.requestId));
     setAllQuotes(quotes);
     setSeenQuotes(getSeenQuoteIds(user.email));
+    setRatings(getRatings());
   }, []);
 
   const markSeen = (quoteIds: number[]) => {
@@ -267,6 +284,29 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
     if (q) appendActivityLog(q.requestId, `طلب تعديل على عرض ${q.supplierCompany}: "${revisionNote}"`, `Revision on ${q.supplierCompany}: "${revisionNote}"`);
     setRevisionQuoteId(null);
     setRevisionNote('');
+  };
+
+  /** Contractor closes the loop on a delivered order; prompts a supplier rating if none was given yet. */
+  const handleConfirmReceipt = (q: Quote) => {
+    const { quotes: updated } = setQuoteExecutionStatus(q.id, 'received');
+    setAllQuotes(updated.filter((x) => myRequests.some(r => r.id === x.requestId)));
+    appendActivityLog(q.requestId, 'أكد المقاول استلام التوريد', 'Contractor confirmed receipt of the delivery');
+    if (!hasRated(ratings, q.requestId, 'contractor')) {
+      setRatingTarget({ requestId: q.requestId, supplierId: q.supplierId, supplierCompany: q.supplierCompany });
+    }
+  };
+
+  const handleSubmitSupplierRating = (stars: number, comment: string) => {
+    if (!ratingTarget) return;
+    const user = getCurrentUser<{ email?: string; name?: string }>();
+    const updated = submitRating({
+      requestId: ratingTarget.requestId, supplierId: ratingTarget.supplierId, supplierCompany: ratingTarget.supplierCompany,
+      contractorId: user?.email, contractorName: user?.name,
+      raterRole: 'contractor', rating: stars, comment,
+    });
+    setRatings(updated);
+    appendActivityLog(ratingTarget.requestId, `تم تقييم المورد بـ ${stars} نجوم`, `Rated the supplier ${stars} stars`);
+    setRatingTarget(null);
   };
 
   const handleApproveEditRequest = (quoteId: number) => {
@@ -480,13 +520,19 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
                                     {q.supplierName} {supplierInfo?.phone && <span dir="ltr" className="font-mono">· {supplierInfo.phone}</span>}
                                   </p>
                                   <div className="flex items-center justify-between gap-2 mt-1.5 flex-wrap">
-                                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${q.executionStatus === 'delivered' ? 'bg-emerald-600 text-white' : 'bg-amber-100 text-amber-800'}`}>
-                                      {q.executionStatus === 'delivered' ? `✓ ${tFn('deliveredStatus', lang)}` : `⏳ ${tFn('preparingStatus', lang)}`}
-                                    </span>
-                                    <a href={`/print/purchase-order/${q.id}`} target="_blank" rel="noopener noreferrer"
-                                      className="text-[11px] font-bold px-2.5 py-1 bg-white border border-emerald-300 text-emerald-700 rounded-md hover:bg-emerald-100 transition-colors">
-                                      📄 {tFn('viewPo', lang)}
-                                    </a>
+                                    <ExecStatusPill status={q.executionStatus} lang={lang} />
+                                    <div className="flex gap-2">
+                                      {q.executionStatus === 'delivered' && (
+                                        <button onClick={() => handleConfirmReceipt(q)}
+                                          className="text-[11px] font-bold px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-colors">
+                                          {tFn('confirmReceipt', lang)}
+                                        </button>
+                                      )}
+                                      <a href={`/print/purchase-order/${q.id}`} target="_blank" rel="noopener noreferrer"
+                                        className="text-[11px] font-bold px-2.5 py-1 bg-white border border-emerald-300 text-emerald-700 rounded-md hover:bg-emerald-100 transition-colors">
+                                        📄 {tFn('viewPo', lang)}
+                                      </a>
+                                    </div>
                                   </div>
                                 </div>
                               );
@@ -586,6 +632,11 @@ function ContractorQuotes({ lang, userName, setLang }: { lang: Lang; userName: s
           onConfirm={handleRejectConfirm}
           onCancel={() => setRejectQuoteId(null)} />
       )}
+      {ratingTarget && (
+        <RatingModal lang={lang} supplierCompany={ratingTarget.supplierCompany} target="supplier"
+          onSubmit={handleSubmitSupplierRating}
+          onSkip={() => setRatingTarget(null)} />
+      )}
     </div>
   );
 }
@@ -677,6 +728,12 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
     refreshQuotes(updated);
     appendActivityLog(requestId, 'قام المورد بتمديد صلاحية عرضه 30 يومًا', 'Supplier extended their quote validity by 30 days');
     showToast(tFn('extended', lang, 30));
+  };
+
+  const handleMarkShipping = (quoteId: number, requestId: number) => {
+    const { quotes: updated } = setQuoteExecutionStatus(quoteId, 'shipping');
+    refreshQuotes(updated);
+    appendActivityLog(requestId, 'بدأ المورد شحن التوريد', 'Supplier started shipping the order');
   };
 
   const handleMarkDelivered = (quoteId: number, requestId: number, contractorId: string, contractorName: string) => {
@@ -835,11 +892,15 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                         {contractor?.name || req.contractorId} {contractor?.phone && <span dir="ltr" className="font-mono">· {contractor.phone}</span>}
                       </p>
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${q.executionStatus === 'delivered' ? 'bg-emerald-600 text-white' : 'bg-amber-100 text-amber-800'}`}>
-                          {q.executionStatus === 'delivered' ? `✓ ${tFn('deliveredStatus', lang)}` : `⏳ ${tFn('preparingStatus', lang)}`}
-                        </span>
+                        <ExecStatusPill status={q.executionStatus} lang={lang} />
                         <div className="flex gap-2">
-                          {q.executionStatus !== 'delivered' && (
+                          {(!q.executionStatus || q.executionStatus === 'preparing') && (
+                            <button onClick={() => handleMarkShipping(q.id, q.requestId)}
+                              className="text-[11px] font-bold px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg transition-colors">
+                              {tFn('markShipping', lang)}
+                            </button>
+                          )}
+                          {(!q.executionStatus || q.executionStatus === 'preparing' || q.executionStatus === 'shipping') && (
                             <button onClick={() => handleMarkDelivered(q.id, q.requestId, req.contractorId, contractor?.name || req.contractorId)}
                               className="text-[11px] font-bold px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors">
                               {tFn('markDelivered', lang)}
@@ -851,6 +912,9 @@ function SupplierQuotes({ lang, userName, setLang }: { lang: Lang; userName: str
                           </a>
                         </div>
                       </div>
+                      {q.executionStatus === 'delivered' && (
+                        <p className="text-[11px] text-emerald-700">⏳ {tFn('awaitingReceipt', lang)}</p>
+                      )}
                     </div>
                   );
                 })()}

@@ -22,7 +22,9 @@ const alertAccent: Record<NotifType, { border: string; ring: string }> = {
   expiring:    { border: 'border-orange-500', ring: 'bg-orange-500' },
   question:    { border: 'border-[var(--brand-strong)]', ring: 'bg-[var(--brand)]' },
   answer:      { border: 'border-emerald-500', ring: 'bg-emerald-500' },
+  shipping:    { border: 'border-sky-500', ring: 'bg-sky-500' },
   delivered:   { border: 'border-emerald-500', ring: 'bg-emerald-500' },
+  received:    { border: 'border-emerald-500', ring: 'bg-emerald-500' },
 };
 
 /**

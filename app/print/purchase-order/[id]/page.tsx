@@ -63,8 +63,10 @@ export default function PrintPurchaseOrder() {
   const printDate = new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const acceptDate = new Date(quote.statusChangedAt || quote.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   const reqName = req?.projectName?.trim() || `${lang === 'ar' ? 'طلب' : 'Request'} #${quote.requestId}`;
-  const executionLabel = quote.executionStatus === 'delivered'
-    ? (lang === 'ar' ? 'تم التوريد' : 'Delivered')
+  const executionLabel =
+    quote.executionStatus === 'received' ? (lang === 'ar' ? 'تم الاستلام' : 'Received')
+    : quote.executionStatus === 'delivered' ? (lang === 'ar' ? 'تم التوريد' : 'Delivered')
+    : quote.executionStatus === 'shipping' ? (lang === 'ar' ? 'جاري الشحن' : 'Shipping')
     : (lang === 'ar' ? 'قيد التجهيز' : 'Preparing');
 
   return (

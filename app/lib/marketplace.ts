@@ -110,9 +110,10 @@ export function generatePoNumber(quoteNumber: string | undefined, quoteId: numbe
   return `PO-${quoteId}`;
 }
 
-export type ExecutionStatus = 'preparing' | 'delivered';
+export type ExecutionStatus = 'preparing' | 'shipping' | 'delivered' | 'received';
 
-/** Supplier-only action: marks an accepted quote as delivered. */
+/** Execution-state transitions the current holder is allowed to make:
+    supplier moves preparing→shipping→delivered, contractor confirms delivered→received. */
 export function setQuoteExecutionStatus(quoteId: number, status: ExecutionStatus): { quotes: Quote[]; quote: Quote | undefined } {
   const all: Quote[] = JSON.parse(localStorage.getItem('quotes') || '[]');
   const updated = all.map(q => q.id === quoteId ? { ...q, executionStatus: status, executionStatusChangedAt: new Date().toISOString() } : q);

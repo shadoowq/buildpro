@@ -37,6 +37,8 @@ export const arToEn: Record<string, string> = {
   /* ac */
   'سبليت': 'Split AC', 'شباك': 'Window AC', 'دكت': 'Ducted AC', 'باكدج': 'Package Unit',
   'مركزي VRF': 'Central VRF', 'طن': 'Ton', 'انفرتر توفير عالي': 'High-Efficiency Inverter',
+  // displayVal translates whole values, so each capacity string needs its own entry
+  '1 طن': '1 Ton', '1.5 طن': '1.5 Ton', '2 طن': '2 Ton', '3 طن': '3 Ton', '5 طن': '5 Ton', '10 طن': '10 Ton',
   /* plumbing */
   'أنابيب PPR': 'PPR Pipes', 'أنابيب PVC': 'PVC Pipes', 'أنابيب نحاس': 'Copper Pipes', 'نحاس': 'Copper',
   'خلاطات': 'Mixers/Faucets', 'سخانات': 'Water Heaters',
@@ -44,8 +46,9 @@ export const arToEn: Record<string, string> = {
   /* aluminum & glass */
   'ألومنيوم عادي': 'Standard Aluminum', 'ألومنيوم حراري': 'Thermal Break Aluminum',
   'زجاج سيكوريت': 'Tempered Glass', 'زجاج مزدوج': 'Double Glazing', 'زجاج ملون': 'Tinted Glass',
-  'أبواب': 'Doors', 'فواصل': 'Partitions', 'برونزي': 'Bronze', 'طبيعي': 'Natural',
+  'نوافذ': 'Windows', 'أبواب': 'Doors', 'فواصل': 'Partitions', 'برونزي': 'Bronze', 'طبيعي': 'Natural',
   /* insulation */
+  'عزل مائي': 'Waterproofing', // distinct from the paint coating 'عازل مائي'
   'رغوة بولي يوريثان': 'Polyurethane Foam', 'ألواح فوم': 'Foam Boards', 'صوف صخري': 'Rock Wool',
   /* per-category units */
   'لتر': 'Liter', 'جالون': 'Gallon', 'برميل': 'Drum', 'م³': 'm³',
@@ -55,6 +58,8 @@ export const arToEn: Record<string, string> = {
 export interface QuoteLineItem {
   id: number;
   category?: string;
+  /** supplier's offered spec for a non-tile category line, keyed by the category's field schema (resolved flat values, like request materials) */
+  fields?: Record<string, string>;
   type: string; typeOther: string;
   size: string; sizeOther: string;
   thickness: string; thicknessOther: string;
@@ -85,8 +90,8 @@ export interface Quote {
   editRequestNote?: string;
   editRequestedAt?: string;
   statusChangedAt?: string;
-  /** post-acceptance execution tracking — set by the supplier once the quote is accepted */
-  executionStatus?: 'preparing' | 'delivered';
+  /** post-acceptance execution tracking — supplier moves preparing→shipping→delivered, contractor confirms 'received' */
+  executionStatus?: 'preparing' | 'shipping' | 'delivered' | 'received';
   executionStatusChangedAt?: string;
 }
 

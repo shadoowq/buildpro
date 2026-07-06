@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Quote, QuoteLineItem, displayVal, getEffectiveQuoteStatus } from '../../../lib/requestHelpers';
 import { currencyLabel, resolveOther, lineSubtotal, VAT_RATE } from '../../../lib/materialOptions';
-import { getCategory, isTilesCategory } from '../../../lib/materialCategories';
+import { getCategory, isTilesCategory, categoryFieldsSummary } from '../../../lib/materialCategories';
 import { getCurrentUser, getLanguage, getQuotePreview, getQuotes, getRequests, getUserShadow } from '../../../lib/store';
 
 type Lang = 'ar' | 'en';
@@ -267,7 +267,15 @@ export default function PrintQuote() {
                       <td style={{ ...td, textAlign: 'center', fontWeight: 700, color: 'var(--chrome)' }}>{i + 1}</td>
                       <td style={td}>{(() => {
                         const cat = !isTilesCategory(li.category) ? getCategory(li.category) : undefined;
-                        if (cat) return `${cat.icon} ${lang === 'ar' ? cat.labelAr : cat.labelEn}`;
+                        if (cat) {
+                          const summary = categoryFieldsSummary(li.category, li.fields, lang);
+                          return (
+                            <>
+                              {cat.icon} {lang === 'ar' ? cat.labelAr : cat.labelEn}
+                              {summary && <div style={{ fontSize: 10, color: '#78716C', marginTop: 2 }}>{summary}</div>}
+                            </>
+                          );
+                        }
                         return displayVal(resolveOther(li.type, li.typeOther), lang);
                       })()}</td>
                       <td style={td}>{resolveOther(li.size, li.sizeOther) || '—'}</td>

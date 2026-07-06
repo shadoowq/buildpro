@@ -1,4 +1,5 @@
 import { MATERIAL_OPTIONS } from './materialOptions';
+import { displayVal, Lang } from './requestHelpers';
 
 export interface CategoryField {
   key: string;
@@ -126,6 +127,17 @@ export const getCategory = (id: string | undefined): MaterialCategory | undefine
   MATERIAL_CATEGORIES.find(c => c.id === id);
 
 export const isTilesCategory = (id: string | undefined): boolean => !id || id === 'tiles';
+
+/** "field: value, field: value" summary of a non-tile spec (request material or quote
+    line item), in the category's schema order. Empty string when nothing is filled. */
+export function categoryFieldsSummary(categoryId: string | undefined, fields: Record<string, string> | undefined, lang: Lang): string {
+  const cat = getCategory(categoryId);
+  if (!cat || !fields) return '';
+  return cat.fields
+    .map(f => fields[f.key]?.trim() && `${lang === 'ar' ? f.labelAr : f.labelEn}: ${displayVal(fields[f.key], lang)}`)
+    .filter(Boolean)
+    .join(lang === 'ar' ? '، ' : ', ');
+}
 
 /** Human label for a supplier specialty value. Specialties saved after the
     categories feature are category ids ('paint', 'rebar'...); older profiles

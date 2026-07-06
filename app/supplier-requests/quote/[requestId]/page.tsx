@@ -17,7 +17,7 @@ import {
   Quote, QuoteLineItem, QuoteAttachment,
 } from '../../../lib/requestHelpers';
 import { isValidImageFile, isValidAttachmentFile } from '../../../lib/auth';
-import { getCategory, isTilesCategory } from '../../../lib/materialCategories';
+import { getCategory, isTilesCategory, categoryFieldsSummary } from '../../../lib/materialCategories';
 import { isRequestMatchedToSupplier, askRequestQuestion, answerRequestQuestion, RequestQuestion } from '../../../lib/marketplace';
 import {
   getCurrentUser, getLanguage, setLanguage as persistLanguage,
@@ -32,7 +32,11 @@ const OTHER = OTHER_VALUE;
 interface FormLineItem {
   id: number;
   category: string;
+  /** the buyer's requested spec — read-only reference for non-tile rows */
   fields: Record<string, string>;
+  /** the supplier's offered spec (select/other UI state), resolved into QuoteLineItem.fields on submit */
+  offerFields: Record<string, string>;
+  offerFieldsOther: Record<string, string>;
   type: string; typeOther: string;
   size: string; sizeOther: string;
   thickness: string; thicknessOther: string;
@@ -49,7 +53,7 @@ interface FormLineItem {
 
 const emptyLineItem = (): FormLineItem => ({
   id: Date.now() + Math.random(),
-  category: 'tiles', fields: {},
+  category: 'tiles', fields: {}, offerFields: {}, offerFieldsOther: {},
   type: '', typeOther: '',
   size: '', sizeOther: '',
   thickness: '', thicknessOther: '',
@@ -70,6 +74,27 @@ function buildReferenceLabel(row: { category: string; fields: Record<string, str
     .filter(Boolean);
   const label = `${cat.icon} ${lang === 'ar' ? cat.labelAr : cat.labelEn}`;
   return parts.length ? `${label} — ${parts.join(', ')}` : label;
+}
+
+/** Splits resolved flat spec values back into select+Other UI state — a value outside
+    the field's preset list re-selects "Other" with the text prefilled (mirrors
+    create-request's restoreRowOtherState so custom values survive the round trip). */
+function splitOfferState(categoryId: string, flat: Record<string, string> | undefined): { offerFields: Record<string, string>; offerFieldsOther: Record<string, string> } {
+  const cat = getCategory(categoryId);
+  const offerFields: Record<string, string> = {};
+  const offerFieldsOther: Record<string, string> = {};
+  if (cat && flat) {
+    Object.entries(flat).forEach(([k, v]) => {
+      if (!v) return;
+      const def = cat.fields.find(f => f.key === k);
+      if (def?.type === 'select' && v !== OTHER && !(def.options || []).includes(v)) {
+        offerFields[k] = OTHER; offerFieldsOther[k] = v;
+      } else {
+        offerFields[k] = v;
+      }
+    });
+  }
+  return { offerFields, offerFieldsOther };
 }
 
 function legacyMaterialRows(request: any): any[] {
@@ -95,6 +120,8 @@ function prefillFromRequest(request: any): FormLineItem[] {
       return {
         id: Date.now() + Math.random(),
         category: m.category, fields: m.fields || {},
+        // the offer starts as the buyer's spec — the supplier adjusts what differs
+        ...splitOfferState(m.category, m.fields),
         type: '', typeOther: '', size: '', sizeOther: '', thickness: '', thicknessOther: '',
         finish: '', finishOther: '', color: '', colorOther: '',
         quantity: m.quantity != null ? String(m.quantity) : '',
@@ -111,7 +138,7 @@ function prefillFromRequest(request: any): FormLineItem[] {
     const unit = pickField(m.unit || '', MATERIAL_OPTIONS.units);
     return {
       id: Date.now() + Math.random(),
-      category: 'tiles', fields: {},
+      category: 'tiles', fields: {}, offerFields: {}, offerFieldsOther: {},
       type: type.value, typeOther: type.other,
       size: size.value, sizeOther: size.other,
       thickness: thickness.value, thicknessOther: thickness.other,
@@ -168,6 +195,9 @@ const T = {
   taxCol:       { ar: 'الضريبة (15%)',           en: 'Tax (15%)' },
   lineTotal:    { ar: 'الإجمالي',                en: 'Total' },
   itemNote:     { ar: 'وصف البند',               en: 'Item Description' },
+  buyerSpecLabel: { ar: 'مواصفات المقاول المطلوبة', en: "Contractor's requested spec" },
+  offerSpecs:   { ar: 'مواصفات ما ستورّده',       en: 'Your Offered Specs' },
+  offerSpecsHint: { ar: 'معبأة مسبقًا بمواصفات المقاول — عدّل ما يختلف في عرضك', en: "Prefilled from the contractor's spec — adjust whatever differs in your offer" },
   targetHint:   { ar: 'سعر المقاول المستهدف',    en: 'Contractor target' },
   image:        { ar: 'صورة',                   en: 'Image' },
   uploadImage:  { ar: '+ صورة',                  en: '+ Image' },
@@ -338,6 +368,8 @@ export default function SupplierQuoteBuilder() {
           thickness: li.thickness || '', thicknessOther: li.thicknessOther || '', images: li.images || [],
           category: li.category || 'tiles',
           fields: req.materials?.[i]?.fields || {},
+          // prefer the offer the supplier already saved on the quote; fall back to the buyer's spec
+          ...splitOfferState(li.category || 'tiles', li.fields || req.materials?.[i]?.fields),
         })));
       } else {
         setLineItems(prefillFromRequest(req));
@@ -363,7 +395,7 @@ export default function SupplierQuoteBuilder() {
       setOverallDiscount(draft?.overallDiscount ?? '');
       setDescription(draft?.description ?? '');
       setLineItems(draft?.lineItems?.length
-        ? draft.lineItems.map((li: FormLineItem) => ({ ...li, category: li.category || 'tiles', fields: li.fields || {} }))
+        ? draft.lineItems.map((li: FormLineItem) => ({ ...li, category: li.category || 'tiles', fields: li.fields || {}, offerFields: li.offerFields || {}, offerFieldsOther: li.offerFieldsOther || {} }))
         : prefillFromRequest(req));
     }
 
@@ -385,6 +417,12 @@ export default function SupplierQuoteBuilder() {
 
   const updateRow = (id: number, field: keyof FormLineItem, value: string) => {
     setLineItems(prev => prev.map(r => (r.id === id ? { ...r, [field]: value } : r)));
+  };
+  const updateOfferField = (id: number, key: string, value: string) => {
+    setLineItems(prev => prev.map(r => (r.id === id ? { ...r, offerFields: { ...r.offerFields, [key]: value } } : r)));
+  };
+  const updateOfferFieldOther = (id: number, key: string, value: string) => {
+    setLineItems(prev => prev.map(r => (r.id === id ? { ...r, offerFieldsOther: { ...r.offerFieldsOther, [key]: value } } : r)));
   };
   const addRow = () => setLineItems(prev => [...prev, emptyLineItem()]);
   const removeRow = (id: number) => setLineItems(prev => (prev.length > 1 ? prev.filter(r => r.id !== id) : prev));
@@ -439,6 +477,16 @@ export default function SupplierQuoteBuilder() {
   const rowTotal = (li: FormLineItem) => rowSubtotal(li) + rowTax(li);
   const totals = computeQuoteTotals(lineItems, overallDiscount);
 
+  /** Resolves the offer's select/Other UI state into flat values for storage; empty fields are dropped. */
+  const resolveOfferFields = (li: FormLineItem): Record<string, string> => {
+    const out: Record<string, string> = {};
+    Object.entries(li.offerFields || {}).forEach(([k, v]) => {
+      const resolved = resolveOther(v, li.offerFieldsOther?.[k] || '').trim();
+      if (resolved) out[k] = resolved;
+    });
+    return out;
+  };
+
   const isValidLineItem = (li: FormLineItem) =>
     (isTilesCategory(li.category) ? resolveOther(li.type, li.typeOther).trim() : true)
     && Number(li.unitPrice) > 0 && Number(li.quantity) > 0;
@@ -460,6 +508,7 @@ export default function SupplierQuoteBuilder() {
       .filter(isValidLineItem)
       .map(li => ({
         id: li.id, category: li.category,
+        fields: isTilesCategory(li.category) ? undefined : resolveOfferFields(li),
         type: li.type, typeOther: li.typeOther,
         size: li.size, sizeOther: li.sizeOther,
         thickness: li.thickness, thicknessOther: li.thicknessOther,
@@ -788,10 +837,38 @@ export default function SupplierQuoteBuilder() {
                   </div>
                 </div>
                 ) : (
-                  <div className="mb-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-xs text-stone-600 italic">
-                    {buildReferenceLabel(row, language)}
-                    {row.quantity && <span> — {tx('qty', language)}: {row.quantity} {row.unit}</span>}
-                  </div>
+                  <>
+                    <div className="mb-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 text-xs text-stone-600 italic">
+                      📋 {tx('buyerSpecLabel', language)}: {buildReferenceLabel(row, language)}
+                      {row.quantity && <span> — {tx('qty', language)}: {row.quantity} {row.unit}</span>}
+                    </div>
+                    {(() => {
+                      const cat = getCategory(row.category);
+                      if (!cat) return null;
+                      return (
+                        <div className="mb-2">
+                          <p className="text-xs font-bold text-[var(--brand-strong)] mb-1.5">{tx('offerSpecs', language)}</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                            {cat.fields.map(field => (
+                              <div key={field.key}>
+                                <label className="block text-xs font-semibold text-stone-500 mb-1">{language === 'ar' ? field.labelAr : field.labelEn}</label>
+                                {field.type === 'select' ? (
+                                  <SelectOther value={row.offerFields[field.key] || ''} other={row.offerFieldsOther[field.key] || ''}
+                                    onValue={v => updateOfferField(row.id, field.key, v)} onOther={v => updateOfferFieldOther(row.id, field.key, v)}
+                                    options={field.options || []} lang={language} />
+                                ) : (
+                                  <input type={field.type} value={row.offerFields[field.key] || ''}
+                                    onChange={e => updateOfferField(row.id, field.key, e.target.value)}
+                                    className="w-full text-xs border border-[var(--line)] rounded-lg px-2 py-1.5 bg-white text-stone-700 outline-none focus:border-[var(--sec)]" />
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-[10px] text-stone-400 mt-1">{tx('offerSpecsHint', language)}</p>
+                        </div>
+                      );
+                    })()}
+                  </>
                 )}
                 <div className="grid grid-cols-3 gap-2 mb-2">
                   <div>
@@ -953,7 +1030,17 @@ export default function SupplierQuoteBuilder() {
                   {lineItems.filter(isValidLineItem).map((li, i) => (
                     <tr key={li.id}>
                       <td className="px-3 py-2 text-center border-b border-[var(--line-soft)] font-bold text-[var(--brand-strong)]">{i + 1}</td>
-                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{displayVal(resolveOther(li.type, li.typeOther), language)}</td>
+                      <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{(() => {
+                        if (isTilesCategory(li.category)) return displayVal(resolveOther(li.type, li.typeOther), language);
+                        const cat = getCategory(li.category);
+                        const summary = categoryFieldsSummary(li.category, resolveOfferFields(li), language);
+                        return (
+                          <span>
+                            {cat ? `${cat.icon} ${language === 'ar' ? cat.labelAr : cat.labelEn}` : '—'}
+                            {summary && <span className="block text-[10px] text-stone-500 mt-0.5">{summary}</span>}
+                          </span>
+                        );
+                      })()}</td>
                       <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{resolveOther(li.size, li.sizeOther) || tx('noValue', language)}</td>
                       <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{resolveOther(li.thickness, li.thicknessOther) || tx('noValue', language)}</td>
                       <td className="px-3 py-2 text-center border-b border-[var(--line-soft)]">{displayVal(resolveOther(li.finish, li.finishOther), language) || tx('noValue', language)}</td>
