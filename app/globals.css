@@ -195,3 +195,30 @@ body {
 .bp-page div {
   color: #1C1917;
 }
+
+/* ── Landing page: floating gradient blobs (slow, ambient — no images needed) ── */
+@keyframes bp-blob-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33%      { transform: translate(30px, -35px) scale(1.08); }
+  66%      { transform: translate(-25px, 20px) scale(0.94); }
+}
+.bp-blob {
+  animation: bp-blob-float 18s ease-in-out infinite;
+}
+.bp-blob-slow {
+  animation: bp-blob-float 24s ease-in-out infinite reverse;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bp-blob, .bp-blob-slow { animation: none; }
+}
+
+/* ── Landing page: scroll-reveal, paired with the useReveal hook in app/page.tsx ── */
+.bp-reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.bp-reveal.bp-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
