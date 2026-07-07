@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { getCurrentUser, getLanguage, setLanguage } from './lib/store';
 import {
@@ -9,6 +10,7 @@ import {
   IconMapPin, IconPackage, IconHardHat, IconBuilding,
   IconSparkle, IconArrow, IconCheck, IconQuote,
 } from './components/Icon';
+import AddToHomeScreen from './components/AddToHomeScreen';
 type Lang = 'ar' | 'en';
 
 /* ─── scroll-reveal: fades/slides a section in the first time it enters the viewport ─── */
@@ -96,10 +98,74 @@ const STATS = [
   { ar: 'مدينة سعودية', en: 'Saudi Cities',         num: 20,   suffix: '+', icon: IconMapPin   },
 ];
 
-const SUPPLIERS = [
-  'RAK Ceramics', 'Saudi Ceramics', 'Porcelanosa',
-  'National Ceramics', 'Future Ceramics', 'Al-Bandar Marble',
+const SUPPLIER_LOGOS = [
+  { src: '/images/logos/rajhi-steel.png', alt: 'Rajhi Steel' },
+  { src: '/images/logos/alfanar-porcelain.png', alt: 'Alfanar Porcelain' },
+  { src: '/images/logos/saveto.png', alt: 'Saveto Construction Materials' },
+  { src: '/images/logos/alsafwa-cement.png', alt: 'Alsafwa Cement' },
+  { src: '/images/logos/rak-ceramics.png', alt: 'RAK Ceramics' },
+  { src: '/images/logos/khayyat-bricks.png', alt: 'El-Khayyat Red Bricks Factories' },
+  { src: '/images/logos/saudi-ceramics.png', alt: 'Saudi Ceramics' },
+  { src: '/images/logos/watania-steel.png', alt: 'Watania Steel' },
+  { src: '/images/logos/elsewedy-cables.png', alt: 'Elsewedy Cables' },
+  { src: '/images/logos/alsafa-aluminum.png', alt: 'Al-Safa Aluminum' },
+  { src: '/images/logos/alwady-alakhdar.png', alt: 'Al-Wady Al-Akhdar' },
+  { src: '/images/logos/jotun.png', alt: 'Jotun' },
 ];
+
+// 3 groups splitting the 12 logos evenly with no overlap — every logo appears in
+// exactly one group (only 12 unique logos exist, so 7-per-group would force repeats).
+const LOGO_GROUP_SIZE = Math.ceil(SUPPLIER_LOGOS.length / 3);
+const LOGO_GROUPS = [0, 1, 2].map(g =>
+  SUPPLIER_LOGOS.slice(g * LOGO_GROUP_SIZE, (g + 1) * LOGO_GROUP_SIZE)
+);
+
+function LogoCarousel() {
+  // one extra slide at the end duplicating the first group, so the loop can snap back
+  // to slide 0 invisibly right after sliding into the duplicate — classic infinite-carousel trick
+  const slides = [...LOGO_GROUPS, LOGO_GROUPS[0]];
+  const [index, setIndex] = useState(0);
+  const [instant, setInstant] = useState(false);
+
+  useEffect(() => {
+    const id = setInterval(() => setIndex(i => i + 1), 3200);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (index !== slides.length - 1) return;
+    const timer = setTimeout(() => {
+      setInstant(true);
+      setIndex(0);
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [index, slides.length]);
+
+  useEffect(() => {
+    if (!instant) return;
+    const raf = requestAnimationFrame(() => setInstant(false));
+    return () => cancelAnimationFrame(raf);
+  }, [instant]);
+
+  return (
+    <div className="overflow-hidden" dir="ltr">
+      <div
+        className={`flex ${instant ? '' : 'transition-transform duration-700 ease-in-out'}`}
+        style={{ transform: `translateX(-${index * 100}%)` }}
+      >
+        {slides.map((group, gi) => (
+          <div key={gi} className="w-full shrink-0 flex flex-wrap items-center justify-center gap-3 md:gap-5">
+            {group.map((logo, i) => (
+              <div key={i} className="w-36 h-24 md:w-44 md:h-28 shrink-0 bg-white border border-[var(--line)] rounded-xl shadow-sm flex items-center justify-center p-4">
+                <img src={logo.src} alt={logo.alt} className="max-h-full max-w-full object-contain" />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const TESTIMONIALS = [
   {
@@ -110,7 +176,116 @@ const TESTIMONIALS = [
     ar: { text: 'خلال أسبوع الأول وصلني 12 طلب تسعير من مقاولين جدد ما كنت أعرفهم. القناة دي فتحت لي سوق جديد.', name: 'أحمد محمود', role: 'مورد سيراميك — جدة' },
     en: { text: 'In my first week I received 12 pricing requests from new contractors I had never met. This channel opened a new market for me.', name: 'Ahmed Mahmoud', role: 'Ceramic Supplier — Jeddah' },
   },
+  {
+    ar: { text: 'قارنت بين 6 عروض حديد تسليح في نفس اليوم بدل ما أتصل على كل مورد لوحده. وفرت وقت أسبوع كامل.', name: 'م. سارة القحطاني', role: 'مديرة مشتريات — الدمام' },
+    en: { text: 'I compared 6 rebar quotes in the same day instead of calling every supplier separately. Saved an entire week.', name: 'Eng. Sarah Al-Qahtani', role: 'Procurement Manager — Dammam' },
+  },
+  {
+    ar: { text: 'أول منصة توصلني بمقاولين حقيقيين محتاجين ألمنيوم فورًا، من غير وسطاء ومن غير عمولة.', name: 'مايكل تشين', role: 'مورد ألمنيوم — جدة' },
+    en: { text: 'The first platform that connects me to real contractors who need aluminum right now — no middlemen, no commission.', name: 'Michael Chen', role: 'Aluminum Supplier — Jeddah' },
+  },
+  {
+    ar: { text: 'كنت بضيع نص وقتي في المكالمات، دلوقتي بس بحدد المواصفات وأستنى العروض توصل.', name: 'م. عبدالله الحربي', role: 'مقاول تشطيبات — مكة' },
+    en: { text: 'I used to waste half my day on phone calls. Now I just set the specs and wait for quotes to arrive.', name: 'Eng. Abdullah Al-Harbi', role: 'Finishing Contractor — Mecca' },
+  },
+  {
+    ar: { text: 'كمهندس مشتريات أجنبي في السوق السعودي، المنصة سهّلت عليّ فهم السوق المحلي والوصول لموردين موثوقين بسرعة.', name: 'راجيش كومار', role: 'مدير مشتريات — الخبر' },
+    en: { text: 'As an expat procurement engineer in the Saudi market, this platform made it easy to understand the local market and reach trusted suppliers fast.', name: 'Rajesh Kumar', role: 'Procurement Manager — Khobar' },
+  },
+  {
+    ar: { text: 'مشروعي السكني الأول، ومنصة BuildPro خلتني أقارن أسعار العزل الحراري زي المحترفين من غير خبرة سابقة.', name: 'فاطمة الزهراني', role: 'مالكة مشروع سكني — أبها' },
+    en: { text: 'My first residential project, and BuildPro let me compare insulation prices like a pro with zero prior experience.', name: 'Fatima Al-Zahrani', role: 'Residential Project Owner — Abha' },
+  },
+  {
+    ar: { text: 'وصلتنا طلبات عزل حراري من مدن ما كنا نوزع فيها أصلاً. المنصة وسّعت نطاق مبيعاتنا فعليًا.', name: 'جون أندرسون', role: 'مورد عزل حراري — ينبع' },
+    en: { text: 'We started getting insulation requests from cities we never distributed to before. The platform genuinely expanded our sales reach.', name: 'John Anderson', role: 'Insulation Supplier — Yanbu' },
+  },
+  {
+    ar: { text: 'أدرت 3 مشاريع في نفس الوقت بمتابعة كل طلب تسعير لوحده — سهّل عليّ التنظيم جدًا.', name: 'م. ماجد السبيعي', role: 'مقاول عام — تبوك' },
+    en: { text: 'I managed 3 projects at once by tracking every pricing request separately — made organization so much easier.', name: 'Eng. Majed Al-Subaie', role: 'General Contractor — Tabuk' },
+  },
+  {
+    ar: { text: 'الشفافية في مقارنة المواصفات جنبًا إلى جنب وفرتلي قرارات أسرع وأدق مع كل مورد.', name: 'بريا شارما', role: 'مهندسة مشتريات — الرياض' },
+    en: { text: 'The transparency of comparing specs side by side gave me faster, more accurate decisions with every supplier.', name: 'Priya Sharma', role: 'Procurement Engineer — Riyadh' },
+  },
+  {
+    ar: { text: 'ما كنت مصدق إن فيه منصة بتوصلني بمقاولين فعليين يبحثون عن حديد تسليح بجودة موثقة.', name: 'م. تركي العنزي', role: 'مورد حديد — جدة' },
+    en: { text: 'I couldn\'t believe there was a platform connecting me to real contractors actively searching for certified rebar.', name: 'Eng. Turki Al-Anzi', role: 'Steel Supplier — Jeddah' },
+  },
+  {
+    ar: { text: 'كمستشار مشاريع، بنصح كل عملائي يستخدموا BuildPro قبل ما يوقعوا أي عقد توريد.', name: 'ديفيد ميلر', role: 'مستشار مشاريع — الدمام' },
+    en: { text: 'As a project consultant, I now advise every client to use BuildPro before signing any supply contract.', name: 'David Miller', role: 'Project Consultant — Dammam' },
+  },
+  {
+    ar: { text: 'معرضي الصغير بقى يوصله طلبات من مقاولين في مدن تانية، مش بس اللي حواليّ.', name: 'نورة الشمري', role: 'مالكة معرض بلاط — الرياض' },
+    en: { text: 'My small showroom now gets requests from contractors in other cities, not just my local area.', name: 'Noura Al-Shammari', role: 'Tile Showroom Owner — Riyadh' },
+  },
+  {
+    ar: { text: 'كل موسم بناء كنا نخسر عملاء بسبب بطء الرد. دلوقتي عروضنا توصل خلال ساعات.', name: 'أحمد الزهراني', role: 'مورد أسمنت — مكة' },
+    en: { text: 'Every construction season we used to lose clients due to slow responses. Now our quotes go out within hours.', name: 'Ahmed Al-Zahrani', role: 'Cement Supplier — Mecca' },
+  },
+  {
+    ar: { text: 'واجهات المباني بتحتاج مواد دقيقة المواصفات، والمنصة سهّلت عليّ الوصول لموردين يفهموا المطلوب بالظبط.', name: 'كارلوس رودريغيز', role: 'مقاول واجهات — جدة' },
+    en: { text: 'Building facades need very precise specs, and the platform made it easy to reach suppliers who understood exactly what was needed.', name: 'Carlos Rodriguez', role: 'Facade Contractor — Jeddah' },
+  },
+  {
+    ar: { text: 'بقيت أوصل لعدد مقاولين أكبر بكتير من غير ما أزود ميزانية التسويق ولا ريال واحد.', name: 'م. بندر القرني', role: 'مورد دهانات — الرياض' },
+    en: { text: 'I now reach far more contractors without increasing my marketing budget by a single riyal.', name: 'Eng. Bandar Al-Qarni', role: 'Paint Supplier — Riyadh' },
+  },
+  {
+    ar: { text: 'إدارة عروض الأسعار لكل فروعنا بقت مركزية ومنظمة بدل ما كل فرع يشتغل لوحده.', name: 'فاطمة العتيبي', role: 'مديرة تنفيذية — الخبر' },
+    en: { text: 'Managing quotes across all our branches became centralized and organized instead of every branch working on its own.', name: 'Fatima Al-Otaibi', role: 'Executive Manager — Khobar' },
+  },
+  {
+    ar: { text: 'طلبات الكابلات كانت بتوصلنا بالصدفة قبل كده، دلوقتي بتوصلنا مستهدفة وبمواصفات واضحة من البداية.', name: 'حسن علي', role: 'مورد كابلات — الدمام' },
+    en: { text: 'Cable requests used to reach us by chance before. Now they arrive targeted, with clear specs from the start.', name: 'Hassan Ali', role: 'Cables Supplier — Dammam' },
+  },
+  {
+    ar: { text: 'مشروع ترميم في المدينة المنورة احتاج موردين متخصصين بسرعة، ولقيتهم كلهم في مكان واحد.', name: 'سلطان المطيري', role: 'مقاول عام — المدينة المنورة' },
+    en: { text: 'A renovation project in Medina needed specialized suppliers fast, and I found them all in one place.', name: 'Sultan Al-Mutairi', role: 'General Contractor — Medina' },
+  },
+  {
+    ar: { text: 'كمديرة مشتريات دولية، بحثت طويلاً عن منصة تفهم خصوصية السوق السعودي — وأخيرًا لقيتها.', name: 'إيميلي واطسون', role: 'مديرة مشتريات دولية — جدة' },
+    en: { text: 'As an international procurement manager, I searched long for a platform that understands the specifics of the Saudi market — and finally found it.', name: 'Emily Watson', role: 'International Procurement Manager — Jeddah' },
+  },
 ];
+
+function TestimonialCarousel({ lang }: { lang: Lang }) {
+  const [index, setIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIndex(i => (i + 1) % TESTIMONIALS.length);
+        setVisible(true);
+      }, 400);
+    }, 4200);
+    return () => clearInterval(id);
+  }, []);
+
+  const content = lang === 'ar' ? TESTIMONIALS[index].ar : TESTIMONIALS[index].en;
+
+  return (
+    <div className="max-w-2xl mx-auto">
+      <div className={`bg-white border border-[var(--line)] rounded-2xl p-8 shadow-sm transition-all duration-400 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'}`}>
+        <IconQuote className="w-8 h-8 text-[var(--tint-hover)] mb-3" />
+        <p className="text-stone-700 text-base leading-relaxed mb-6 min-h-[75px]">{content.text}</p>
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 shrink-0 rounded-xl bg-[var(--brand)] flex items-center justify-center text-white font-bold text-sm">
+            {content.name.charAt(content.name.length > 3 ? 2 : 0)}
+          </div>
+          <div>
+            <div className="text-sm font-bold text-stone-900">{content.name}</div>
+            <div className="text-xs text-stone-500">{content.role}</div>
+          </div>
+          <div className="mr-auto text-amber-400 text-sm">★★★★★</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function LandingPage() {
   const [lang, setLang] = useState<Lang>('ar');
@@ -168,8 +343,20 @@ export default function LandingPage() {
       </nav>
 
       {/* ══ HERO ══ */}
-      <section className="bg-[var(--chrome)] pt-16 pb-0 px-6 md:px-10 relative overflow-hidden">
-        {/* ambient floating gradient blobs — slow, blurred, no images needed */}
+      <section className="pt-16 pb-0 px-6 md:px-10 relative overflow-hidden">
+        {/* full-bleed photo backdrop */}
+        <Image
+          src="/images/hero-construction-worker.jpg"
+          alt={t('عامل بناء يرتدي خوذة وسترة أمان في موقع إنشائي', 'Construction worker wearing a hard hat and safety vest on a job site')}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-[center_25%]"
+        />
+        <div className="absolute inset-0 bg-[var(--chrome)]/70" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--chrome)] via-[var(--chrome)]/40 to-[var(--chrome)]/60" />
+
+        {/* ambient floating gradient blobs — slow, blurred, sit above the photo for extra depth */}
         <div className="bp-blob absolute top-0 right-0 w-80 h-80 bg-[var(--brand)]/15 rounded-full blur-3xl -translate-y-1/3 translate-x-1/4 pointer-events-none" />
         <div className="bp-blob-slow absolute bottom-0 left-0 w-72 h-72 bg-[var(--sec)]/20 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none" />
         <div className="bp-blob absolute top-1/3 left-1/3 w-40 h-40 bg-white/[0.04] rounded-full blur-2xl pointer-events-none" style={{ animationDelay: '-6s' }} />
@@ -183,7 +370,7 @@ export default function LandingPage() {
             </span>
           </div>
 
-          <h1 className="text-white text-3xl md:text-5xl font-extrabold leading-tight mb-4">
+          <h1 className="text-white text-3xl md:text-5xl font-extrabold leading-tight mb-4 drop-shadow-[0_2px_12px_rgba(0,0,0,0.5)]">
             {t('اطلب تسعير مواد البناء', 'Request Building Materials')}
             <br />
             <span className="text-[var(--chrome-active-ink)]">
@@ -191,7 +378,7 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          <p className="text-white/60 text-base md:text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
+          <p className="text-white/70 text-base md:text-lg max-w-2xl mx-auto mb-8 leading-relaxed">
             {t(
               'أرسل طلب تسعير واحد وانتظر العروض تتراكم — بدل ما تجري ورا الموردين واحداً واحداً، خليهم هم يجوا ليك.',
               'Send one request and watch offers roll in — instead of chasing suppliers one by one, let them come to you.'
@@ -210,7 +397,7 @@ export default function LandingPage() {
           </div>
 
           {/* social proof strip */}
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 pb-10 text-white/40 text-xs">
+          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 pb-10 text-white/50 text-xs">
             {[
               t('مجاني تماماً للمقاولين', 'Completely free for contractors'),
               t('بدون عمولة على الصفقات', 'No commission on deals'),
@@ -276,7 +463,15 @@ export default function LandingPage() {
       </section>
 
       {/* ══ STATS ══ */}
-      <section className="bg-[var(--chrome)] py-14 px-6 md:px-10 relative overflow-hidden">
+      <section className="py-14 px-6 md:px-10 relative overflow-hidden">
+        <Image
+          src="/images/stats-city-night.jpg"
+          alt={t('موقع بناء ليلاً وسط ناطحات السحاب', 'A construction site at night among city skyscrapers')}
+          fill
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-[var(--chrome)]/75" />
         <div className="bp-blob-slow absolute top-1/2 right-1/4 w-64 h-64 bg-[var(--brand)]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="max-w-5xl mx-auto relative z-10">
           <Reveal className="text-center mb-10">
@@ -379,50 +574,32 @@ export default function LandingPage() {
               {t('تجارب حقيقية من السوق السعودي', 'Real Experiences from the Saudi Market')}
             </h2>
           </Reveal>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {TESTIMONIALS.map((t_item, i) => {
-              const content = lang === 'ar' ? t_item.ar : t_item.en;
-              return (
-                <Reveal key={i} delay={i * 120}>
-                  <div className="bg-white border border-[var(--line)] rounded-2xl p-6 hover:shadow-lg transition-shadow duration-300 h-full">
-                    <IconQuote className="w-8 h-8 text-[var(--tint-hover)] mb-3" />
-                    <p className="text-stone-700 text-sm leading-relaxed mb-5">{content.text}</p>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[var(--brand)] flex items-center justify-center text-white font-bold text-sm">
-                        {content.name.charAt(content.name.length > 3 ? 2 : 0)}
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-stone-900">{content.name}</div>
-                        <div className="text-xs text-stone-500">{content.role}</div>
-                      </div>
-                      <div className="mr-auto text-amber-400 text-sm">★★★★★</div>
-                    </div>
-                  </div>
-                </Reveal>
-              );
-            })}
-          </div>
+          <TestimonialCarousel lang={lang} />
         </div>
       </section>
 
       {/* ══ LOGO WALL ══ */}
-      <section className="bg-white py-12 px-6 md:px-10 border-t border-[var(--line)]">
-        <div className="max-w-5xl mx-auto text-center">
-          <p className="text-stone-400 text-xs font-bold tracking-widest uppercase mb-8">
+      <section className="bg-white py-16 border-t border-[var(--line)]">
+        <div className="max-w-5xl mx-auto text-center px-6 md:px-10 mb-10">
+          <h2 className="text-2xl md:text-3xl font-extrabold text-stone-900">
             {t('من بين موردينا الموثوقين', 'Among Our Trusted Suppliers')}
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
-            {SUPPLIERS.map((name, i) => (
-              <div key={i} className="text-stone-300 font-bold text-sm tracking-wide hover:text-stone-500 transition-colors cursor-default">
-                {name}
-              </div>
-            ))}
-          </div>
+          </h2>
+        </div>
+        <div className="max-w-4xl mx-auto px-6 md:px-10">
+          <LogoCarousel />
         </div>
       </section>
 
       {/* ══ BOTTOM CTA ══ */}
-      <section className="bg-[var(--chrome)] py-16 px-6 md:px-10 relative overflow-hidden">
+      <section className="py-16 px-6 md:px-10 relative overflow-hidden">
+        <Image
+          src="/images/cta-crane-sunset.jpg"
+          alt={t('رافعة برج فوق موقع إنشائي عند الغروب', 'A tower crane above a construction site at sunset')}
+          fill
+          sizes="100vw"
+          className="object-cover object-center"
+        />
+        <div className="absolute inset-0 bg-[var(--chrome)]/80" />
         <div className="bp-blob absolute top-0 left-1/4 w-64 h-64 bg-[var(--brand)]/10 rounded-full blur-3xl pointer-events-none" />
         <div className="bp-blob-slow absolute bottom-0 right-1/4 w-56 h-56 bg-white/5 rounded-full blur-3xl pointer-events-none" />
         <Reveal className="max-w-2xl mx-auto text-center relative z-10">
@@ -508,6 +685,8 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <AddToHomeScreen lang={lang} />
     </div>
   );
 }
