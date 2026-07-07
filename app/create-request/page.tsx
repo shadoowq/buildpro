@@ -639,7 +639,9 @@ export default function CreateRequest() {
     notes: 'ملاحظات عامة (اختياري)', notesPlaceholder: 'أضف ملاحظات أو تفاصيل إضافية...',
     rowSuppliers: 'الموردون لهذه المادة', noSuppliers: 'لا يوجد موردين مسجلين بعد',
     selectAll: 'اختيار الكل', deselectAll: 'إلغاء الكل',
-    noMatchWarning: 'لا يوجد موردون متخصصون في هذا المجال حتى الآن — نعرض لك جميع الموردين.',
+    noMatchWarning: 'لا يوجد موردون متخصصون في هذا المجال حتى الآن.',
+    noMatchEmpty: 'لا يوجد موردون متخصصون في هذا المجال — لن يظهر أي مورد هنا حتى تختار "عرض كل الموردين" أدناه.',
+    showAllNoMatch: 'عرض كل الموردين',
     categoryMatch: 'مطابق للمجال', outsideSpecialty: 'خارج التخصص',
     noRating: 'لا يوجد تقييم', pastQuotes: 'عرض سابق',
     showOutside: 'عرض باقي الموردين خارج التخصص', hideOutside: 'إخفاء الموردين خارج التخصص',
@@ -676,7 +678,9 @@ export default function CreateRequest() {
     notes: 'General Notes (Optional)', notesPlaceholder: 'Add notes or extra details...',
     rowSuppliers: 'Suppliers for this material', noSuppliers: 'No suppliers registered yet',
     selectAll: 'Select All', deselectAll: 'Deselect All',
-    noMatchWarning: "No suppliers specialize in this category yet — showing all suppliers.",
+    noMatchWarning: "No suppliers specialize in this category yet.",
+    noMatchEmpty: 'No suppliers specialize in this category — none will show here unless you choose "Show all suppliers" below.',
+    showAllNoMatch: 'Show all suppliers',
     categoryMatch: 'Category match', outsideSpecialty: 'Outside specialty',
     noRating: 'No rating', pastQuotes: 'past quote(s)',
     showOutside: 'Show suppliers outside the specialty', hideOutside: 'Hide suppliers outside the specialty',
@@ -767,7 +771,11 @@ export default function CreateRequest() {
   const RowSupplierPicker = ({ row }: { row: MaterialRow }) => {
     const matching = rowMatchingSuppliers(row);
     const nonMatching = suppliers.filter(s => !matching.includes(s));
-    const visible = matching.length === 0 ? suppliers : (rowShowAll[row.id] ? [...matching, ...nonMatching] : matching);
+    /* Only ever show matched suppliers by default — a category with zero matches
+       shows zero suppliers, not a silent fallback to everyone. The contractor can
+       still deliberately reveal the full list via the toggle below if they want to
+       hand-pick someone outside their specialty. */
+    const visible = rowShowAll[row.id] ? [...matching, ...nonMatching] : matching;
     return (
       <div style={{ marginTop: '14px', borderTop: '1px dashed var(--line)', paddingTop: '14px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -788,6 +796,9 @@ export default function CreateRequest() {
               {tx.noMatchWarning}
             </div>
           )}
+          {visible.length === 0 ? (
+            <div style={{ padding: '12px', backgroundColor: 'var(--bg-soft)', borderRadius: '4px', color: '#666', textAlign: 'center', fontSize: '12px' }}>{tx.noMatchEmpty}</div>
+          ) : (
           <div style={{ border: '1px solid var(--line)', borderRadius: '4px', maxHeight: '220px', overflowY: 'auto', backgroundColor: '#fff' }}>
             {visible.map((supplier, index) => {
               const { avgRating, quoteCount } = getSupplierStats(supplier.email);
@@ -820,10 +831,11 @@ export default function CreateRequest() {
               );
             })}
           </div>
-          {matching.length > 0 && nonMatching.length > 0 && (
+          )}
+          {nonMatching.length > 0 && (
             <button type="button" onClick={() => toggleRowShowAll(row.id)}
               style={{ marginTop: '6px', padding: '4px 10px', backgroundColor: 'transparent', color: 'var(--sec)', border: '1px dashed var(--line)', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>
-              {rowShowAll[row.id] ? tx.hideOutside : `${tx.showOutside} (${nonMatching.length})`}
+              {rowShowAll[row.id] ? tx.hideOutside : matching.length === 0 ? `${tx.showAllNoMatch} (${nonMatching.length})` : `${tx.showOutside} (${nonMatching.length})`}
             </button>
           )}
           </>
